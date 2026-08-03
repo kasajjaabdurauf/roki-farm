@@ -57,17 +57,19 @@ export default function FarmPage() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/help">
-              <Button variant="accent">Learn how it works</Button>
+            <Link href="/survey">
+              <Button variant="accent">
+                <ClipboardPlus className="h-4 w-4" /> Complete my farmer survey
+              </Button>
             </Link>
           </div>
         </Card>
         <Card className="p-5">
-          <h3 className="mb-3 font-display text-lg font-semibold text-forest-900">What you can do now</h3>
+          <h3 className="mb-3 font-display text-lg font-semibold text-forest-900">Get started</h3>
           <div className="grid gap-2.5 sm:grid-cols-3">
-            <MiniAction icon={<ClipboardPlus className="h-5 w-5" />} title="Log harvests" text="Once your farm is registered, record what you harvest, when, and at what grade." href="/help" />
+            <MiniAction icon={<ClipboardPlus className="h-5 w-5" />} title="Complete my farmer survey" text="The official Roki registration questionnaire, about 10 minutes, once." href="/survey" />
             <MiniAction icon={<Sprout className="h-5 w-5" />} title="Farming tips" text="Practical agronomy tips from the Roki team on your dashboard." href="/" />
-            <MiniAction icon={<Wheat className="h-5 w-5" />} title="Payout-ready records" text="Accurate logs build the records Roki uses for planning and payouts." href="/logs" />
+            <MiniAction icon={<Wheat className="h-5 w-5" />} title="Payout-ready records" text="Once registered, accurate logs build the records Roki uses for planning and payouts." href="/help" />
           </div>
         </Card>
       </div>

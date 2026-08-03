@@ -102,8 +102,10 @@ function FarmerHome() {
                 </p>
               </div>
             </div>
-            <Link href="/help">
-              <Button variant="accent">Learn how it works</Button>
+            <Link href="/survey">
+              <Button variant="accent">
+                <ClipboardPlus className="h-4 w-4" /> Complete my farmer survey
+              </Button>
             </Link>
           </div>
         </Card>

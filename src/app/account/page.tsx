@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, LogOut, RefreshCw, ShieldCheck, User, UserCog, Users } from "lucide-react";
+import { BadgeCheck, ClipboardList, LogOut, RefreshCw, ShieldCheck, User, UserCog, Users } from "lucide-react";
 import { syncNow, useDb } from "@/lib/db";
 import { getSession, remoteConfigured, signOut } from "@/lib/remote";
 import { ROLE_LABEL, type Role } from "@/lib/types";
@@ -123,10 +123,18 @@ export default function AccountPage() {
         <Card>
           <h3 className="mb-2 font-display text-lg font-semibold text-forest-900">Your farmer account</h3>
           <p className="text-[13px] leading-relaxed text-stone-500">
-            Your account is set up for the farmer experience: you see only your own farm, your harvests and your
-            tier. If something looks wrong, contact your field agent or the Roki office.
+            {db.meta.demoFarmerId
+              ? "Your account is set up for the farmer experience: you see only your own farm, your harvests and your tier. If something looks wrong, contact your field agent or the Roki office."
+              : "You haven't completed your farmer registration survey yet. Do it once and your farm profile, harvests and tier will be ready."}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
+            {!db.meta.demoFarmerId && (
+              <Link href="/survey">
+                <Button variant="accent">
+                  <ClipboardList className="h-4 w-4" /> Complete my farmer survey
+                </Button>
+              </Link>
+            )}
             <Link href="/farm">
               <Button variant="outline">My Farm</Button>
             </Link>
