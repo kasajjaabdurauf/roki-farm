@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  /* hard guard: no horizontal page scroll, ever */
+  overflow-x: clip;
+}
+
+body {
+  @apply bg-cream text-stone-800 antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  overflow-x: clip;
+}
+
+/* hide number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* slim scrollbars */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgb(28 25 23 / 0.15);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* hide scrollbars on horizontal swipe carousels */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@layer components {
+  .touch-target {
+    @apply min-h-[48px] min-w-[48px];
+  }
+  .card {
+    @apply rounded-2xl border border-stone-200 bg-white shadow-card;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Base form-field styles live in @layer components so utility classes
+     (e.g. h-10, w-24) in className always override them (utilities layer
+     beats components layer). Font is 16px on phones to stop iOS Safari
+     from zooming into inputs on focus. */
+  .field-input {
+    @apply h-12 w-full rounded-xl border border-stone-300 bg-white px-3.5 text-base text-stone-800 outline-none transition-colors placeholder:text-stone-400 sm:text-[15px];
+  }
+  .field-input:focus {
+    @apply border-forest-600 ring-2 ring-forest-100;
+  }
+  .field-select {
+    @apply h-12 w-full appearance-none rounded-xl border border-stone-300 bg-white px-3.5 pr-9 text-base text-stone-800 outline-none transition-colors bg-no-repeat sm:text-[15px];
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23575757%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22/%3E%3C/svg%3E");
+    background-position: right 0.8rem center;
+  }
+  .field-select:focus {
+    @apply border-forest-600 ring-2 ring-forest-100;
+  }
+}

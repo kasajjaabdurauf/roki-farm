@@ -1,0 +1,32 @@
+{
+  "name": "roki-farm-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Roki Fruit & Vegetables — farmer registration surveys, production forecasting, export supply planning and deterministic rule-based validation. PWA for Uganda.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.109.0",
+    "@tanstack/react-table": "^8.21.3",
+    "lucide-react": "^0.525.0",
+    "next": "15.5.22",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

@@ -1,0 +1,46 @@
+# =====================================================================
+# Nightly backup email — Workaround B ($0 data safety net)
+# Free-tier Supabase has no point-in-time restore, so every night this
+# workflow queries all farmers + harvest logs, builds a 2-sheet Excel
+# workbook and emails it to the admin via Resend (free tier: 100
+# emails/day).
+#
+# Required repository secrets:
+#   SUPABASE_URL                  https://xxxx.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY     the service_role key (bypasses RLS for
+#                                 full backup read — keep it secret)
+#   RESEND_API_KEY                Resend API key
+#   BACKUP_EMAIL_TO               admin inbox (e.g. joan@farm.com)
+#   BACKUP_EMAIL_FROM             verified sender (default: onboarding@resend.dev)
+# =====================================================================
+name: Nightly Database Backup
+
+on:
+  schedule:
+    - cron: "0 23 * * *" # 23:00 UTC nightly
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run daily backup
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BACKUP_EMAIL_TO: ${{ secrets.BACKUP_EMAIL_TO }}
+          BACKUP_EMAIL_FROM: ${{ secrets.BACKUP_EMAIL_FROM }}
+        run: node scripts/daily-backup.js
