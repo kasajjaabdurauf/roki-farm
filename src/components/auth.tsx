@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { bootstrapRemote, useDb } from "@/lib/db";
-import { getSession, onAuthChange, remoteConfigured, remoteVarsPresent } from "@/lib/remote";
+import { getSession, onAuthChange, remoteConfigured, remoteVarsPresent, validateSession } from "@/lib/remote";
 import { LogoMark } from "./brand";
 import { Button } from "./ui";
 
@@ -40,12 +40,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false;
-    getSession()
+    validateSession()
       .then((s) => {
         if (cancelled) return;
         if (s) {
           void bootstrapRemote().catch(() => {});
         } else if (pathname !== "/login") {
+          // no valid session (or the account was deleted): back to sign-in
           router.replace("/login");
         }
         setReady(true);

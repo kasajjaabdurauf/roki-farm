@@ -376,6 +376,7 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | Accidentally deleted a farmer | Contact the admin within 30 days — the nightly backup can restore data (as an Excel import) |
 | I imported a test file and want to start clean | Admin: Settings → Data management → **Delete all data…** (type DELETE to confirm). This clears the local store and the cloud, then syncs |
 | I want to wipe EVERYTHING including accounts | Run `supabase/wipe_everything.sql` in the Supabase SQL Editor. It deletes all farmers, logs and user accounts and resets IDs to start fresh (the next signup becomes Admin again). Permanent, no undo except the nightly backup |
+| I deleted all data but I'm still signed in / still showing as admin | Stale browser session. Deploy the latest build: the app now validates your session against the server on boot and signs you out automatically. To fix instantly without waiting: DevTools → Application → Storage → Clear site data, then reload. |
 | App feels slow | Refresh once; ensure the app is updated; on very old phones, close other apps |
 | Demo data messed up | Settings → Reset demo data (demo mode only) |
 

@@ -36,9 +36,9 @@ import { buildSeed } from "./seed";
 import { computeRokiTier, computeScaleTier, computeFarmerFlags, evaluateLog } from "./rules";
 import { normalizeUgPhone } from "./phone";
 import { todayISO } from "./format";
-import { fetchAll, fetchMyProfile, pushOp, remoteConfigured, sb } from "./remote";
+import { fetchAll, fetchMyProfile, pushOp, remoteConfigured, sb, signOut as signOutRemote, validateSession } from "./remote";
 
-const KEY = "roki-db-v2";
+const KEY = "roki-db-v3";
 
 /** Default shared field-agent access code (admin can change it). */
 export const DEFAULT_AGENT_CODE = "roki-agent-2026";
@@ -59,7 +59,7 @@ export const EMPTY_DB: Db = {
   farmers: [],
   logs: [],
   settings: { rules: { ...DEFAULT_SETTINGS_RULES }, crops: { ...CROP_DEFAULTS } },
-  meta: { nextFarmerSeq: 1, nextLogSeq: 1, outbox: [], role: "ADMIN", demoFarmerId: "", seededAt: "", agentCodeHash: agentCodeHash() },
+  meta: { nextFarmerSeq: 1, nextLogSeq: 1, outbox: [], role: "FIELD_AGENT", demoFarmerId: "", seededAt: "", agentCodeHash: agentCodeHash() },
 };
 
 function persist(db: Db): void {
@@ -100,9 +100,18 @@ export function loadDb(): Db {
       }
     }
   } catch {
-    /* fall through to seed */
+    /* fall through to fresh state */
   }
-  cache = buildSeed();
+  if (remoteConfigured()) {
+    // production: start empty; the cloud (Supabase) is the source of truth
+    cache = {
+      ...EMPTY_DB,
+      settings: { rules: { ...DEFAULT_SETTINGS_RULES }, crops: { ...CROP_DEFAULTS } },
+    };
+  } else {
+    // preview mode: seed sample data for exploration
+    cache = buildSeed();
+  }
   persist(cache);
   return cache;
 }
@@ -265,7 +274,14 @@ export async function refreshNow(): Promise<void> {
 
 export async function bootstrapRemote(): Promise<void> {
   if (!remoteConfigured()) return;
+  const valid = await validateSession();
+  if (!valid) return; // stale session — gate will send the user to login
   const profile = await fetchMyProfile();
+  if (!profile) {
+    // account exists but has no profile row (e.g. was deleted): sign out
+    await signOutRemote();
+    return;
+  }
   if (profile) {
     mutate((db) => {
       db.meta.role = (profile.role as Role) ?? "FIELD_AGENT";

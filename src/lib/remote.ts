@@ -78,6 +78,28 @@ export async function getSession() {
   return data.session;
 }
 
+/**
+ * Server-validated session. Unlike getSession (which only reads the
+ * local token), this asks Supabase whether the user still exists.
+ * If the account was deleted (e.g. a factory reset), the local token
+ * is discarded and null is returned so the app signs the user out.
+ */
+export async function validateSession(): Promise<{ user: { id: string; email?: string | null } } | null> {
+  const c = sb();
+  if (!c) return null;
+  try {
+    const { data, error } = await c.auth.getUser();
+    if (error || !data.user) {
+      // invalid/revoked session — clear it locally
+      await c.auth.signOut().catch(() => {});
+      return null;
+    }
+    return { user: data.user };
+  } catch {
+    return null;
+  }
+}
+
 export function onAuthChange(cb: (event: string, session: unknown) => void) {
   const c = sb();
   if (!c) return null;

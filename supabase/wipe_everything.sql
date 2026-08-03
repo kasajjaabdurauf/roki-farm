@@ -13,9 +13,8 @@
 -- ⚠️ This is permanent. The nightly backup email is your only recovery.
 -- =====================================================================
 
--- delete all farmers and logs (cascades cleanly)
-truncate table public.produce_logs;
-truncate table public.farmers;
+-- delete all farmers and logs (CASCADE handles the foreign keys)
+truncate table public.farmers cascade;
 
 -- reset settings to defaults
 update public.settings
