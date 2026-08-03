@@ -35,6 +35,7 @@ Tick items off as they are completed.
 - [x] v1.5: farmers can continue without linking (optional link, no roadblock), field-agent shared access code (no accounts needed; admin-managed), sign-out in Settings
 - [x] v1.6: fixed "Continue as a farmer" crash (hooks ordering) + same bug class on farmer detail; security headers, config-error screen instead of demo fallback, agent code never shown in plaintext
 - [x] v1.7: continue-as-farmer persists across refreshes; agent sessions survive refresh; error screens show real error + copy button + global error logger; version stamp in Settings/Account
+- [x] v1.8: role-calibrated dashboards (farmers see only their own data + tips; staff see operations), My Farm gate removed (own account view), farmer account no longer lists other roles, demo artifacts removed
 
 ---
 

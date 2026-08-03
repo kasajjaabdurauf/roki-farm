@@ -51,7 +51,14 @@ Roki Fruit & Vegetables' digital farm platform does four jobs:
 | Tablet | Field agents doing surveys | Same app, bigger screen |
 | Laptop/desktop | Admin: bulk uploads, data grid, exports, settings | Full sidebar navigation |
 
-### 2.2 Internet
+### 2.2 Simulation files (for demos & practice)
+The project ships with two practice workbooks in `simulations/`:
+- **roki-simulation-1000-farmers.xlsx** — 1,000 farmers with produce rows; 25 intentional errors (bad phones, negative quantities, blank names/dates) tinted light red, plus 2 duplicate pairs tinted amber. Every problem is documented in the workbook's **Read Me** sheet, with the expected result after fixing.
+- **roki-farmer-log-simulation.xlsx** — 900 harvest logs referencing those farmer IDs, including yield-anomaly rows (→ NEEDS AUDIT) and a duplicate pair (→ FLAGGED).
+
+Use them in Bulk Upload to practise inline error fixing and to load-test the app. Tip: reset or wipe the data first (Settings → Data management) so the pre-assigned farmer IDs match.
+
+### 2.3 Internet
 - **Online:** everything syncs live.
 - **Offline:** the app still works. Entries are saved on the device and pushed to the cloud when you're back online (see §8).
 
@@ -389,5 +396,7 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 1.6 | 2026-08-03 | Stability: fixed a crash when unlinked farmers tap "Continue as a farmer" (hook-ordering bug) and hardened the farmer-detail page against the same bug class. Security: security headers added (CSP-level basics), a misconfigured backend now shows a clear error screen instead of silently serving demo data, and the field-agent code is never displayed in plaintext. |
 | 1.7 | 2026-08-03 | The "Continue as a farmer" choice now persists across refreshes (straight to the dashboard next time). Field-agent sessions survive refreshes too. Error screens now show the real error message with a copy button, and a global logger captures any runtime error to localStorage. App version shown in Settings/Account (currently v1.7.0). |
 | 1.7.1 | 2026-08-03 | Fixed the last React error #300 source: the app shell returned early for the login page before two of its hooks, crashing on navigation (login → dashboard). All hooks now run before any conditional return in every screen (audited across the whole app). |
+| 1.7.2 | 2026-08-03 | Added simulation workbooks (`simulations/`): 1,000-farmer upload file and 900-row harvest-log file, both with documented intentional errors for demo and practice; added a demo-video script to the setup walkthrough. |
+| 1.8 | 2026-08-03 | Role calibration: farmers now see only their own world (personal stats, own harvests, farming tips) with zero admin metrics; My Farm opens straight to the farmer's own account (no admin-verification gate); the account page no longer shows other roles' details to farmers; all demo artifacts removed (role switcher, demo-mode cards, reset-demo buttons). |
 
 *Every future release appends a row here.*

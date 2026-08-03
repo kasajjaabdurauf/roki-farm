@@ -11,7 +11,7 @@ import { Button } from "./ui";
  * Production-mode gate: when Supabase is configured, the app requires a
  * session. Redirects to /login, bootstraps the local store from the
  * cloud after sign-in, and reacts to sign-out events.
- * In demo mode this component is a no-op pass-through.
+ * In preview mode (no backend configured) this component is a no-op pass-through.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const router = useRouter();

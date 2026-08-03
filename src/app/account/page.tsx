@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, LogOut, RefreshCw, ShieldCheck, User, UserCog, Users } from "lucide-react";
-import { resetDemoData, setRole, syncNow, useDb } from "@/lib/db";
+import { syncNow, useDb } from "@/lib/db";
 import { getSession, remoteConfigured, signOut } from "@/lib/remote";
 import { ROLE_LABEL, type Role } from "@/lib/types";
 import { APP_VERSION } from "@/lib/format";
-import { Badge, Button, Card, Select } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import { cx } from "@/lib/format";
 
 export default function AccountPage() {
@@ -41,7 +42,7 @@ export default function AccountPage() {
       <div>
         <h2 className="font-display text-2xl font-semibold text-forest-900">Account</h2>
         <p className="mt-0.5 text-sm text-stone-500">
-          {isRemote ? "Your sign-in details and role" : "Demo mode: explore any role, or sign in for your real account"}
+          {isRemote ? "Your sign-in details and role" : "Your sign-in details and role"}
         </p>
       </div>
 
@@ -77,52 +78,23 @@ export default function AccountPage() {
         </Card>
       )}
 
-      {/* ---------- demo mode ---------- */}
+      {/* ---------- preview note (no backend) ---------- */}
       {!isRemote && (
         <Card>
-          <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
-            <UserCog className="h-5 w-5 text-ochre-500" /> Demo mode
-          </h3>
-          <p className="mb-4 text-[13px] leading-relaxed text-stone-500">
-            No account is connected, so you're exploring with sample data. Pick a persona to see exactly what that
-            role experiences. (This is the only place the persona switcher lives.)
+          <h3 className="mb-1 font-display text-lg font-semibold text-forest-900">Preview mode</h3>
+          <p className="text-[13px] leading-relaxed text-stone-500">
+            No cloud connection is configured on this environment, so this device is showing sample data. Sign in
+            with your Roki account on the live platform to see your real workspace.
           </p>
-          <div className="mb-4">
-            <p className="mb-1.5 text-[13px] font-semibold text-stone-600">Viewing as</p>
-            <Select
-              value={db.meta.role}
-              onChange={(e) => {
-                setRole(e.target.value as Role);
-                router.push(e.target.value === "FARMER" ? "/farm" : "/");
-              }}
-            >
-              {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
-                <option key={r} value={r}>{ROLE_LABEL[r]}</option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => void syncNow()}>
-              <RefreshCw className="h-4 w-4" /> Sync now
-            </Button>
-            <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={resetDemoData}>
-              Reset demo data
-            </Button>
-          </div>
-          <div className="mt-4 rounded-xl bg-forest-50 px-3.5 py-3">
-            <p className="text-[12.5px] leading-snug text-forest-800">
-              <ShieldCheck className="mr-1 inline h-3.5 w-3.5" />
-              In production, accounts are created by signing up, and the administrator assigns roles from
-              <b> Settings → Team &amp; roles</b>. No one switches roles after that.
-            </p>
-          </div>
         </Card>
       )}
 
-      {/* ---------- what your role can do ---------- */}
-      <p className="text-[11px] text-stone-300">Roki platform v{APP_VERSION}</p>
+      {/* ---------- what your role can do (staff only) ---------- */}
+      {db.meta.role !== "FARMER" && (
+        <>
+          <p className="text-[11px] text-stone-300">Roki platform v{APP_VERSION}</p>
 
-      <Card>
+          <Card>
         <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
           <BadgeCheck className="h-5 w-5 text-ochre-500" /> What your role includes
         </h3>
@@ -143,7 +115,27 @@ export default function AccountPage() {
         <p className="mt-3 flex items-center gap-1.5 text-[12px] text-stone-400">
           <Users className="h-3.5 w-3.5" /> Farmers never see other farmers' data; row-level security enforces this in the database.
         </p>
-      </Card>
+          </Card>
+        </>
+      )}
+
+      {db.meta.role === "FARMER" && (
+        <Card>
+          <h3 className="mb-2 font-display text-lg font-semibold text-forest-900">Your farmer account</h3>
+          <p className="text-[13px] leading-relaxed text-stone-500">
+            Your account is set up for the farmer experience: you see only your own farm, your harvests and your
+            tier. If something looks wrong, contact your field agent or the Roki office.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/farm">
+              <Button variant="outline">My Farm</Button>
+            </Link>
+            <Link href="/help">
+              <Button variant="outline">Help &amp; Guide</Button>
+            </Link>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

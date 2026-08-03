@@ -1,40 +1,82 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClipboardPlus, Droplets, LandPlot, MapPin, PhoneCall, Sprout, Wheat } from "lucide-react";
 import { useDb } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { fmtKg, fmtNumber } from "@/lib/rules";
+import { getSession } from "@/lib/remote";
 import { IRRIGATION_OPTIONS } from "@/lib/types";
-import { Badge, Button, Card, EmptyState, Stat } from "@/components/ui";
+import { Badge, Button, Card, Stat } from "@/components/ui";
 import { GradeBadge, RokiTierBadge, StatusBadge, TierBadge, YieldBadge } from "@/components/badges";
 
+/**
+ * My Farm — the farmer's own page. No admin gate: if the account is
+ * linked to a farmer record the full farm view appears; otherwise the
+ * farmer sees their own account information and can start logging.
+ */
 export default function FarmPage() {
   const db = useDb();
   const farmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
 
+  useEffect(() => {
+    getSession()
+      .then((s) => setAccountEmail(s?.user?.email ?? null))
+      .catch(() => setAccountEmail(null));
+  }, []);
+
+  // hooks always run before any conditional return
   const logs = useMemo(
     () =>
       db.logs
-        .filter((l) => l.farmerId === farmer?.id)
+        .filter((l) => farmer && l.farmerId === farmer.id)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [db.logs, farmer?.id]
+    [db.logs, farmer]
   );
 
   if (!farmer) {
+    const displayName = accountEmail?.split("@")[0] ?? "Farmer";
     return (
-      <EmptyState
-        icon={<Sprout className="h-6 w-6" />}
-        title="No demo farmer selected"
-        description="An admin needs to switch this device to a farmer profile first."
-      />
+      <div className="space-y-4">
+        <Card className="border-ochre-200 bg-ochre-50/50 p-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="grid h-16 w-16 place-items-center rounded-2xl bg-ochre-500 text-2xl font-bold text-white">
+              {displayName.slice(0, 1).toUpperCase()}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-2xl font-semibold text-forest-900">
+                {displayName}
+              </h2>
+              <p className="mt-0.5 text-sm text-stone-500">{accountEmail ?? "Your Roki account"}</p>
+              <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-stone-600">
+                This is your My Farm page. Once Roki registers your farm, your crops, acreage, harvest history and
+                tier will appear here, and you'll be able to log harvests from your phone.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/help">
+              <Button variant="accent">Learn how it works</Button>
+            </Link>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <h3 className="mb-3 font-display text-lg font-semibold text-forest-900">What you can do now</h3>
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            <MiniAction icon={<ClipboardPlus className="h-5 w-5" />} title="Log harvests" text="Once your farm is registered, record what you harvest, when, and at what grade." href="/help" />
+            <MiniAction icon={<Sprout className="h-5 w-5" />} title="Farming tips" text="Practical agronomy tips from the Roki team on your dashboard." href="/" />
+            <MiniAction icon={<Wheat className="h-5 w-5" />} title="Payout-ready records" text="Accurate logs build the records Roki uses for planning and payouts." href="/logs" />
+          </div>
+        </Card>
+      </div>
     );
   }
 
   const totalKg = logs.reduce((s, l) => s + l.quantityKg, 0);
   const perAcre = farmer.acreage > 0 ? totalKg / farmer.acreage : 0;
-  const irrigationLabel = IRRIGATION_OPTIONS.find((o) => o.value === farmer.irrigationType)?.label ?? "Rain-fed";
+  const irrigationLabel = IRRIGATION_OPTIONS.find((o) => o.value === farmer.irrigationType)?.label ?? "No irrigation";
 
   return (
     <div className="space-y-6">
@@ -57,11 +99,13 @@ export default function FarmPage() {
             </p>
           </div>
           <Link href="/logs">
-            <Button variant="accent" size="lg"><ClipboardPlus className="h-4 w-4" /> Log today&apos;s harvest</Button>
+            <Button variant="accent" size="lg">
+              <ClipboardPlus className="h-4 w-4" /> Log today&apos;s harvest
+            </Button>
           </Link>
         </div>
         <div className="mt-5 grid gap-3 border-t border-stone-100 pt-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Fact icon={<PhoneCall className="h-4 w-4" />} label="Phone" value={farmer.phone || "N/A"} />
+          <Fact icon={<PhoneCall className="h-4 w-4" />} label="Phone" value={farmer.phone || "—"} />
           <Fact icon={<LandPlot className="h-4 w-4" />} label="Acreage" value={`${fmtNumber(farmer.acreage)} acres`} />
           <Fact icon={<Droplets className="h-4 w-4" />} label="Irrigation" value={irrigationLabel} />
           <Fact
@@ -69,7 +113,9 @@ export default function FarmPage() {
             label="Crops"
             value={
               <span className="flex flex-wrap gap-1">
-                {farmer.primaryCrops.map((c) => <Badge key={c} tone="forest">{c}</Badge>)}
+                {farmer.primaryCrops.map((c) => (
+                  <Badge key={c} tone="forest">{c}</Badge>
+                ))}
               </span>
             }
           />
@@ -88,16 +134,9 @@ export default function FarmPage() {
       <Card>
         <h3 className="mb-3 font-display text-lg font-semibold text-forest-900">My harvests</h3>
         {logs.length === 0 ? (
-          <EmptyState
-            icon={<Sprout className="h-6 w-6" />}
-            title="No harvests yet"
-            description="Log your first harvest, it takes under a minute and works offline."
-            action={
-              <Link href="/logs">
-                <Button variant="accent">Log a harvest</Button>
-              </Link>
-            }
-          />
+          <p className="py-8 text-center text-sm text-stone-400">
+            No harvests yet. <Link href="/logs" className="font-semibold text-forest-700 underline">Log your first harvest</Link>.
+          </p>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {logs.map((l) => (
@@ -121,6 +160,15 @@ export default function FarmPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+function MiniAction({ icon, title, text, href }: { icon: React.ReactNode; title: string; text: string; href: string }) {
+  return (
+    <Link href={href} className="rounded-2xl border border-stone-200 bg-white p-4 transition-colors hover:border-forest-300 hover:bg-forest-50/40">
+      <p className="flex items-center gap-2 text-[13px] font-bold text-forest-800">{icon} {title}</p>
+      <p className="mt-1 text-[12px] leading-relaxed text-stone-500">{text}</p>
+    </Link>
   );
 }
 

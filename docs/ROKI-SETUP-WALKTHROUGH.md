@@ -119,7 +119,7 @@
 
 ## PHASE 7 — Real data migration (30 min)
 
-- [ ] **7.1** Export your current farmer list as a `.csv` (or use the sample format: Farmer Name, Phone, District, Sub-County, Crop, Harvest Date, Qty (Kg), Grade).
+- [ ] **7.1** Export your current farmer list as a `.csv` (or use the sample format: Farmer Name, Phone, District, Sub-County, Crop, Harvest Date, Qty (Kg), Grade). For testing, use `simulations/roki-simulation-1000-farmers.xlsx` — it has 1,000 rows with intentional errors to practise fixing.
 - [ ] **7.2** In the app: **Bulk Upload** → drag the file → check the **column mapping** → inspect the **staging grid** (red rows = errors, excluded) → **Import**.
 - [ ] **7.3** If rows errored (bad phones, negative quantities…), fix the file and re-import. Only the fixed rows import — it's idempotent by phone.
 - [ ] **7.4** Check the results: **Farmers** page count matches your list; spot-check 5 profiles (phone normalized to +256, tier assigned).
@@ -147,6 +147,32 @@ Do this with Joan watching — it's also Handover Deliverable 3:
 - [ ] **9.3** Agree the **30-day support window** in writing (bug fixes free; features quoted).
 - [ ] **9.4** Book check-ins: **day 1, 3, 7, 14, 30** — 15 minutes each: farmer count, error reports, backup emails arriving.
 - [ ] **9.5** Post the first weeks' data volumes into the audit doc (`docs/ROKI-AUDIT-AND-ROADMAP.md`) and tick off P1 items.
+
+---
+
+## PHASE 10 — Make your demo video (optional, 30–40 min)
+
+Use the simulation files in `simulations/` to show real scale without real data.
+
+**Simulation files**
+| File | Contents | Best for |
+|---|---|---|
+| `simulations/roki-simulation-1000-farmers.xlsx` | 1,000 farmers + produce rows; 25 intentional errors + 2 duplicate pairs (tinted, documented in the Read Me sheet) | Bulk upload at scale, inline error fixing, load test |
+| `simulations/roki-farmer-log-simulation.xlsx` | 900 harvest logs referencing the farmer IDs above; anomalies, duplicate pair, error rows | Harvest-log demo, rule-engine flags (NEEDS AUDIT / FLAGGED) |
+
+**Suggested 10-beat video script**
+1. **Intro (0:00–1:00)** — brand screen, "what this platform does" (collect → forecast → supply → score). Say the zero-AI line.
+2. **Admin dashboard (1:00–3:00)** — KPIs, refugee vs host, gender, location mapping, tier cards, rule findings.
+3. **Register a farmer (3:00–6:00)** — New Survey, walk the 9 steps quickly, note consent + auto ID + scoring preview.
+4. **Field agent, no account (6:00–7:30)** — phone: enter the access code → straight in.
+5. **Bulk upload at scale (7:30–12:00)** — drag in the 1,000-farmer file; show auto-mapping; fix 2–3 tinted error cells inline; note rows with errors are excluded; Import; show the report.
+6. **Rule engine (12:00–14:00)** — Harvest Logs: enter a huge quantity → "Needs Audit" note; upload the log simulation → duplicates flagged.
+7. **Forecast & Supply (14:00–17:00)** — crop × farmers × volume × period table; supply filters (Tier 1); exports.
+8. **Data grid & exports (17:00–20:00)** — inline edit a cell, filter, CSV/Excel export, master backup.
+9. **PDF report (20:00–21:30)** — admin dashboard → Report (PDF) → show the branded one-pager.
+10. **Backups & ops (21:30–24:00)** — GitHub Actions (keep-alive + nightly backup), the backup email in the inbox, Settings → Team & roles (change a role), sign out. Wrap with the 60-second health check.
+
+Narration crib: the full screen-by-screen explanations are in `docs/ROKI-USER-MANUAL.md` — read sections 5 and 6 aloud and you have the script.
 
 ---
 

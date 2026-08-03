@@ -7,7 +7,6 @@ import {
   HardDrive,
   LogOut,
   RefreshCw,
-  RotateCcw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -17,7 +16,7 @@ import {
   AlertTriangle,
   KeyRound,
 } from "lucide-react";
-import { matchesAgentCode, resetDemoData, setAgentCode, syncNow, updateCropDefaults, updateSettings, useDb, wipeAllData } from "@/lib/db";
+import { matchesAgentCode, setAgentCode, syncNow, updateCropDefaults, updateSettings, useDb, wipeAllData } from "@/lib/db";
 import { downloadSummaryPdf } from "@/lib/report";
 import { signOut } from "@/lib/remote";
 import { downloadCSV, downloadMasterBackup, downloadXLSX, stamp, type ExportColumn } from "@/lib/export";
@@ -31,7 +30,6 @@ import { PwaHint } from "@/components/layout";
 export default function SettingsPage() {
   const db = useDb();
   const [q, setQ] = useState("");
-  const [confirmReset, setConfirmReset] = useState(false);
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [agentCode, setAgentCodeInput] = useState("");
@@ -210,12 +208,12 @@ export default function SettingsPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-stone-700">
-              <Database className="h-4 w-4 text-stone-400" /> {remoteConfigured() ? "Cloud + local (Supabase)" : "Local database (demo mode)"}
+              <Database className="h-4 w-4 text-stone-400" /> {remoteConfigured() ? "Cloud + local (Supabase)" : "Local preview data"}
             </p>
             <p className="mt-1 mb-3 text-[12.5px] leading-relaxed text-stone-500">
               {remoteConfigured()
                 ? "All changes are pushed to Supabase automatically and pulled on sign-in. The local copy keeps the app fast and offline-capable."
-                : "No Supabase keys configured, data lives only on this device. Set NEXT_PUBLIC_SUPABASE_URL / ANON_KEY to go live."}
+                : "No cloud connection configured on this environment, so this device holds preview data only."}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => void syncNow()}>
@@ -272,27 +270,12 @@ export default function SettingsPage() {
             Roki platform v{APP_VERSION} · build {new Date().toISOString().slice(0, 10)}
           </p>
           <div className="flex flex-wrap gap-2">
-            {!remoteConfigured() && (
-              <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={() => setConfirmReset(true)}>
-                <RotateCcw className="h-4 w-4" /> Reset demo data
-              </Button>
-            )}
             <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={() => { setWipeOpen(true); setWipeConfirm(""); }}>
               <AlertTriangle className="h-4 w-4" /> Delete all data…
             </Button>
           </div>
         </div>
       </Card>
-
-      <ConfirmDialog
-        open={confirmReset}
-        onClose={() => setConfirmReset(false)}
-        onConfirm={resetDemoData}
-        danger
-        title="Reset all data?"
-        confirmLabel="Reset everything"
-        message="This wipes all farmers, logs and settings on this device and restores the original demo dataset."
-      />
 
       <ConfirmDialog
         open={wipeOpen}
@@ -305,7 +288,7 @@ export default function SettingsPage() {
         message={
           <p>
             This permanently deletes <b>every farmer, survey and harvest log</b> from this account,{" "}
-            <b>including the cloud database</b> ({remoteConfigured() ? "it syncs the deletion to Supabase" : "local demo data"}).
+            <b>including the cloud database</b> ({remoteConfigured() ? "it syncs the deletion to Supabase" : "local preview data"}).
             The nightly backup email is your only way back. This cannot be undone.
           </p>
         }

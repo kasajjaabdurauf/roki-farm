@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -10,52 +10,220 @@ import {
   FileText,
   Flag,
   Home,
+  Leaf,
   MapPin,
   PackagePlus,
+  Shield,
   Sprout,
   Truck,
   UploadCloud,
+  UserRound,
   Users,
   Wheat,
-  UserRound,
-  Shield,
 } from "lucide-react";
 import { useDb } from "@/lib/db";
 import { cx, fmtDate, fmtDateTime, isoDaysAgo, relTime } from "@/lib/format";
+import { fmtKg, fmtNumber } from "@/lib/rules";
 import { downloadSummaryPdf } from "@/lib/report";
-import { fmtKg } from "@/lib/rules";
+import { getSession } from "@/lib/remote";
 import { GENDER_LABEL, REFUGEE_LABEL, type LogStatus } from "@/lib/types";
 import { Button, Card, EmptyState, Stat } from "@/components/ui";
-import { RokiTierBadge, SourceChip, StatusBadge } from "@/components/badges";
+import { GradeBadge, RokiTierBadge, SourceChip, StatusBadge, TierBadge } from "@/components/badges";
 
 export default function DashboardPage() {
   const db = useDb();
-  const isFarmer = db.meta.role === "FARMER";
-  const farmer = isFarmer ? db.farmers.find((f) => f.id === db.meta.demoFarmerId) : undefined;
-  // ALL hooks must run on every render (no early returns before them):
-  // an early return before a useMemo/useState makes React's hook order
-  // change between renders and crashes the page ("Continue as a farmer").
-  const [continueAsFarmer, setContinueAsFarmer] = useState<boolean>(() => {
-    // persist the choice so refreshes/restarts go straight to the dashboard
-    if (typeof window === "undefined") return false;
-    try {
-      return localStorage.getItem("roki-farmer-continued") === "1";
-    } catch {
-      return false;
-    }
-  });
+  // Each role gets its own calibrated dashboard: farmers see only their
+  // own world; staff (admin/field agent) see the operations overview.
+  return db.meta.role === "FARMER" ? <FarmerHome /> : <StaffDashboard />;
+}
 
-  const scopedLogs = useMemo(() => {
-    if (!isFarmer) return db.logs;
-    return db.logs.filter((l) => l.farmerId === farmer?.id);
-  }, [db.logs, isFarmer, farmer?.id]);
+// =====================================================================
+// FARMER DASHBOARD — their own farming, logs and tips. No admin metrics.
+// =====================================================================
+function FarmerHome() {
+  const db = useDb();
+  const farmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
 
-  const since90 = isoDaysAgo(90);
-  const recentLogs = useMemo(
-    () => scopedLogs.filter((l) => l.harvestDate >= since90),
-    [scopedLogs, since90]
+  useEffect(() => {
+    getSession()
+      .then((s) => setAccountEmail(s?.user?.email ?? null))
+      .catch(() => setAccountEmail(null));
+  }, []);
+
+  const myLogs = useMemo(
+    () => db.logs.filter((l) => farmer && l.farmerId === farmer.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [db.logs, farmer]
   );
+  const since90 = isoDaysAgo(90);
+  const recentMine = useMemo(() => myLogs.filter((l) => l.harvestDate >= since90), [myLogs, since90]);
+  const totalKg = recentMine.reduce((s, l) => s + l.quantityKg, 0);
+  const perAcre = farmer && farmer.acreage > 0 ? totalKg / farmer.acreage : 0;
 
+  const name = farmer?.fullName ?? accountEmail?.split("@")[0] ?? "Farmer";
+
+  return (
+    <div className="space-y-4">
+      {/* greeting */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-semibold text-forest-900">Karibu, {name} 🌱</h2>
+          <p className="mt-1 text-sm text-stone-500">Your farm at a glance · {fmtDate(new Date().toISOString().slice(0, 10))}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap">
+          <Link href="/farm">
+            <Button variant="outline" className="w-full">
+              <Home className="h-4 w-4" /> My Farm
+            </Button>
+          </Link>
+          <Link href="/logs" className="col-span-2 sm:col-span-1">
+            <Button variant="accent" className="w-full">
+              <ClipboardPlus className="h-4 w-4" /> Log my harvest
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* unlinked: calm account view (no admin gate, no admin language) */}
+      {!farmer && (
+        <Card className="border-ochre-200 bg-ochre-50/50">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ochre-500 text-white">
+                <UserRound className="h-6 w-6" />
+              </span>
+              <div>
+                <p className="font-display text-lg font-semibold text-forest-900">
+                  {accountEmail ?? name}
+                </p>
+                <p className="text-[13px] text-stone-600">
+                  Your Roki account is ready. Once Roki registers your farm, your profile, harvests and tier will
+                  appear right here, and you'll be able to log harvests from your phone.
+                </p>
+              </div>
+            </div>
+            <Link href="/help">
+              <Button variant="accent">Learn how it works</Button>
+            </Link>
+          </div>
+        </Card>
+      )}
+
+      {/* linked: profile summary */}
+      {farmer && (
+        <Card className="p-5">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-forest-800 text-lg font-bold text-white">
+              {farmer.fullName.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-display text-xl font-semibold text-forest-900">{farmer.fullName}</p>
+                <RokiTierBadge tier={farmer.rokiTier} />
+                <TierBadge tier={farmer.scaleTier} />
+              </div>
+              <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-stone-500">
+                <MapPin className="h-3.5 w-3.5 text-ochre-500" />
+                {farmer.village ? `${farmer.village}, ` : ""}{farmer.subCounty}, {farmer.district}
+              </p>
+            </div>
+            <Link href="/farm">
+              <Button variant="outline">View my farm</Button>
+            </Link>
+          </div>
+        </Card>
+      )}
+
+      {/* my stats */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <Stat label="My harvests (90 d)" value={recentMine.length.toLocaleString()} sub="this season" icon={<Sprout className="h-5 w-5" />} />
+        <Stat label="My produce" value={fmtKg(totalKg)} sub="last 90 days" icon={<Wheat className="h-5 w-5" />} />
+        <Stat label="Average per acre" value={`${fmtNumber(perAcre)} kg`} sub={farmer ? `${fmtNumber(farmer.acreage)} acres` : "—"} icon={<Wheat className="h-5 w-5" />} tone="ochre" />
+        <Stat label="Harvest logs" value={myLogs.length.toLocaleString()} sub="all time" icon={<ClipboardPlus className="h-5 w-5" />} />
+      </div>
+
+      {/* my recent harvests */}
+      <Card>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-display text-lg font-semibold text-forest-900">My recent harvests</h3>
+          <Link href="/logs" className="inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-ochre-600 hover:text-ochre-700">
+            View all <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        {myLogs.length === 0 ? (
+          <EmptyState
+            icon={<PackagePlus className="h-6 w-6" />}
+            title="No harvests logged yet"
+            description="Log your first harvest, it takes less than a minute and works offline."
+            action={
+              <Link href="/logs">
+                <Button variant="accent">Log a harvest</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <div className="space-y-2.5">
+            {myLogs.slice(0, 6).map((l) => (
+              <div key={l.id} className="flex items-center gap-3 rounded-2xl border border-stone-200/80 bg-white p-3.5">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-forest-50 text-forest-700">
+                  <Wheat className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-stone-800">{l.cropType}</p>
+                  <p className="mt-0.5 truncate text-[12px] text-stone-500">
+                    <span className="font-semibold text-forest-800 tabular">{fmtKg(l.quantityKg)}</span> · harvested {fmtDate(l.harvestDate)} · {relTime(l.createdAt)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <StatusBadge status={l.status} />
+                  <GradeBadge grade={l.qualityGrade} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* farming tips (blog) */}
+      <Card>
+        <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
+          <Leaf className="h-5 w-5 text-ochre-500" /> Farming tips
+        </h3>
+        <p className="mb-3 text-[12px] text-stone-400">Fresh tips from the Roki agronomy team</p>
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {TIPS.map((t) => (
+            <div key={t.title} className="rounded-2xl border border-stone-200 bg-stone-50/50 p-3.5">
+              <p className="flex items-center gap-1.5 text-[13px] font-bold text-forest-800">
+                <Sprout className="h-4 w-4 shrink-0 text-ochre-500" /> {t.title}
+              </p>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-stone-600">{t.body}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+const TIPS = [
+  { title: "Water smart", body: "Water tomato and vegetable beds early in the morning or late evening to cut evaporation and save water." },
+  { title: "Rotate your beds", body: "Swap onion and cabbage beds between seasons to break pest and disease cycles in the soil." },
+  { title: "Dry crops off the ground", body: "Dry maize and beans on a raised mat, never the bare ground, to avoid rot and aflatoxin." },
+  { title: "Grade before you deliver", body: "Separating Grade A from Grade B at harvest earns better prices at the aggregation hub." },
+  { title: "Keep honest records", body: "Accurate harvest dates and quantities power Roki's forecast, and your tier, and your payouts." },
+  { title: "Ask for support", body: "Facing a pest or a strange leaf? Tell your field agent, they can arrange agronomy advice through Roki." },
+];
+
+// =====================================================================
+// STAFF DASHBOARD — admin / field agent operations overview
+// =====================================================================
+function StaffDashboard() {
+  const db = useDb();
+  const isAgent = db.meta.role === "FIELD_AGENT";
+
+  const scopedLogs = db.logs;
+  const since90 = isoDaysAgo(90);
+  const recentLogs = useMemo(() => scopedLogs.filter((l) => l.harvestDate >= since90), [scopedLogs, since90]);
   const totalKg = useMemo(() => recentLogs.reduce((s, l) => s + l.quantityKg, 0), [recentLogs]);
   const needsAudit = useMemo(() => scopedLogs.filter((l) => l.status === "NEEDS_AUDIT").length, [scopedLogs]);
   const flagged = useMemo(() => scopedLogs.filter((l) => l.status === "FLAGGED").length, [scopedLogs]);
@@ -66,21 +234,19 @@ export default function DashboardPage() {
   }, [db.farmers]);
 
   const farmerStats = useMemo(() => {
-    const fs = isFarmer ? (farmer ? [farmer] : []) : db.farmers;
-    const refugee = fs.filter((f) => f.refugeeStatus === "REFUGEE").length;
-    const host = fs.filter((f) => f.refugeeStatus === "HOST").length;
-    const women = fs.filter((f) => f.gender === "F").length;
-    const men = fs.filter((f) => f.gender === "M").length;
-    const tier1 = fs.filter((f) => f.rokiTier === 1).length;
-    const tier2 = fs.filter((f) => f.rokiTier === 2).length;
-    const tier3 = fs.filter((f) => f.rokiTier === 3).length;
+    const refugee = db.farmers.filter((f) => f.refugeeStatus === "REFUGEE").length;
+    const host = db.farmers.filter((f) => f.refugeeStatus === "HOST").length;
+    const women = db.farmers.filter((f) => f.gender === "F").length;
+    const men = db.farmers.filter((f) => f.gender === "M").length;
+    const tier1 = db.farmers.filter((f) => f.rokiTier === 1).length;
+    const tier2 = db.farmers.filter((f) => f.rokiTier === 2).length;
+    const tier3 = db.farmers.filter((f) => f.rokiTier === 3).length;
     const districts = new Map<string, number>();
-    for (const f of fs) districts.set(f.district, (districts.get(f.district) ?? 0) + 1);
+    for (const f of db.farmers) districts.set(f.district, (districts.get(f.district) ?? 0) + 1);
     const locationMap = [...districts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-    return { refugee, host, women, men, tier1, tier2, tier3, locationMap, total: fs.length };
-  }, [db.farmers, isFarmer, farmer]);
+    return { refugee, host, women, men, tier1, tier2, tier3, locationMap, total: db.farmers.length };
+  }, [db.farmers]);
 
-  // ---------------- alerts (rule engine findings) ----------------
   const alerts = useMemo(() => {
     type A = { type: LogStatus | "PROFILE"; title: string; detail: string; link: string; time: string };
     const out: A[] = [];
@@ -95,105 +261,62 @@ export default function DashboardPage() {
         });
       }
     }
-    if (!isFarmer) {
-      for (const f of db.farmers) {
-        if (f.flags.includes("INCOMPLETE_PROFILE")) {
-          out.push({
-            type: "PROFILE",
-            title: f.fullName,
-            detail: "Incomplete profile, critical contact details missing",
-            link: `/farmers/${f.id}`,
-            time: f.updatedAt,
-          });
-        }
+    for (const f of db.farmers) {
+      if (f.flags.includes("INCOMPLETE_PROFILE")) {
+        out.push({
+          type: "PROFILE",
+          title: f.fullName,
+          detail: "Incomplete profile, critical contact details missing",
+          link: `/farmers/${f.id}`,
+          time: f.updatedAt,
+        });
       }
     }
     return out.sort((a, b) => b.time.localeCompare(a.time)).slice(0, 6);
-  }, [scopedLogs, db.farmers, nameOf, isFarmer]);
+  }, [scopedLogs, db.farmers, nameOf]);
 
   const recentLogsSorted = useMemo(
     () => [...recentLogs].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8),
     [recentLogs]
   );
-
   const maxDistricts = farmerStats.locationMap[0]?.[1] ?? 1;
-
-  // unlinked farmers: friendly welcome with an optional continue (no roadblock)
-  if (isFarmer && !farmer && !continueAsFarmer) {
-    return (
-      <EmptyState
-        icon={<Users className="h-6 w-6" />}
-        title="Welcome to the Roki farm platform"
-        description="Your account isn't linked to a farmer profile yet (an administrator can link it anytime). You can still continue as a farmer and log produce now."
-        action={
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button
-              variant="primary"
-              onClick={() => {
-                setContinueAsFarmer(true);
-                try {
-                  localStorage.setItem("roki-farmer-continued", "1");
-                } catch { /* ignore */ }
-              }}
-            >
-              Continue as a farmer
-            </Button>
-            <Link href="/help">
-              <Button variant="outline">Help & Guide</Button>
-            </Link>
-          </div>
-        }
-      />
-    );
-  }
 
   return (
     <div className="space-y-4">
       {/* header */}
       <div className="space-y-3">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-forest-900">
-            {isFarmer ? `Karibu, ${farmer?.fullName.split(" ")[0] ?? "Farmer"} 🌱` : "Roki Farmer Dashboard"}
-          </h2>
+          <h2 className="font-display text-2xl font-semibold text-forest-900">Roki Farmer Dashboard</h2>
           <p className="mt-1 text-sm text-stone-500">
-            {isFarmer ? "Your farm at a glance" : "Registered farmers, demographics and production outlook"} · {fmtDate(new Date().toISOString().slice(0, 10))}
+            Registered farmers, demographics and production outlook · {fmtDate(new Date().toISOString().slice(0, 10))}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap">
-          {!isFarmer && (
-            <>
-              <Link href="/farmers/new">
-                <Button variant="primary" className="w-full">
-                  <Users className="h-4 w-4" /> New Survey
-                </Button>
-              </Link>
-              <Link href="/forecast">
-                <Button variant="outline" className="w-full">
-                  <CalendarRange className="h-4 w-4" /> Forecast
-                </Button>
-              </Link>
-              <Link href="/supply">
-                <Button variant="outline" className="w-full">
-                  <Truck className="h-4 w-4" /> Supply
-                </Button>
-              </Link>
-              <button onClick={() => void downloadSummaryPdf(db)}>
-                <Button variant="outline" className="w-full">
-                  <FileText className="h-4 w-4" /> Report (PDF)
-                </Button>
-              </button>
-            </>
-          )}
-          {isFarmer && (
-            <Link href="/farm">
+          <Link href="/farmers/new">
+            <Button variant="primary" className="w-full">
+              <Users className="h-4 w-4" /> New Survey
+            </Button>
+          </Link>
+          <Link href="/forecast">
+            <Button variant="outline" className="w-full">
+              <CalendarRange className="h-4 w-4" /> Forecast
+            </Button>
+          </Link>
+          <Link href="/supply">
+            <Button variant="outline" className="w-full">
+              <Truck className="h-4 w-4" /> Supply
+            </Button>
+          </Link>
+          {!isAgent && (
+            <button onClick={() => void downloadSummaryPdf(db)}>
               <Button variant="outline" className="w-full">
-                <Home className="h-4 w-4" /> My Farm
+                <FileText className="h-4 w-4" /> Report (PDF)
               </Button>
-            </Link>
+            </button>
           )}
-          <Link href={`/logs${isFarmer ? `?farmer=${farmer?.id}` : ""}`} className={isFarmer ? "col-span-1" : "col-span-2 sm:col-span-1"}>
+          <Link href="/logs" className="col-span-2 sm:col-span-1">
             <Button variant="accent" className="w-full">
-              <ClipboardPlus className="h-4 w-4" /> {isFarmer ? "Log my harvest" : "Log Harvest"}
+              <ClipboardPlus className="h-4 w-4" /> Log Harvest
             </Button>
           </Link>
         </div>
@@ -201,32 +324,10 @@ export default function DashboardPage() {
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Stat
-          label="Registered farmers"
-          value={farmerStats.total.toLocaleString()}
-          sub={isFarmer ? "your profile" : "surveyed & active"}
-          icon={<Users className="h-5 w-5" />}
-        />
-        <Stat
-          label="Refugee vs host"
-          value={`${farmerStats.refugee} / ${farmerStats.host}`}
-          sub="refugee / host-community"
-          icon={<Shield className="h-5 w-5" />}
-          tone="ochre"
-        />
-        <Stat
-          label="Women farmers"
-          value={`${farmerStats.women} (${farmerStats.total ? Math.round((farmerStats.women / farmerStats.total) * 100) : 0}%)`}
-          sub={`${farmerStats.men} men · ${farmerStats.total - farmerStats.women - farmerStats.men} other`}
-          icon={<UserRound className="h-5 w-5" />}
-        />
-        <Stat
-          label="Export-ready (Tier 1)"
-          value={farmerStats.tier1}
-          sub={`${farmerStats.tier2} developing · ${farmerStats.tier3} new`}
-          icon={<Truck className="h-5 w-5" />}
-          tone="success"
-        />
+        <Stat label="Registered farmers" value={farmerStats.total.toLocaleString()} sub="surveyed & active" icon={<Users className="h-5 w-5" />} />
+        <Stat label="Refugee vs host" value={`${farmerStats.refugee} / ${farmerStats.host}`} sub="refugee / host-community" icon={<Shield className="h-5 w-5" />} tone="ochre" />
+        <Stat label="Women farmers" value={`${farmerStats.women} (${farmerStats.total ? Math.round((farmerStats.women / farmerStats.total) * 100) : 0}%)`} sub={`${farmerStats.men} men`} icon={<UserRound className="h-5 w-5" />} />
+        <Stat label="Export-ready (Tier 1)" value={farmerStats.tier1} sub={`${farmerStats.tier2} developing · ${farmerStats.tier3} new`} icon={<Truck className="h-5 w-5" />} tone="success" />
       </div>
 
       {/* gender + location mapping */}
@@ -373,13 +474,9 @@ export default function DashboardPage() {
                   {recentLogsSorted.map((l) => (
                     <tr key={l.id} className="hover:bg-stone-50/60">
                       <td className="py-3 pr-4">
-                        {isFarmer ? (
-                          <span className="font-semibold text-stone-800">{nameOf(l.farmerId)}</span>
-                        ) : (
-                          <Link href={`/farmers/${l.farmerId}`} className="font-semibold text-forest-800 hover:underline">
-                            {nameOf(l.farmerId)}
-                          </Link>
-                        )}
+                        <Link href={`/farmers/${l.farmerId}`} className="font-semibold text-forest-800 hover:underline">
+                          {nameOf(l.farmerId)}
+                        </Link>
                       </td>
                       <td className="py-3 pr-4 text-stone-600">{l.cropType}</td>
                       <td className="py-3 pr-4 text-right font-semibold text-stone-800 tabular">{fmtKg(l.quantityKg)}</td>
@@ -396,7 +493,7 @@ export default function DashboardPage() {
               {recentLogsSorted.map((l) => (
                 <Link
                   key={l.id}
-                  href={isFarmer ? "/logs" : `/farmers/${l.farmerId}`}
+                  href={`/farmers/${l.farmerId}`}
                   className="flex items-center gap-3 rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-card transition-colors active:bg-stone-50"
                 >
                   <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-forest-50 text-forest-700">

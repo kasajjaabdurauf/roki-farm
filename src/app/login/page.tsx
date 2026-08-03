@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { KeyRound, Loader2, LogIn, Mail, ShieldCheck, Sparkles, Sprout, UserPlus, Users, UserCog } from "lucide-react";
 import { matchesAgentCode, setRole, useDb } from "@/lib/db";
-import { resetPasswordForEmail, signInWithEmail, signInWithMagicLink, signUp } from "@/lib/remote";
+import { remoteConfigured, resetPasswordForEmail, signInWithEmail, signInWithMagicLink, signUp } from "@/lib/remote";
 import { Button, Card, Field, Input } from "@/components/ui";
 import { Wordmark } from "@/components/brand";
 
@@ -287,12 +287,16 @@ export default function LoginPage() {
         <MiniCard icon={<KeyRound className="h-4 w-4" />} title="Magic link" text="No password needed, sign in straight from your email." />
       </div>
 
-      <p className="text-center text-[13px] text-stone-500">
-        Want to look around without an account?{" "}
-        <Link href="/" className="font-semibold text-forest-700 underline">
-          Continue in demo mode
-        </Link>
-      </p>
+      {!remoteConfigured() && (
+        <Card className="p-4 text-center">
+          <p className="text-[13px] font-semibold text-forest-800">Preview mode</p>
+          <p className="mt-1 text-[12.5px] text-stone-500">
+            No cloud connection is configured on this environment.{" "}
+            <Link href="/" className="font-semibold text-forest-700 underline">Open the preview</Link> to browse
+            sample data.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }

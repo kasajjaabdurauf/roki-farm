@@ -273,9 +273,9 @@ export default function HelpPage() {
             </p>
           </div>
           <div>
-            <p className="flex items-center gap-1.5 text-[13px] font-bold text-forest-800"><CloudUpload className="h-4 w-4 text-ochre-500" /> Demo mode</p>
+            <p className="flex items-center gap-1.5 text-[13px] font-bold text-forest-800"><CloudUpload className="h-4 w-4 text-ochre-500" /> Preview mode</p>
             <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
-              Without an account you can explore with sample data using the role switcher in the header. Real data only appears after signing in.
+              Environments without a cloud connection show sample data so you can explore. Sign in with your Roki account to see your real workspace.
             </p>
           </div>
           <div>
