@@ -58,6 +58,7 @@
 - [ ] **2.3** Open the project → left sidebar → **SQL Editor** → **New query** → paste the ENTIRE contents of `roki-farm-platform/supabase/schema.sql` → **Run**. (It creates tables, security rules, the profile trigger, and default settings.)
 - [ ] **2.3b** In the SQL Editor, open a second query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v2.sql` → **Run**. (Adds the email column, first-user-becomes-admin and in-app role management.)
 - [ ] **2.3c** In the SQL Editor, open a third query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v3.sql` → **Run**. (Honours the Field agent / Farmer choice made at signup; Admin stays admin-only.)
+- [ ] **2.3d** In the SQL Editor, open a fourth query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v4.sql` → **Run**. (Every self-signup is now a Farmer; retro-fixes any old FIELD_AGENT self-signups.)
 - [ ] **2.4** Get the keys: sidebar → **Settings → API** (or Project Settings → API). Copy:
   - `Project URL` → this is `SUPABASE_URL`
   - `anon public` key → `SUPABASE_ANON_KEY`
@@ -103,7 +104,7 @@
   ```sql
   update public.profiles set role = 'ADMIN' where id = '<uuid>';
   ```
-- [ ] **5.4** Create team accounts: they sign up in the app choosing **Field agent** or **Farmer** (Admin is never self-selectable). Then manage roles **in the app**: sign in as Joan → **Settings → Team & roles** → pick each person → Admin / Field Agent / Farmer. **Always link a farmer record for Farmer accounts** (Linked farmer column) — otherwise the account shows a "not linked yet" screen instead of data.
+- [ ] **5.4** Farmer accounts: people sign up in the app (always as Farmer — there is no role picker; field agents use the access code). They are then prompted to complete the farmer registration survey, which creates and links their farmer profile automatically. Admins can adjust roles in **Settings → Team & roles** (Admin / Field Agent / Farmer + linked farmer).
   💡 (SQL fallback if ever needed: `update public.profiles set role = 'FARMER', farmer_id = 'RFV-UG-00001' where id = '<uid>';` — UUIDs live in Supabase → Authentication → Users.)
 - [ ] **5.5** ✅ **Verify:** sign out, sign back in as Joan → you should see **Dashboard, Forecast, Supply, Farmers, Upload, Grid, Settings** and your email chip (no role switcher). Sign in as a farmer account → only **My Farm / Harvest Logs / Help** and no other farmers' data.
 

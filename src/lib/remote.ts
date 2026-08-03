@@ -96,16 +96,16 @@ export async function signInWithMagicLink(email: string) {
   return c.auth.signInWithOtp({ email });
 }
 
-export async function signUp(email: string, password: string, role?: "FIELD_AGENT" | "FARMER") {
+export async function signUp(email: string, password: string) {
   const c = sb();
   if (!c) throw new Error("Backend not configured, run in demo mode or set Supabase keys.");
-  // The chosen role is stored in user metadata; the database trigger only
-  // ever honours FARMER / FIELD_AGENT. ADMIN can never be self-selected
+  // Every self-signup is a FARMER. Field agents use the shared access
+  // code instead of accounts, and ADMIN can never be self-selected
   // (the first account on a fresh database becomes Admin automatically).
   return c.auth.signUp({
     email,
     password,
-    options: { data: { role: role === "FARMER" ? "FARMER" : "FIELD_AGENT" } },
+    options: { data: { role: "FARMER" } },
   });
 }
 

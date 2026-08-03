@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { bootstrapRemote } from "@/lib/db";
+import { bootstrapRemote, useDb } from "@/lib/db";
 import { getSession, onAuthChange, remoteConfigured, remoteVarsPresent } from "@/lib/remote";
 import { LogoMark } from "./brand";
 import { Button } from "./ui";
@@ -96,6 +96,20 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
+
+  // auto-nudge: signed-in farmer with no farmer record → point at the survey
+  const db = useDb();
+  const needsSurvey = ready && db.meta.role === "FARMER" && !db.meta.demoFarmerId && pathname === "/";
+  useEffect(() => {
+    if (needsSurvey) {
+      try {
+        if (!localStorage.getItem("roki-survey-nudged")) {
+          localStorage.setItem("roki-survey-nudged", "1");
+          window.location.href = "/survey";
+        }
+      } catch { /* ignore */ }
+    }
+  }, [needsSurvey]);
 
   if (!ready) {
     return (

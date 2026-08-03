@@ -16,7 +16,6 @@ export default function LoginPage() {
   const [agentCode, setAgentCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [signupRole, setSignupRole] = useState<"FIELD_AGENT" | "FARMER">("FIELD_AGENT");
   const [forgotOpen, setForgotOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -29,13 +28,9 @@ export default function LoginPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await signUp(email, password, signupRole);
+        const { error } = await signUp(email, password);
         if (error) throw new Error(error.message);
-        setNotice(
-          signupRole === "FARMER"
-            ? "Farmer account created. Confirm your email, then sign in. An administrator will link your account to your farmer profile."
-            : "Field agent account created. Confirm your email, then sign in. Your administrator can adjust your role in Settings → Team & roles."
-        );
+        setNotice("Farmer account created. Confirm your email, then sign in, and complete your farmer registration survey.");
         setMode("signin");
       } else {
         const { error } = await signInWithEmail(email, password);
@@ -203,50 +198,7 @@ export default function LoginPage() {
             </div>
           )}
           {mode === "signup" && (
-            <Field label="What best describes you?" required>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSignupRole("FIELD_AGENT")}
-                  className={
-                    "flex h-16 flex-col items-center justify-center gap-1 rounded-xl border text-center transition-colors " +
-                    (signupRole === "FIELD_AGENT"
-                      ? "border-forest-700 bg-forest-800 text-white"
-                      : "border-stone-300 bg-white text-stone-600 hover:bg-stone-50")
-                  }
-                >
-                  <Users className="h-5 w-5" />
-                  <span className="text-[12.5px] font-bold">Field agent</span>
-                  <span className={signupRole === "FIELD_AGENT" ? "text-[10px] text-white/70" : "text-[10px] text-stone-400"}>
-                    I work with Roki
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSignupRole("FARMER")}
-                  className={
-                    "flex h-16 flex-col items-center justify-center gap-1 rounded-xl border text-center transition-colors " +
-                    (signupRole === "FARMER"
-                      ? "border-ochre-500 bg-ochre-500 text-white"
-                      : "border-stone-300 bg-white text-stone-600 hover:bg-stone-50")
-                  }
-                >
-                  <Sprout className="h-5 w-5" />
-                  <span className="text-[12.5px] font-bold">Farmer</span>
-                  <span className={signupRole === "FARMER" ? "text-[10px] text-white/80" : "text-[10px] text-stone-400"}>
-                    I grow produce
-                  </span>
-                </button>
-              </div>
-              <p className="mt-1.5 text-[11.5px] leading-snug text-stone-400">
-                Your role is locked to what you choose (or what an admin changes later). Admin accounts are only
-                assigned by an existing administrator.
-              </p>
-            </Field>
-          )}
-
-          {mode === "signup" && (
-            <Field label="Password" required hint="min 6 characters">
+            <Field label="Password" required hint="min 6 characters · account is a farmer account">
               <Input
                 type="password"
                 value={password}

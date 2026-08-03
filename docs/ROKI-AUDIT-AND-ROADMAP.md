@@ -38,6 +38,7 @@ Tick items off as they are completed.
 - [x] v1.8: role-calibrated dashboards (farmers see only their own data + tips; staff see operations), My Farm gate removed (own account view), farmer account no longer lists other roles, demo artifacts removed
 - [x] v1.9: farmer self-registration survey flow (/survey) with auto account-linking on completion; enumerator-only fields hidden in self mode
 - [x] v1.9.1: awaited account linking (no silent failures), 15s live refresh on all devices while online, manual Refresh data button on staff dashboard, Farmers list newest-first with 20s auto-refresh
+- [x] v2.0: farmer-only signup (no role picker; agents use the code), self-signups default FARMER, auto survey nudge on first sign-in, migration_v4 retro-fixes old FIELD_AGENT self-signups
 
 ---
 

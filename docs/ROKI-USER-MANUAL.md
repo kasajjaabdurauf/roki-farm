@@ -99,9 +99,9 @@ Field agents don't need accounts. On the sign-in screen, the **"Field agent? Use
 ### 3.3 Creating an account (for team members)
 1. On the sign-in screen, switch to **Create account**.
 2. Enter the person's email + a password.
-3. **Choose what describes you**: **Field agent** (works with Roki) or **Farmer** (grows produce). This choice becomes the account role until an admin changes it. **Admin can never be self-selected** — only an existing administrator can grant Admin in Settings → Team & roles (the very first account on a fresh database becomes Admin automatically).
+3. **Every account is a Farmer account** — there is no role picker. Field agents don't create accounts at all; they use the shared **access code**. **Admin can never be self-selected** — only an existing administrator can grant Admin in Settings → Team & roles (the very first account on a fresh database becomes Admin automatically).
 4. They confirm their email from the inbox, then sign in.
-5. **Linking is optional, not a roadblock**: an administrator can link the account to a farmer profile (Settings → Team & roles → **Linked farmer**) so the farmer sees their own profile and harvests. Until then, the farmer can still **Continue as a farmer** and log produce from the harvest logs page.
+5. **They're guided to the survey**: right after sign-in, a farmer with no farmer record is directed to complete the **farmer registration survey**, which creates and links their farmer profile automatically. (Anyone who skips it can tap "Complete my farmer survey" from their dashboard, My Farm or Account.)
 
 ### 3.4 Demo mode
 If the platform is running without a backend (demonstrations), there is no sign-in: use the **role switcher** in the header to flip between Admin / Field Agent / Farmer and explore with sample data. Sample data can be reset in **Settings → Reset demo data**.
@@ -402,5 +402,6 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 1.8 | 2026-08-03 | Role calibration: farmers now see only their own world (personal stats, own harvests, farming tips) with zero admin metrics; My Farm opens straight to the farmer's own account (no admin-verification gate); the account page no longer shows other roles' details to farmers; all demo artifacts removed (role switcher, demo-mode cards, reset-demo buttons). |
 | 1.9 | 2026-08-03 | Farmer self-registration survey: new farmers are asked to complete the official questionnaire from their dashboard, My Farm and Account (Complete my farmer survey). Self mode hides enumerator-only fields (Section 1.1 details, Section 15 assessment) and finishing automatically links the account to the new farmer profile. Staff still register farmers from Farmers → New Survey. |
 | 1.9.1 | 2026-08-03 | Sync reliability: farmer self-registration now awaits and verifies the account→farmer link (no silent fire-and-forget), and all devices live-refresh every 15s while online so new signups/registrations appear on every screen without a manual reload. Staff dashboard gains a manual **Refresh data** button; the Farmers list sorts **newest first** and auto-refreshes every 20s. |
+| 2.0 | 2026-08-03 | Signup is farmer-only: the role picker is removed (field agents use the access code; Admin stays admin-only), self-signups are always FARMER, and right after sign-in farmers are auto-directed to complete their registration survey (which creates + links their profile). Existing FIELD_AGENT self-signups are retro-fixed to FARMER (migration_v4.sql). |
 
 *Every future release appends a row here.*
