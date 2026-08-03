@@ -244,6 +244,8 @@ On completion:
 - the farmer appears in all dashboards immediately,
 - the rule engine tags their scale tier and Roki tier.
 
+**Farmer self-registration:** a farmer who hasn't been registered yet is invited to complete this same survey from their dashboard ("Complete my farmer survey"). Self mode hides the enumerator fields (Section 1.1) and the enumerator assessment (Section 15); when they finish, their profile is created and their account is linked to it automatically.
+
 **Editing:** open the farmer → **Edit** → the same wizard opens pre-filled; changes re-run the engine and re-sync.
 
 ---
@@ -398,5 +400,7 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 1.7.1 | 2026-08-03 | Fixed the last React error #300 source: the app shell returned early for the login page before two of its hooks, crashing on navigation (login → dashboard). All hooks now run before any conditional return in every screen (audited across the whole app). |
 | 1.7.2 | 2026-08-03 | Added simulation workbooks (`simulations/`): 1,000-farmer upload file and 900-row harvest-log file, both with documented intentional errors for demo and practice; added a demo-video script to the setup walkthrough. |
 | 1.8 | 2026-08-03 | Role calibration: farmers now see only their own world (personal stats, own harvests, farming tips) with zero admin metrics; My Farm opens straight to the farmer's own account (no admin-verification gate); the account page no longer shows other roles' details to farmers; all demo artifacts removed (role switcher, demo-mode cards, reset-demo buttons). |
+| 1.9 | 2026-08-03 | Farmer self-registration survey: new farmers are asked to complete the official questionnaire from their dashboard, My Farm and Account (Complete my farmer survey). Self mode hides enumerator-only fields (Section 1.1 details, Section 15 assessment) and finishing automatically links the account to the new farmer profile. Staff still register farmers from Farmers → New Survey. |
+| 1.9.1 | 2026-08-03 | Sync reliability: farmer self-registration now awaits and verifies the account→farmer link (no silent fire-and-forget), and all devices live-refresh every 15s while online so new signups/registrations appear on every screen without a manual reload. Staff dashboard gains a manual **Refresh data** button; the Farmers list sorts **newest first** and auto-refreshes every 20s. |
 
 *Every future release appends a row here.*

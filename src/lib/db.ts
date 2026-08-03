@@ -253,6 +253,16 @@ export async function refreshFromRemote(): Promise<void> {
   listeners.forEach((l) => l());
 }
 
+/** Pull fresh cloud data + push pending ops (used by the live-refresh loop). */
+export async function refreshNow(): Promise<void> {
+  try {
+    await syncNow();
+    await refreshFromRemote();
+  } catch {
+    /* keep local state; retry next tick */
+  }
+}
+
 export async function bootstrapRemote(): Promise<void> {
   if (!remoteConfigured()) return;
   const profile = await fetchMyProfile();

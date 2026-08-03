@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
 import { PhoneCall, Search, UserPlus, Users } from "lucide-react";
-import { useDb } from "@/lib/db";
+import { useEffect, useMemo, useState } from "react";
+import { refreshNow, useDb } from "@/lib/db";
 import { fmtNumber } from "@/lib/rules";
 import { REFUGEE_LABEL, type RokiTier, type ScaleTier } from "@/lib/types";
 import { Badge, Button, Card, EmptyState, Input, Select } from "@/components/ui";
@@ -15,6 +15,14 @@ export default function FarmersPage() {
   const [tier, setTier] = useState<"ALL" | RokiTier>("ALL");
   const [attention, setAttention] = useState(false);
 
+  // keep the list live so new registrations appear without a reload
+  useEffect(() => {
+    const t = setInterval(() => {
+      void refreshNow();
+    }, 20000);
+    return () => clearInterval(t);
+  }, []);
+
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     return db.farmers
@@ -25,7 +33,7 @@ export default function FarmersPage() {
         const hay = `${f.id} ${f.fullName} ${f.phone} ${f.district} ${f.subCounty} ${f.village ?? ""} ${REFUGEE_LABEL[f.refugeeStatus]}`.toLowerCase();
         return hay.includes(query);
       })
-      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // newest first
   }, [db.farmers, q, tier, attention]);
 
   const logCount = useMemo(() => {

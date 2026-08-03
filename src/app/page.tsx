@@ -9,6 +9,7 @@ import {
   ClipboardPlus,
   FileText,
   Flag,
+  RefreshCw,
   Home,
   Leaf,
   MapPin,
@@ -222,6 +223,14 @@ const TIPS = [
 function StaffDashboard() {
   const db = useDb();
   const isAgent = db.meta.role === "FIELD_AGENT";
+  const [refreshing, setRefreshing] = useState(false);
+
+  function doRefresh() {
+    setRefreshing(true);
+    import("@/lib/db")
+      .then((m) => m.refreshNow())
+      .finally(() => setRefreshing(false));
+  }
 
   const scopedLogs = db.logs;
   const since90 = isoDaysAgo(90);
@@ -316,6 +325,11 @@ function StaffDashboard() {
               </Button>
             </button>
           )}
+          <button onClick={doRefresh} disabled={refreshing} className="col-span-2 sm:col-span-1">
+            <Button variant="outline" className="w-full" disabled={refreshing}>
+              <RefreshCw className={cx("h-4 w-4", refreshing && "animate-spin")} /> {refreshing ? "Refreshing…" : "Refresh data"}
+            </Button>
+          </button>
           <Link href="/logs" className="col-span-2 sm:col-span-1">
             <Button variant="accent" className="w-full">
               <ClipboardPlus className="h-4 w-4" /> Log Harvest

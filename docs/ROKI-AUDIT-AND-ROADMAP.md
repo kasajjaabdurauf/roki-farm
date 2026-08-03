@@ -36,6 +36,8 @@ Tick items off as they are completed.
 - [x] v1.6: fixed "Continue as a farmer" crash (hooks ordering) + same bug class on farmer detail; security headers, config-error screen instead of demo fallback, agent code never shown in plaintext
 - [x] v1.7: continue-as-farmer persists across refreshes; agent sessions survive refresh; error screens show real error + copy button + global error logger; version stamp in Settings/Account
 - [x] v1.8: role-calibrated dashboards (farmers see only their own data + tips; staff see operations), My Farm gate removed (own account view), farmer account no longer lists other roles, demo artifacts removed
+- [x] v1.9: farmer self-registration survey flow (/survey) with auto account-linking on completion; enumerator-only fields hidden in self mode
+- [x] v1.9.1: awaited account linking (no silent failures), 15s live refresh on all devices while online, manual Refresh data button on staff dashboard, Farmers list newest-first with 20s auto-refresh
 
 ---
 

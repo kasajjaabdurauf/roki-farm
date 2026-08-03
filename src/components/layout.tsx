@@ -24,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { cx } from "@/lib/format";
-import { flushOutbox, pendingSync, useDb } from "@/lib/db";
+import { flushOutbox, pendingSync, refreshNow, useDb } from "@/lib/db";
 import { remoteConfigured } from "@/lib/remote";
 import { type Role } from "@/lib/types";
 import { Wordmark } from "./brand";
@@ -135,6 +135,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   const role = db.meta.role;
   const online = useOnline();
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Live refresh: while online, pull fresh cloud data every 15s so new
+  // signups/registrations appear on every device without a manual reload.
+  useEffect(() => {
+    if (!isRemote || !online) return;
+    const t = setInterval(() => {
+      void refreshNow();
+    }, 15000);
+    return () => clearInterval(t);
+  }, [isRemote, online]);
 
   // ALL hooks must run on every render — an early return between hooks
   // causes React error #300 ("rendered more hooks than during the

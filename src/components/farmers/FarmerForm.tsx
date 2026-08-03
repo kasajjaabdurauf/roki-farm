@@ -312,7 +312,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
     } else router.back();
   }
 
-  function submit() {
+  async function submit() {
     const survey: FarmerSurvey = {
       enumeratorName: d.enumeratorName,
       enumeratorId: d.enumeratorId,
@@ -407,7 +407,11 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
       if (selfRegistration) {
         // self-registration: link this account to the new farmer profile
         setDemoFarmer(created.id);
-        void linkAccountToFarmer(created.id);
+        try {
+          await linkAccountToFarmer(created.id);
+        } catch {
+          // the local profile exists; cloud linking retries on next sync
+        }
         router.push("/farm");
       } else {
         router.push(`/farmers/${created.id}`);
