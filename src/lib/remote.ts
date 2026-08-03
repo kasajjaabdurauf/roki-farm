@@ -30,6 +30,11 @@ let client: SupabaseClient | null = null;
  * spaces/newlines, placeholder URL) can NEVER crash the app — it just
  * falls back to demo mode with a clear console warning.
  */
+/** True when the Supabase env vars are set at all (even if invalid). */
+export function remoteVarsPresent(): boolean {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
 function configValid(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

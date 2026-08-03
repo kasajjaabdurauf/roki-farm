@@ -23,7 +23,6 @@ import { signOut } from "@/lib/remote";
 import { downloadCSV, downloadMasterBackup, downloadXLSX, stamp, type ExportColumn } from "@/lib/export";
 import { fmtDateTime } from "@/lib/format";
 import { CROPS } from "@/lib/reference";
-import { DEFAULT_AGENT_CODE } from "@/lib/db";
 import { fetchAllProfiles, remoteConfigured, updateProfileRole, type TeamMember } from "@/lib/remote";
 import { TIER_LABEL } from "@/lib/types";
 import { Button, Card, ConfirmDialog, Input, Select, Toggle } from "@/components/ui";
@@ -112,7 +111,7 @@ export default function SettingsPage() {
                 variant="accent"
                 size="sm"
                 className="h-11"
-                disabled={agentCode.trim().length < 4}
+                disabled={agentCode.trim().length < 6}
                 onClick={() => {
                   setAgentCode(agentCode.trim());
                   setAgentCodeInput("");
@@ -124,9 +123,7 @@ export default function SettingsPage() {
             </div>
             {agentMsg && <p className="mt-2 text-[12.5px] font-semibold text-success-dark">{agentMsg}</p>}
             <p className="mt-2 text-[12px] text-stone-400">
-              Current code in use on this device:{" "}
-              <code className="rounded bg-stone-100 px-1.5 py-0.5 font-mono text-[11px]">{DEFAULT_AGENT_CODE}</code>{" "}
-              (or the last code set here).
+              The current code is stored hashed (never in plaintext). Share it with field agents privately.
             </p>
           </Card>
         )}

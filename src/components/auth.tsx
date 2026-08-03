@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { bootstrapRemote } from "@/lib/db";
-import { getSession, onAuthChange, remoteConfigured } from "@/lib/remote";
+import { getSession, onAuthChange, remoteConfigured, remoteVarsPresent } from "@/lib/remote";
 import { LogoMark } from "./brand";
+import { Button } from "./ui";
 
 /**
  * Production-mode gate: when Supabase is configured, the app requires a
@@ -17,6 +18,33 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const checked = useRef(false);
+
+  // Security: if backend vars are SET but invalid (misconfiguration),
+  // show a clear config error instead of silently serving demo data.
+  if (remoteVarsPresent() && !remoteConfigured()) {
+    return (
+      <div className="grid min-h-screen place-items-center p-6">
+        <div className="max-w-md space-y-4 text-center">
+          <LogoMark className="mx-auto h-12 w-auto" />
+          <p className="font-display text-xl font-semibold text-forest-900">Platform not configured correctly</p>
+          <p className="text-sm leading-relaxed text-stone-500">
+            The connection settings are incomplete or invalid. Please contact your administrator.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              try {
+                localStorage.removeItem("sb-" + process.env.NEXT_PUBLIC_SUPABASE_URL);
+              } catch { /* ignore */ }
+              window.location.reload();
+            }}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!remoteConfigured()) {

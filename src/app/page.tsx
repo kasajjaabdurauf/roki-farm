@@ -32,6 +32,10 @@ export default function DashboardPage() {
   const db = useDb();
   const isFarmer = db.meta.role === "FARMER";
   const farmer = isFarmer ? db.farmers.find((f) => f.id === db.meta.demoFarmerId) : undefined;
+  // ALL hooks must run on every render (no early returns before them):
+  // an early return before a useMemo/useState makes React's hook order
+  // change between renders and crashes the page ("Continue as a farmer").
+  const [continueAsFarmer, setContinueAsFarmer] = useState(false);
 
   const scopedLogs = useMemo(() => {
     if (!isFarmer) return db.logs;
@@ -52,29 +56,6 @@ export default function DashboardPage() {
     const map = new Map(db.farmers.map((f) => [f.id, f.fullName]));
     return (id: string) => map.get(id) ?? "Unknown";
   }, [db.farmers]);
-
-  // ---------------- Roki survey aggregates ----------------
-  const [continueAsFarmer, setContinueAsFarmer] = useState(false);
-
-  if (isFarmer && !farmer && !continueAsFarmer) {
-    return (
-      <EmptyState
-        icon={<Users className="h-6 w-6" />}
-        title="Welcome to the Roki farm platform"
-        description="Your account isn't linked to a farmer profile yet (an administrator can link it anytime). You can still continue as a farmer and log produce now."
-        action={
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button variant="primary" onClick={() => setContinueAsFarmer(true)}>
-              Continue as a farmer
-            </Button>
-            <Link href="/help">
-              <Button variant="outline">Help & Guide</Button>
-            </Link>
-          </div>
-        }
-      />
-    );
-  }
 
   const farmerStats = useMemo(() => {
     const fs = isFarmer ? (farmer ? [farmer] : []) : db.farmers;
@@ -128,6 +109,27 @@ export default function DashboardPage() {
   );
 
   const maxDistricts = farmerStats.locationMap[0]?.[1] ?? 1;
+
+  // unlinked farmers: friendly welcome with an optional continue (no roadblock)
+  if (isFarmer && !farmer && !continueAsFarmer) {
+    return (
+      <EmptyState
+        icon={<Users className="h-6 w-6" />}
+        title="Welcome to the Roki farm platform"
+        description="Your account isn't linked to a farmer profile yet (an administrator can link it anytime). You can still continue as a farmer and log produce now."
+        action={
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="primary" onClick={() => setContinueAsFarmer(true)}>
+              Continue as a farmer
+            </Button>
+            <Link href="/help">
+              <Button variant="outline">Help & Guide</Button>
+            </Link>
+          </div>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">

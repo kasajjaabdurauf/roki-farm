@@ -33,6 +33,26 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const farmer = db.farmers.find((f) => f.id === id);
+  const logs = useMemo(
+    () =>
+      db.logs
+        .filter((l) => l.farmerId === farmer?.id)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [db.logs, farmer?.id]
+  );
+
+  const totalKg = logs.reduce((s, l) => s + l.quantityKg, 0);
+  const byCrop = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const l of logs) m[l.cropType] = (m[l.cropType] ?? 0) + l.quantityKg;
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }, [logs]);
+  const topCrop = byCrop[0]?.[0] ?? "N/A";
+  const perAcre = (farmer?.acreage ?? 0) > 0 ? totalKg / (farmer?.acreage ?? 1) : 0;
+  const irrigationLabel = farmer ? (IRRIGATION_OPTIONS.find((o) => o.value === farmer.irrigationType)?.label ?? farmer.irrigationType) : "N/A";
+
+  const flaggedLogs = logs.filter((l) => l.status !== "VERIFIED");
+
   if (!farmer) {
     return (
       <EmptyState
@@ -47,26 +67,6 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
       />
     );
   }
-
-  const logs = useMemo(
-    () =>
-      db.logs
-        .filter((l) => l.farmerId === farmer.id)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [db.logs, farmer.id]
-  );
-
-  const totalKg = logs.reduce((s, l) => s + l.quantityKg, 0);
-  const byCrop = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const l of logs) m[l.cropType] = (m[l.cropType] ?? 0) + l.quantityKg;
-    return Object.entries(m).sort((a, b) => b[1] - a[1]);
-  }, [logs]);
-  const topCrop = byCrop[0]?.[0] ?? "N/A";
-  const perAcre = farmer.acreage > 0 ? totalKg / farmer.acreage : 0;
-  const irrigationLabel = IRRIGATION_OPTIONS.find((o) => o.value === farmer.irrigationType)?.label ?? farmer.irrigationType;
-
-  const flaggedLogs = logs.filter((l) => l.status !== "VERIFIED");
 
   return (
     <div className="space-y-6">
