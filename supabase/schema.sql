@@ -25,19 +25,35 @@ returns trigger
 language plpgsql security definer set search_path = public
 as $$
 declare
-  chosen_role text := coalesce(new.raw_user_meta_data->>'role', '');
+  v_role      text;
+  v_farmer_id text;
+  v_name      text := coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1));
 begin
-  insert into public.profiles (id, role, full_name, email)
-  values (
-    new.id,
-    case
-      when not exists (select 1 from public.profiles) then 'ADMIN'
-      when chosen_role = 'FARMER' then 'FARMER'
-      else 'FIELD_AGENT'
-    end,
-    coalesce(new.raw_user_meta_data->>'full_name', ''),
-    new.email
-  );
+  v_role := case when not exists (select 1 from public.profiles) then 'ADMIN' else 'FARMER' end;
+
+  if v_role = 'FARMER' then
+    -- CLAIM: reuse an existing farmer record with the same email
+    select id into v_farmer_id
+    from public.farmers
+    where lower(coalesce(email, '')) = lower(coalesce(new.email, ''))
+    limit 1;
+
+    if v_farmer_id is null then
+      v_farmer_id := 'RFV-UG-' || lpad(nextval('public.farmers_id_seq')::text, 5, '0');
+      insert into public.farmers (id, full_name, email, created_at, updated_at)
+      values (v_farmer_id, v_name, new.email, now(), now());
+    else
+      update public.farmers
+      set email = coalesce(email, new.email),
+          full_name = coalesce(nullif(full_name, ''), v_name),
+          updated_at = now()
+      where id = v_farmer_id;
+    end if;
+  end if;
+
+  insert into public.profiles (id, role, full_name, email, farmer_id)
+  values (new.id, v_role, v_name, new.email, v_farmer_id);
+
   return new;
 end;
 $$;
@@ -57,6 +73,13 @@ as $$
     'FIELD_AGENT'
   );
 $$;
+
+-- sequence for auto-generated farmer ids (accounts ARE farmers)
+create sequence if not exists public.farmers_id_seq;
+select setval(
+  'public.farmers_id_seq',
+  coalesce(max((regexp_replace(id, '^RFV-UG-', ''))::int), 0)
+) from public.farmers;
 
 -- ---------------------------------------------------------------------
 -- FARMERS
@@ -82,6 +105,7 @@ create table if not exists public.farmers (
   planned_productions  jsonb not null default '[]',
   survey               jsonb,                      -- full 15-section questionnaire
   flags                jsonb not null default '[]',
+  email                text,                       -- account email (accounts ARE farmers)
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
@@ -161,6 +185,20 @@ create policy "farmers insert" on public.farmers
 drop policy if exists "farmers update" on public.farmers;
 create policy "farmers update" on public.farmers
   for update using (public.get_user_role() = 'ADMIN');
+
+-- update: a farmer may update their OWN record (completing their survey)
+drop policy if exists "farmers update own" on public.farmers;
+create policy "farmers update own" on public.farmers
+  for update using (
+    id = (select farmer_id from public.profiles where id = auth.uid())
+  );
+
+-- insert: a farmer may insert their own record if missing (defensive)
+drop policy if exists "farmers insert own" on public.farmers;
+create policy "farmers insert own" on public.farmers
+  for insert with check (
+    id = (select farmer_id from public.profiles where id = auth.uid())
+  );
 
 -- delete: admins only
 drop policy if exists "farmers delete" on public.farmers;

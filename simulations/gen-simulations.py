@@ -133,10 +133,10 @@ def write_readme(ws, title, intro, problems, notes=None):
 # ======================================================================
 # FILE 1 — 1,000 farmers
 # ======================================================================
-HEADERS1 = ["Farmer ID", "Farmer Name", "Phone", "Gender", "Refugee Status", "District",
+HEADERS1 = ["Farmer ID", "Farmer Name", "Email", "Phone", "Gender", "Refugee Status", "District",
             "Sub-County", "Village", "Acreage", "Crop", "Qty (Kg)", "Harvest Date", "Grade",
             "Batch ID"]
-WIDTHS1 = [14, 24, 17, 9, 14, 22, 12, 14, 9, 15, 10, 13, 8, 17]
+WIDTHS1 = [14, 24, 26, 17, 9, 14, 22, 12, 14, 9, 15, 10, 13, 8, 17]
 
 wb = Workbook()
 ws = wb.active
@@ -173,6 +173,7 @@ for i in range(1, 1001):
     fid = f"RFV-UG-{i:05d}"
     gender = rng.choice(["M", "F", "F"])
     name = gen_name(gender)
+    email = f"{name.split()[0].lower()}.{name.split()[1].lower()}{rng.randint(1,999)}@example.com"
     phone = gen_phone()
     refugee = rng.choice(["REFUGEE", "HOST", "HOST", "NONE"])
     district = rng.choice(DISTRICTS)
@@ -185,19 +186,19 @@ for i in range(1, 1001):
     grade = rng.choice(GRADES)
     batch = gen_batch(date)
 
-    row = [fid, name, phone, gender, refugee, district, sub, village, acreage, crop, qty, date, grade, batch]
+    row = [fid, name, email, phone, gender, refugee, district, sub, village, acreage, crop, qty, date, grade, batch]
 
     # ---- intentional problems ----
     if i in bad_phone_rows:
         bad = rng.choice(["077X 123 45A", "0414 555 666", "+25670123456", "2567 12345"])
         row[2] = bad
-        mark_error(ws.cell(row=excel_row, column=3), problems1, excel_row, "Phone",
+        mark_error(ws.cell(row=excel_row, column=4), problems1, excel_row, "Phone",
                    f'"{bad}" is not a valid Ugandan mobile number', "Tap the Phone cell, type a valid 07XXXXXXXX or +2567XXXXXXXX number",
                    "Row turns green; carrier detected (MTN/Airtel)")
     if i in bad_qty_rows:
         bad = rng.choice(["-50", "0", "-120"])
         row[10] = bad
-        mark_error(ws.cell(row=excel_row, column=11), problems1, excel_row, "Qty (Kg)",
+        mark_error(ws.cell(row=excel_row, column=12), problems1, excel_row, "Qty (Kg)",
                    f"Quantity must be greater than 0 (got {bad})", "Tap the Qty cell, enter a positive number (e.g. 750)",
                    "Row turns green and will import")
     if i in blank_name_rows:
@@ -208,18 +209,19 @@ for i in range(1, 1001):
     if i in bad_date_rows:
         bad = rng.choice(["not-a-date", "31/13/2026"])
         row[11] = bad
-        mark_error(ws.cell(row=excel_row, column=12), problems1, excel_row, "Harvest Date",
+        mark_error(ws.cell(row=excel_row, column=13), problems1, excel_row, "Harvest Date",
                    f'Harvest date "{bad}" is not a valid date', "Tap the Harvest Date cell and enter YYYY-MM-DD (e.g. 2026-07-20)",
                    "Row turns green")
     if i in bad_acreage_rows:
         bad = rng.choice(["-1", "0", "abc"])
         row[8] = bad
-        mark_error(ws.cell(row=excel_row, column=9), problems1, excel_row, "Acreage",
+        mark_error(ws.cell(row=excel_row, column=10), problems1, excel_row, "Acreage",
                    f'Acreage "{bad}" is not a valid number above 0', "Tap the Acreage cell and enter the farm size in acres",
                    "Row turns green")
     if i in no_farmer_rows:
         row[0] = ""
         row[1] = ""
+        row[3] = ""
         row[2] = ""
         mark_error(ws.cell(row=excel_row, column=1), problems1, excel_row, "Farmer ID / Name / Phone",
                    "Produce row needs a farmer (match an ID, phone or provide a name)",
@@ -265,7 +267,7 @@ write_readme(
     "Roki simulation — 1,000 farmers (with practice errors)",
     "Use this file to practise Bulk Upload at scale and inline editing.\n\n"
     "1. (Optional but recommended) Start from a clean database: Settings → Data management → Delete all data…\n"
-    "2. Go to Bulk Upload and drag this file in. All columns auto-map (Farmer ID, Farmer Name, Phone, Gender, Refugee Status, District, Sub-County, Village, Acreage, Crop, Qty (Kg), Harvest Date, Grade, Batch ID).\n"
+    "2. Go to Bulk Upload and drag this file in. All columns auto-map (Farmer ID, Farmer Name, Email, Phone, Gender, Refugee Status, District, Sub-County, Village, Acreage, Crop, Qty (Kg), Harvest Date, Grade, Batch ID).\n"
     "3. Rows with light-red cells carry intentional errors. Fix them by tapping the cell in the staging grid (dropdowns appear for Grade / Gender / Refugee Status). Rows that still have errors are NOT imported.\n"
     "4. Light-amber rows are intentional duplicate pairs — keep them to see the duplicate guard flag them as possible duplicates.\n"
     "5. Press Import. Expect: ~970 farmers + logs imported, the rest listed in the report.\n\n"

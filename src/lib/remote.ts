@@ -151,6 +151,7 @@ function rowToFarmer(r: any): Farmer {
   return {
     id: r.id,
     fullName: r.full_name,
+    email: r.email ?? undefined,
     phone: r.phone ?? "",
     nin: r.nin ?? undefined,
     district: r.district ?? "",
@@ -178,6 +179,7 @@ function farmerToRow(f: Farmer) {
   return {
     id: f.id,
     full_name: f.fullName,
+    email: f.email ?? null,
     phone: f.phone,
     nin: f.nin ?? null,
     district: f.district,

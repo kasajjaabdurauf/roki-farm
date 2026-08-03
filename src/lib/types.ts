@@ -118,6 +118,7 @@ export interface FarmerSurvey {
 export interface Farmer {
   id: string; // RFV-UG-XXXXX
   fullName: string;
+  email?: string; // account email (accounts ARE farmers)
   phone: string; // normalized +2567XXXXXXXX
   nin?: string; // National ID (optional)
   district: string;
@@ -233,6 +234,7 @@ export type StageField =
   | "storageLocation"
   | "gender"
   | "refugeeStatus"
+  | "email"
   | "ignore";
 
 export interface ColumnMapping {

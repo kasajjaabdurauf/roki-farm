@@ -192,6 +192,31 @@ Filters: search, crop, district, tier. Shows total expected tonnes for the curre
 4. **Rows that still have errors are NOT imported** — the red banner above the grid says exactly how many will be dropped, and you can press **Remove invalid rows** to discard them first. Then **Import** — a report lists every row's result (created / linked / fixed / skipped).
 5. All imported logs pass through the rule engine immediately.
 
+### 5.7b How uploaded data links to accounts (the two scenarios)
+
+Everything revolves around the **farmer record** (each has an `RFV-UG-XXXXX` ID). An account owns exactly one farmer
+record. When a spreadsheet is uploaded, every row is matched to a farmer record using three keys, in order:
+
+1. **Farmer ID** (`RFV-UG-…`) — exact
+2. **Phone** — normalized to +256 before matching
+3. **Email** — exact, case-insensitive (auto-detected from an `Email` / `Email Address` column)
+
+**Scenario 1 — the farmer already has an account**
+The account's farmer record exists (created automatically at signup, with their email on it). If the uploaded
+document contains that person's **ID, phone or email**, the row links to their record and adds to it (e.g. new
+harvest logs or updated details). Nothing is duplicated.
+
+**Scenario 2 — the farmers have no accounts (e.g. an uploaded list of 1,000)**
+Rows that match nothing **create brand-new farmer records** with fresh `RFV-UG-XXXXX` IDs. These farmers have
+records but no login. Later, when one of them signs up:
+- If the list had their **email** and they sign up with the same email → the signup **claims their existing
+  record** (no duplicate; their history is already attached).
+- If the list had no email → signup creates a new record; an admin can merge by updating the old record's email
+  to match, or by editing the farmer's details.
+
+**Demo it with the simulation file:** the 1,000-farmer workbook now includes an **Email** column. Sign up with one
+of those emails *before* importing → that row links to your account's record instead of creating a duplicate.
+
 ### 5.8 Data Grid & Export (`/grid`)
 Two tabs: **Farmers** and **Produce Logs**.
 - **Inline editing:** click any cell to edit (text, number, dropdown). The rule engine re-checks the record on save (e.g. raise a quantity → tier/status recompute).
@@ -403,5 +428,7 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 1.9 | 2026-08-03 | Farmer self-registration survey: new farmers are asked to complete the official questionnaire from their dashboard, My Farm and Account (Complete my farmer survey). Self mode hides enumerator-only fields (Section 1.1 details, Section 15 assessment) and finishing automatically links the account to the new farmer profile. Staff still register farmers from Farmers → New Survey. |
 | 1.9.1 | 2026-08-03 | Sync reliability: farmer self-registration now awaits and verifies the account→farmer link (no silent fire-and-forget), and all devices live-refresh every 15s while online so new signups/registrations appear on every screen without a manual reload. Staff dashboard gains a manual **Refresh data** button; the Farmers list sorts **newest first** and auto-refreshes every 20s. |
 | 2.0 | 2026-08-03 | Signup is farmer-only: the role picker is removed (field agents use the access code; Admin stays admin-only), self-signups are always FARMER, and right after sign-in farmers are auto-directed to complete their registration survey (which creates + links their profile). Existing FIELD_AGENT self-signups are retro-fixed to FARMER (migration_v4.sql). |
+| 2.1 | 2026-08-03 | Accounts ARE farmers: every signup automatically gets its OWN farmer record + ID (sequence-generated, email stored on the record) with no linking step ever. Self-registration now fills the account's own record; the 'Link a farmer' control is removed from Team & roles; farmers list shows new signups (email + 'Pending survey' badge) newest first; farmers can update their own record. Requires migration_v5.sql. |
+| 2.2 | 2026-08-03 | Upload↔account linking model: rows match farmer records by ID → phone → email (email added as a matching key + column); signup CLAIMS an existing farmer record by email instead of duplicating (migration_v6.sql); simulation file gained an Email column to demo both scenarios; new manual section 5.7b explains it all. |
 
 *Every future release appends a row here.*

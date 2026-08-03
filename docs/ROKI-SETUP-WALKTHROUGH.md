@@ -59,6 +59,8 @@
 - [ ] **2.3b** In the SQL Editor, open a second query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v2.sql` → **Run**. (Adds the email column, first-user-becomes-admin and in-app role management.)
 - [ ] **2.3c** In the SQL Editor, open a third query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v3.sql` → **Run**. (Honours the Field agent / Farmer choice made at signup; Admin stays admin-only.)
 - [ ] **2.3d** In the SQL Editor, open a fourth query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v4.sql` → **Run**. (Every self-signup is now a Farmer; retro-fixes any old FIELD_AGENT self-signups.)
+- [ ] **2.3e** In the SQL Editor, open a fifth query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v5.sql` → **Run**. (THE big one: every account automatically gets its OWN farmer record + ID at signup, no linking; backfills existing accounts; farmers can update their own record.)
+- [ ] **2.3f** In the SQL Editor, open a sixth query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v6.sql` → **Run**. (Upload↔account linking: signup claims an existing farmer record by email instead of duplicating — covers people uploaded from a list before they signed up.)
 - [ ] **2.4** Get the keys: sidebar → **Settings → API** (or Project Settings → API). Copy:
   - `Project URL` → this is `SUPABASE_URL`
   - `anon public` key → `SUPABASE_ANON_KEY`

@@ -405,7 +405,6 @@ function TeamRolesCard() {
               <tr className="border-b border-stone-200 text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
                 <th className="py-2.5 pr-3 pl-1">Email</th>
                 <th className="py-2.5 pr-3">Role</th>
-                <th className="py-2.5 pr-3">Linked farmer</th>
                 <th className="py-2.5">Joined</th>
               </tr>
             </thead>
@@ -427,25 +426,6 @@ function TeamRolesCard() {
                       <option value="FARMER">Farmer</option>
                     </Select>
                   </td>
-                  <td className="py-2.5 pr-3">
-                    {m.role === "FARMER" ? (
-                      <Select
-                        value={m.farmer_id ?? ""}
-                        disabled={saving === m.id}
-                        onChange={(e) => changeFarmerLink(m, e.target.value || null)}
-                        className="h-10 w-48 rounded-lg text-[12px] font-semibold"
-                      >
-                        <option value="">Link a farmer…</option>
-                        {db.farmers.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.id} · {f.fullName}
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      <span className="text-[12px] text-stone-400">—</span>
-                    )}
-                  </td>
                   <td className="py-2.5 text-[12px] text-stone-400">{m.created_at?.slice(0, 10)}</td>
                 </tr>
               ))}
@@ -456,8 +436,8 @@ function TeamRolesCard() {
 
       <p className="mt-3 flex items-start gap-1.5 text-[12px] leading-snug text-stone-400">
         <UserCog className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        Role changes take effect on that person's next sign-in. Farmers linked to a profile can only see and log
-        their own harvests. <UserRound className="ml-1 h-3.5 w-3.5" />
+        Role changes take effect on that person's next sign-in. Every account that signs up automatically gets its
+        own farmer record and ID, so no linking is ever needed. <UserRound className="ml-1 h-3.5 w-3.5" />
       </p>
     </Card>
   );

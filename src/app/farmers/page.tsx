@@ -30,7 +30,7 @@ export default function FarmersPage() {
         if (tier !== "ALL" && f.rokiTier !== tier) return false;
         if (attention && f.flags.length === 0) return false;
         if (!query) return true;
-        const hay = `${f.id} ${f.fullName} ${f.phone} ${f.district} ${f.subCounty} ${f.village ?? ""} ${REFUGEE_LABEL[f.refugeeStatus]}`.toLowerCase();
+        const hay = `${f.id} ${f.fullName} ${f.email ?? ""} ${f.phone} ${f.district} ${f.subCounty} ${f.village ?? ""} ${REFUGEE_LABEL[f.refugeeStatus]}`.toLowerCase();
         return hay.includes(query);
       })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // newest first
@@ -103,8 +103,12 @@ export default function FarmersPage() {
                     {f.fullName.split(" ").map((w) => w[0]).slice(0, 2).join("")}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-stone-800 group-hover:text-forest-800">{f.fullName}</p>
-                    <p className="text-[12px] font-medium text-stone-400 tabular">{f.id}</p>
+                    <p className="truncate font-semibold text-stone-800 group-hover:text-forest-800">
+                      {f.fullName || f.email || f.id}
+                    </p>
+                    <p className="truncate text-[12px] font-medium text-stone-400 tabular">
+                      {f.id}{f.email && f.email !== f.fullName ? ` · ${f.email}` : ""}
+                    </p>
                   </div>
                 </div>
                 <RokiTierBadge tier={f.rokiTier} />
@@ -143,7 +147,10 @@ export default function FarmersPage() {
                 <span className="text-[12px] text-stone-400">
                   {logCount.get(f.id) ?? 0} harvest log{(logCount.get(f.id) ?? 0) === 1 ? "" : "s"} · {f.plannedProductions.length} plan{f.plannedProductions.length === 1 ? "" : "s"}
                 </span>
-                {f.flags.length > 0 && (
+                {f.flags.length > 0 && !f.fullName && (
+                  <Badge tone="warning" dot>Pending survey</Badge>
+                )}
+                {f.flags.length > 0 && f.fullName && (
                   <Badge tone="warning" dot>Incomplete profile</Badge>
                 )}
               </div>

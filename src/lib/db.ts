@@ -327,6 +327,7 @@ export function createFarmer(input: FarmerInput): Farmer {
   const farmer: Farmer = {
     id: nextFarmerId(db),
     fullName: input.fullName.trim(),
+    email: undefined,
     phone: normalizeUgPhone(input.phone).normalized ?? input.phone.trim(),
     nin: input.nin?.trim() || undefined,
     district: input.district,
@@ -605,6 +606,10 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
       if (!farmer && row.parsed.phone) {
         const ph = normalizeUgPhone(String(row.parsed.phone));
         if (ph.ok) farmer = db.farmers.find((f) => f.phone === ph.normalized);
+      }
+      if (!farmer && row.parsed.email) {
+        const em = String(row.parsed.email).trim().toLowerCase();
+        farmer = db.farmers.find((f) => (f.email ?? "").toLowerCase() === em);
       }
 
       if (!farmer) {

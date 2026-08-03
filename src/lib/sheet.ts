@@ -62,6 +62,7 @@ const SYNONYMS: Record<Exclude<StageField, "ignore">, string[]> = {
   storageLocation: ["storagelocation", "storage", "location", "deliverylocation", "depot", "store", "collectioncenter", "storelocation", "storename"],
   gender: ["gender", "sex", "male", "female"],
   refugeeStatus: ["refugeestatus", "refugee", "hostcommunity", "host", "status", "displacementstatus"],
+  email: ["email", "emailaddress", "mail", "useremail", "accountemail"],
 };
 
 const NORM_CACHE: Record<string, string> = {};
@@ -90,12 +91,13 @@ const FIELD_LABELS: Record<Exclude<StageField, "ignore">, string> = {
   storageLocation: "Storage / delivery location",
   gender: "Gender",
   refugeeStatus: "Refugee / host status",
+  email: "Email (account)",
 };
 
 export const STAGE_FIELDS: StageField[] = [
   "fullName", "phone", "nin", "farmerId", "district", "subCounty", "village", "acreage",
   "crops", "cropType", "harvestDate", "quantityKg", "qualityGrade", "batchId", "storageLocation",
-  "gender", "refugeeStatus", "ignore",
+  "gender", "refugeeStatus", "email", "ignore",
 ];
 
 export function stageFieldLabel(f: StageField): string {
@@ -282,6 +284,9 @@ export function stageRow(
         parsed.refugeeStatus = r.includes("refugee") ? "REFUGEE" : r.includes("host") ? "HOST" : "NONE";
         break;
       }
+      case "email":
+        parsed.email = raw.trim().toLowerCase();
+        break;
     }
   }
 

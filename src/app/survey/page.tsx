@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 import { FarmerForm } from "@/components/farmers/FarmerForm";
 import { useDb } from "@/lib/db";
@@ -14,7 +15,10 @@ import { Card } from "@/components/ui";
  * the navigation, and this page guides the right role.
  */
 export default function SurveyPage() {
+  const router = useRouter();
   const db = useDb();
+  // the account's own farmer record (created automatically at signup)
+  const ownFarmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
 
   // staff don't use self-registration — point them to the staff survey
   if (db.meta.role !== "FARMER") {
@@ -46,7 +50,7 @@ export default function SurveyPage() {
         </p>
       </div>
       <Card className="p-5 sm:p-6">
-        <FarmerForm selfRegistration />
+        <FarmerForm selfRegistration existing={ownFarmer} onDone={() => router.push("/farm")} />
       </Card>
     </div>
   );

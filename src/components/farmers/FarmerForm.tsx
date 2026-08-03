@@ -400,17 +400,21 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
     };
 
     if (existing) {
+      // accounts ARE farmers: self-registration updates the account's OWN
+      // record (created automatically at signup) — no linking to any
+      // pre-existing farmer profile.
       updateFarmer(existing.id, input);
       onDone?.();
     } else {
       const created = addFarmer(input);
       if (selfRegistration) {
-        // self-registration: link this account to the new farmer profile
+        // defensive: if the account somehow has no record yet, create one
+        // and claim it (server normally creates it at signup)
         setDemoFarmer(created.id);
         try {
           await linkAccountToFarmer(created.id);
         } catch {
-          // the local profile exists; cloud linking retries on next sync
+          // local claim is enough for now; cloud linking retries on sync
         }
         router.push("/farm");
       } else {
