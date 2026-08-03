@@ -19,33 +19,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const checked = useRef(false);
 
-  // Security: if backend vars are SET but invalid (misconfiguration),
-  // show a clear config error instead of silently serving demo data.
-  if (remoteVarsPresent() && !remoteConfigured()) {
-    return (
-      <div className="grid min-h-screen place-items-center p-6">
-        <div className="max-w-md space-y-4 text-center">
-          <LogoMark className="mx-auto h-12 w-auto" />
-          <p className="font-display text-xl font-semibold text-forest-900">Platform not configured correctly</p>
-          <p className="text-sm leading-relaxed text-stone-500">
-            The connection settings are incomplete or invalid. Please contact your administrator.
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              try {
-                localStorage.removeItem("sb-" + process.env.NEXT_PUBLIC_SUPABASE_URL);
-              } catch { /* ignore */ }
-              window.location.reload();
-            }}
-          >
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
+  // ALL hooks above any conditional return (React rules of hooks):
+  // a return between hooks would trigger error #300 on re-render.
   useEffect(() => {
     if (!remoteConfigured()) {
       setReady(true);
@@ -94,6 +69,33 @@ export function AuthGate({ children }: { children: ReactNode }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Security: if backend vars are SET but invalid (misconfiguration),
+  // show a clear config error instead of silently serving demo data.
+  if (remoteVarsPresent() && !remoteConfigured()) {
+    return (
+      <div className="grid min-h-screen place-items-center p-6">
+        <div className="max-w-md space-y-4 text-center">
+          <LogoMark className="mx-auto h-12 w-auto" />
+          <p className="font-display text-xl font-semibold text-forest-900">Platform not configured correctly</p>
+          <p className="text-sm leading-relaxed text-stone-500">
+            The connection settings are incomplete or invalid. Please contact your administrator.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              try {
+                localStorage.removeItem("sb-" + process.env.NEXT_PUBLIC_SUPABASE_URL);
+              } catch { /* ignore */ }
+              window.location.reload();
+            }}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!ready) {
     return (

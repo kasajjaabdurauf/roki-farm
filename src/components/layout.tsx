@@ -136,11 +136,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const online = useOnline();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // the sign-in screen is standalone: no header, no bottom nav, no brand strip
-  if (pathname === "/login") return <>{children}</>;
-
-  // if a field-agent session was started with the access code on this
-  // browser, let them straight in (skip the login screen on reloads)
+  // ALL hooks must run on every render — an early return between hooks
+  // causes React error #300 ("rendered more hooks than during the
+  // previous render") when navigating (e.g. login → dashboard).
   const agentSession = useMemo(() => {
     if (role !== "FIELD_AGENT") return false;
     try {
@@ -152,6 +150,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const items = useMemo(() => NAV.filter((n) => n.roles.includes(role)), [role]);
   const title = TITLES[pathname] ?? "Roki";
+
+  // the sign-in screen is standalone: no header, no bottom nav, no brand strip
+  if (pathname === "/login") return <>{children}</>;
 
   const showMore = items.length > 5;
   const primaryItems = showMore ? items.slice(0, 4) : items;
