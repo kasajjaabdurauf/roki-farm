@@ -47,7 +47,7 @@ import {
   type ProduceLog,
   type QualityGrade,
 } from "@/lib/types";
-import { Badge, Button, Card, ConfirmDialog, Input, Modal, Select } from "@/components/ui";
+import { Badge, Button, Card, ConfirmDialog, Input, Modal, Select, XScroll } from "@/components/ui";
 import { GradeBadge, RokiTierBadge, SourceChip, StatusBadge, TierBadge, YieldBadge } from "@/components/badges";
 
 type Tab = "farmers" | "logs";
@@ -589,7 +589,7 @@ function TableShell({ table }: { table: any }) {
       <p className="border-b border-stone-100 bg-forest-50/50 px-4 py-2 text-center text-[11px] font-semibold text-forest-700 sm:hidden">
         ← Swipe sideways to see all columns →
       </p>
-      <div className="overflow-x-auto">
+      <XScroll>
       <table className="w-full min-w-[1050px] text-left text-[13px]">
         <colgroup>
           {table.getAllLeafColumns().map((c: any) => (
@@ -631,7 +631,7 @@ function TableShell({ table }: { table: any }) {
       {table.getRowModel().rows.length === 0 && (
         <div className="px-4 py-12 text-center text-sm text-stone-400">No rows match the current filters.</div>
       )}
-      </div>
+      </XScroll>
     </div>
   );
 }

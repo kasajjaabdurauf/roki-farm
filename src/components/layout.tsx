@@ -8,7 +8,6 @@ import {
   CalendarRange,
   CloudOff,
   CloudUpload,
-  Download,
   LayoutDashboard,
   MoreHorizontal,
   Settings,
@@ -26,7 +25,6 @@ import {
 } from "lucide-react";
 import { cx } from "@/lib/format";
 import { flushOutbox, pendingSync, useDb } from "@/lib/db";
-import { downloadMasterBackup, stamp } from "@/lib/export";
 import { remoteConfigured } from "@/lib/remote";
 import { type Role } from "@/lib/types";
 import { Wordmark } from "./brand";
@@ -141,11 +139,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   // the sign-in screen is standalone: no header, no bottom nav, no brand strip
   if (pathname === "/login") return <>{children}</>;
 
-  function masterBackup() {
-    const nameOf = (id: string) => db.farmers.find((f) => f.id === id)?.fullName ?? "Unknown";
-    downloadMasterBackup(db.farmers, db.logs, nameOf, `roki-master-backup-${stamp("backup")}.xlsx`);
-  }
-
   const items = useMemo(() => NAV.filter((n) => n.roles.includes(role)), [role]);
   const title = TITLES[pathname] ?? "Roki";
 
@@ -205,18 +198,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="lg:hidden">
                 <SyncChip compact />
               </div>
-              {isRemote && (
-                <RemoteUserChip />
-              )}
-              {!isRemote && role === "ADMIN" && (
-                <button
-                  onClick={masterBackup}
-                  className="hidden h-11 items-center gap-1.5 rounded-xl px-3 text-[12px] font-semibold text-stone-600 hover:bg-stone-100 xl:flex"
-                  title="Download master backup (farmers + harvest logs)"
-                >
-                  <Download className="h-4 w-4" /> Master backup
-                </button>
-              )}
               {role === "ADMIN" && (
                 <Link
                   href="/settings"
@@ -229,18 +210,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Settings className="h-5 w-5" />
                 </Link>
               )}
-            </div>
-          </div>
-
-          <div className="border-t border-stone-200/70 bg-white px-4 py-2 sm:px-6 lg:hidden">
-            <div className="flex items-center justify-between gap-2">
-              <span className="min-w-0 truncate text-[13px] font-semibold text-stone-600">
-                {isRemote ? (
-                  <RemoteUserChip compact />
-                ) : (
-                  <span className="text-stone-400">Demo mode · manage roles in Account</span>
-                )}
-              </span>
             </div>
           </div>
 
@@ -342,32 +311,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
     </div>
   );
-}
-
-/** Remote-mode user chip: email + sign out. */
-function RemoteUserChip({ compact }: { compact?: boolean }) {
-  const [email, setEmail] = useState<string | null>(null);
-  useEffect(() => {
-    getSessionEmail().then(setEmail);
-  }, []);
-  if (compact) {
-    return (
-      <span className="flex min-w-0 items-center gap-2">
-        <span className="truncate text-[12px] font-semibold text-stone-500">{email ?? "Signed in"}</span>
-      </span>
-    );
-  }
-  return (
-    <span className="hidden items-center gap-1.5 rounded-full bg-forest-50 px-3 py-1.5 text-[12px] font-semibold text-forest-800 lg:inline-flex">
-      <span className="max-w-[180px] truncate">{email ?? "Signed in"}</span>
-    </span>
-  );
-}
-
-async function getSessionEmail(): Promise<string | null> {
-  const { getSession } = await import("@/lib/remote");
-  const s = await getSession();
-  return s?.user?.email ?? null;
 }
 
 export function PwaHint({ className }: { className?: string }) {

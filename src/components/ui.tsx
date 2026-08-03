@@ -1,7 +1,7 @@
 "use client";
 
 import { cx } from "@/lib/format";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { X } from "lucide-react";
 
 // ------------------------------------------------------------------
@@ -299,6 +299,8 @@ export function ConfirmDialog({
   message,
   confirmLabel = "Confirm",
   danger,
+  children,
+  confirmDisabled,
 }: {
   open: boolean;
   onClose: () => void;
@@ -307,6 +309,8 @@ export function ConfirmDialog({
   message: ReactNode;
   confirmLabel?: string;
   danger?: boolean;
+  children?: ReactNode;
+  confirmDisabled?: boolean;
 }) {
   return (
     <Modal
@@ -320,6 +324,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             variant={danger ? "danger" : "primary"}
+            disabled={confirmDisabled}
             onClick={() => {
               onConfirm();
               onClose();
@@ -330,7 +335,44 @@ export function ConfirmDialog({
         </>
       }
     >
-      <div className="text-sm leading-relaxed text-stone-600">{message}</div>
+      <div className="space-y-3 text-sm leading-relaxed text-stone-600">
+        {message}
+        {children}
+      </div>
     </Modal>
+  );
+}
+
+// ------------------------------------------------------------------
+// XScroll — horizontal scroll container with a right-edge fade so it is
+// always obvious when a table continues off-screen.
+// ------------------------------------------------------------------
+export function XScroll({ children, className }: { children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [canScroll, setCanScroll] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setCanScroll(el.scrollWidth > el.clientWidth + 4);
+    update();
+    el.addEventListener("scroll", update);
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+    };
+  }, []);
+
+  return (
+    <div className={cx("relative", className)}>
+      <div ref={ref} className="overflow-x-auto">
+        {children}
+      </div>
+      {canScroll && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white via-white/70 to-transparent" />
+      )}
+    </div>
   );
 }

@@ -175,8 +175,8 @@ Filters: search, crop, district, tier. Shows total expected tonnes for the curre
 ### 5.7 Bulk Upload & Mapping (`/upload`)
 1. **Drag & drop** a `.xlsx`, `.xls` or `.csv` file (or tap to browse). Download the **sample file** to see the expected shape.
 2. **Column mapping** — the engine auto-detects columns from headers ("Tel"/"Phone"/"Contact" → phone; "Qty (Kg)" → quantity; "Area (Ha)" → acres auto-converted). Override any column with its dropdown.
-3. **Staging grid** — every row previewed. Red rows have errors (bad phone, negative quantity, unreadable date, produce row without a farmer); they are **excluded from import**. Expand a row to see the exact errors/warnings and whether it links to an existing farmer (by ID or phone) or creates a new profile.
-4. **Import** — one click; a report lists every row's result (created / linked / skipped).
+3. **Staging grid** — every row previewed. Red rows have errors (bad phone, negative quantity, unreadable date, produce row without a farmer). **Fix them right in the grid**: tap any cell and type the correct value (dropdowns appear for grade, gender and refugee status) and the row re-validates instantly. Expand a row to see the exact errors/warnings and whether it links to an existing farmer (by ID or phone) or creates a new profile.
+4. **Rows that still have errors are NOT imported** — the red banner above the grid says exactly how many will be dropped, and you can press **Remove invalid rows** to discard them first. Then **Import** — a report lists every row's result (created / linked / fixed / skipped).
 5. All imported logs pass through the rule engine immediately.
 
 ### 5.8 Data Grid & Export (`/grid`)
@@ -333,6 +333,7 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | Can't sign in | Check the confirmation email; try the magic link; ask Joan to confirm your account exists |
 | Grid looks different on phone | Swipe sideways — tables are horizontally scrollable; key info is in the first columns |
 | Accidentally deleted a farmer | Contact the admin within 30 days — the nightly backup can restore data (as an Excel import) |
+| I imported a test file and want to start clean | Admin: Settings → Data management → **Delete all data…** (type DELETE to confirm). This clears the local store and the cloud, then syncs |
 | App feels slow | Refresh once; ensure the app is updated; on very old phones, close other apps |
 | Demo data messed up | Settings → Reset demo data (demo mode only) |
 
@@ -374,5 +375,6 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 |---|---|---|
 | 1.0 | 2026-08-03 | Production-ready build: Supabase backend + auth + RLS, sync engine, keep-alive + nightly backup automation, in-app Help & Guide, master backup, full audit + this manual |
 | 1.1 | 2026-08-03 | Polish pass: role management in-app (Settings → Team & roles, no SQL), new Account page with sign-out, login page standalone (no nav), role switcher moved to Account (demo mode), Roki name in mobile header, roomier data grid with responsive columns, settings cards fixed on phones, em dashes replaced with commas |
+| 1.2 | 2026-08-03 | Upload staging is now editable (fix errors inline with tap-to-edit cells and dropdowns; rows with errors are visibly excluded with a Remove-invalid option). Harvest logs page fixed on desktop (filters wrap, tables show a right-edge fade when they continue). Header reduced to one clean row (logo + sync + settings; email lives in Account only). Admins can wipe all data from Settings (typed DELETE confirmation). |
 
 *Every future release appends a row here.*

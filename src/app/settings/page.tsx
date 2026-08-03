@@ -13,8 +13,10 @@ import {
   UserCog,
   UserRound,
   Loader2,
+  AlertTriangle,
+  KeyRound,
 } from "lucide-react";
-import { resetDemoData, syncNow, updateCropDefaults, updateSettings, useDb } from "@/lib/db";
+import { resetDemoData, syncNow, updateCropDefaults, updateSettings, useDb, wipeAllData } from "@/lib/db";
 import { downloadCSV, downloadMasterBackup, downloadXLSX, stamp, type ExportColumn } from "@/lib/export";
 import { fmtDateTime } from "@/lib/format";
 import { CROPS } from "@/lib/reference";
@@ -27,6 +29,8 @@ export default function SettingsPage() {
   const db = useDb();
   const [q, setQ] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [wipeOpen, setWipeOpen] = useState(false);
+  const [wipeConfirm, setWipeConfirm] = useState("");
 
   const storageSize = useMemo(() => {
     try {
@@ -209,9 +213,16 @@ export default function SettingsPage() {
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-4">
           <PwaHint />
-          <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={() => setConfirmReset(true)}>
-            <RotateCcw className="h-4 w-4" /> Reset demo data
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {!remoteConfigured() && (
+              <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={() => setConfirmReset(true)}>
+                <RotateCcw className="h-4 w-4" /> Reset demo data
+              </Button>
+            )}
+            <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={() => { setWipeOpen(true); setWipeConfirm(""); }}>
+              <AlertTriangle className="h-4 w-4" /> Delete all data…
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -224,6 +235,34 @@ export default function SettingsPage() {
         confirmLabel="Reset everything"
         message="This wipes all farmers, logs and settings on this device and restores the original demo dataset."
       />
+
+      <ConfirmDialog
+        open={wipeOpen}
+        onClose={() => setWipeOpen(false)}
+        onConfirm={wipeAllData}
+        danger
+        title="Delete ALL data?"
+        confirmLabel="Delete everything"
+        confirmDisabled={wipeConfirm !== "DELETE"}
+        message={
+          <p>
+            This permanently deletes <b>every farmer, survey and harvest log</b> from this account,{" "}
+            <b>including the cloud database</b> ({remoteConfigured() ? "it syncs the deletion to Supabase" : "local demo data"}).
+            The nightly backup email is your only way back. This cannot be undone.
+          </p>
+        }
+      >
+        <p className="text-[12.5px] text-stone-500">
+          Type <b className="font-mono">DELETE</b> to confirm.
+        </p>
+        <Input
+          value={wipeConfirm}
+          onChange={(e) => setWipeConfirm(e.target.value)}
+          placeholder="DELETE"
+          autoComplete="off"
+          className="h-11 text-center font-mono font-bold"
+        />
+      </ConfirmDialog>
     </div>
   );
 }

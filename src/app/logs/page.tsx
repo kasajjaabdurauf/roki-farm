@@ -23,7 +23,7 @@ import { fmtDate, fmtDateTime, isoDaysAgo, relTime, todayISO } from "@/lib/forma
 import { fmtKg } from "@/lib/rules";
 import { CROPS, DISTRICTS } from "@/lib/reference";
 import { STATUS_LABEL, UNIT_FACTORS, type LogStatus, type QualityGrade } from "@/lib/types";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, Field, Input, Modal, Select } from "@/components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, Field, Input, Modal, Select, XScroll } from "@/components/ui";
 import { GradeBadge, SourceChip, StatusBadge, YieldBadge } from "@/components/badges";
 import { cx } from "@/lib/format";
 
@@ -156,6 +156,8 @@ function LogsPageInner() {
 
       <div className="grid gap-6 xl:grid-cols-[400px_1fr]">
         {/* ------------------------------------------------ entry form */}
+        {/* min-w-0 lets the history column shrink below its content width
+            so the filter row wraps instead of being cut off */}
         <Card className="h-fit xl:sticky xl:top-24">
           <h3 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
             <ClipboardPlus className="h-5 w-5 text-ochre-500" /> New produce entry
@@ -266,7 +268,7 @@ function LogsPageInner() {
         </Card>
 
         {/* ------------------------------------------------ history */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* filters, desktop / tablet grid */}
           <div className="hidden gap-2.5 sm:grid sm:grid-cols-2 xl:grid-cols-[1fr_150px_150px_130px_130px]">
             <FilterControls
@@ -347,8 +349,8 @@ function LogsPageInner() {
             />
           ) : view === "table" ? (
             <Card className="overflow-hidden p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] text-left text-sm">
+              <XScroll>
+                <table className="w-full min-w-[900px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-stone-200 bg-stone-50/60 text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
                       <th className="py-3 pr-4 pl-4">Log</th>
@@ -402,7 +404,7 @@ function LogsPageInner() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </XScroll>
             </Card>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
@@ -491,7 +493,7 @@ function FilterControls({
 }) {
   return (
     <>
-      <div className="relative col-span-2 xl:col-span-1">
+      <div className="relative col-span-2 2xl:col-span-1">
         <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-stone-400" />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search farmer, ID, crop…" className="pl-9" />
       </div>
@@ -509,7 +511,7 @@ function FilterControls({
         <option value="ALL">All districts</option>
         {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
       </Select>
-      <div className="flex gap-2">
+      <div className="col-span-2 flex gap-2 2xl:col-span-1">
         <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="From date" />
         <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="To date" />
       </div>

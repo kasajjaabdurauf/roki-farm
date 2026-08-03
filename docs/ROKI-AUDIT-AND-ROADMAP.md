@@ -30,6 +30,7 @@ Tick items off as they are completed.
 - [x] Admin master backup button (header + Settings)
 - [x] 73 automated rule-engine checks (phones, tiers, rules, mapping, import, survey integrity)
 - [x] Polish pass v1.1: in-app Team & roles (no SQL), Account page with sign-out, standalone login page, Roki name in mobile header, roomier grid with responsive columns, settings card overflow fixed, em dashes removed
+- [x] Polish pass v1.2: editable staging grid (inline fixes + dropdowns, visible drop messaging, remove-invalid), logs-page desktop overflow fixed, single-row header (email moved to Account), admin Delete-all-data with typed confirm
 
 ---
 

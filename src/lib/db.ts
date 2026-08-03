@@ -674,10 +674,32 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
 const CROPS_LIST = Object.keys(CROP_DEFAULTS);
 
 // ------------------------------------------------------------------
-// Demo data reset
+// Demo data reset (demo mode only — local)
 // ------------------------------------------------------------------
 export function resetDemoData(): void {
   cache = buildSeed();
   persist(cache);
   listeners.forEach((l) => l());
+}
+
+// ------------------------------------------------------------------
+// Delete ALL data (admins) — local store cleared, and the deletions are
+// queued + pushed to Supabase so the cloud matches. Use with care.
+// ------------------------------------------------------------------
+export function wipeAllData(): void {
+  const db = loadDb();
+  const farmerIds = db.farmers.map((f) => f.id);
+  const logIds = db.logs.map((l) => l.id);
+  mutate((d) => {
+    d.farmers = [];
+    d.logs = [];
+    d.meta.outbox = [];
+    d.meta.nextFarmerSeq = 1;
+    d.meta.nextLogSeq = 1;
+    if (remoteConfigured()) {
+      if (logIds.length > 0) d.meta.outbox.push({ kind: "DELETE_LOGS", ids: logIds });
+      if (farmerIds.length > 0) d.meta.outbox.push({ kind: "DELETE_FARMERS", ids: farmerIds });
+    }
+  });
+  void syncNow();
 }

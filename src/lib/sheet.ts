@@ -216,7 +216,7 @@ export function reStage(prev: StagingState, columns: ColumnMapping[], db: Db): S
   return { ...prev, columns, rows };
 }
 
-function stageRow(
+export function stageRow(
   rawCells: string[],
   columns: ColumnMapping[],
   db: Db,
@@ -378,3 +378,20 @@ function validateRow(
 }
 
 export { computeScaleTier, computeFarmerFlags, CROP_DEFAULTS };
+
+// ------------------------------------------------------------------
+// Re-validate a single staged row after the user edits one of its
+// cells inline (used by the upload staging grid "fix it here" UX).
+// ------------------------------------------------------------------
+export function reStageRow(
+  row: StagingRow,
+  sourceIndex: number,
+  newRaw: string,
+  columns: ColumnMapping[],
+  db: Db
+): StagingRow {
+  const cells = { ...row.cells, [String(sourceIndex)]: newRaw };
+  const maxIdx = columns.reduce((m, c) => Math.max(m, c.sourceIndex), 0);
+  const rawCells: string[] = Array.from({ length: maxIdx + 1 }, (_, i) => cells[String(i)] ?? "");
+  return stageRow(rawCells, columns, db, row.rowIndex);
+}

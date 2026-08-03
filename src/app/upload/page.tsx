@@ -9,14 +9,15 @@ import {
   Download,
   FileSpreadsheet,
   RefreshCw,
+  Trash2,
   UploadCloud,
   XCircle,
 } from "lucide-react";
 import { importStaging, useDb, type ImportSummary } from "@/lib/db";
-import { buildStaging, parseFile, reStage, stageFieldLabel, STAGE_FIELDS, type ParsedFile } from "@/lib/sheet";
+import { buildStaging, parseFile, reStage, reStageRow, stageFieldLabel, STAGE_FIELDS, type ParsedFile } from "@/lib/sheet";
 import type { StagingState, StageField } from "@/lib/types";
 import { downloadCSV, downloadText, stamp } from "@/lib/export";
-import { Button, Card, EmptyState, Modal, Select } from "@/components/ui";
+import { Button, Card, EmptyState, Modal, Select, XScroll } from "@/components/ui";
 import { cx } from "@/lib/format";
 import { fmtKg } from "@/lib/rules";
 
@@ -57,6 +58,23 @@ export default function UploadPage() {
       i === index ? { ...c, target, autoDetected: false } : c
     );
     setStage(reStage(stage, columns, db));
+  }
+
+  /** Inline fix: edit one cell of a staged row, then re-validate that row. */
+  function commitCell(rowKey: string, sourceIndex: number, value: string, columns: StagingState["columns"]) {
+    if (!stage) return;
+    setStage({
+      ...stage,
+      rows: stage.rows.map((r) =>
+        r.key === rowKey ? reStageRow(r, sourceIndex, value, columns, db) : r
+      ),
+    });
+  }
+
+  /** Drop all rows that still have errors (they would be skipped anyway). */
+  function removeInvalidRows() {
+    if (!stage) return;
+    setStage({ ...stage, rows: stage.rows.filter((r) => r.errors.length === 0) });
   }
 
   const validCount = stage ? stage.rows.filter((r) => r.errors.length === 0).length : 0;
@@ -152,7 +170,7 @@ export default function UploadPage() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" onClick={reset}><RefreshCw className="h-4 w-4" /> New file</Button>
               <Button
                 variant="accent"
@@ -173,6 +191,22 @@ export default function UploadPage() {
             <SummaryTile label="New farmer profiles" value={newFarmerCount} tone="text-forest-800 bg-forest-50" />
             <SummaryTile label="Produce logs to create" value={logRowCount} tone="text-ochre-700 bg-ochre-50" />
           </div>
+
+          {stage.rows.length - validCount > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-danger-200 bg-danger-bg/60 px-4 py-3">
+              <p className="flex items-start gap-2 text-[13px] font-semibold text-danger-dark">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  <b>{stage.rows.length - validCount} row{stage.rows.length - validCount === 1 ? "" : "s"} still have errors.</b>{" "}
+                  Fix them inline below (tap any cell) so they import, or remove them: rows with errors are{" "}
+                  <b>not imported</b> when you press Import.
+                </span>
+              </p>
+              <Button variant="danger" size="sm" onClick={removeInvalidRows}>
+                <Trash2 className="h-3.5 w-3.5" /> Remove {stage.rows.length - validCount} invalid row{stage.rows.length - validCount === 1 ? "" : "s"}
+              </Button>
+            </div>
+          )}
 
           {/* column mapper */}
           <Card>
@@ -209,10 +243,10 @@ export default function UploadPage() {
               <h3 className="font-display text-lg font-semibold text-forest-900">Staging preview</h3>
               <p className="text-[12px] text-stone-400">
                 <span className="sm:hidden">← swipe → · </span>
-                First {Math.min(stage.rows.length, 20)} of {stage.rows.length} rows · errors in red are excluded
+                Tap any cell to fix values · red rows have errors
               </p>
             </div>
-            <div className="overflow-x-auto">
+            <XScroll>
               <table className="w-full min-w-[900px] text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-stone-200 bg-stone-50/70 text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
@@ -238,6 +272,7 @@ export default function UploadPage() {
                         isOpen={isOpen}
                         hasErrors={hasErrors}
                         nameOf={nameOf}
+                        onCellEdit={(rk, si, v) => commitCell(rk, si, v, stage.columns)}
                         onToggle={() =>
                           setExpanded((prev) => {
                             const next = new Set(prev);
@@ -251,7 +286,7 @@ export default function UploadPage() {
                   })}
                 </tbody>
               </table>
-            </div>
+            </XScroll>
             {stage.rows.length > 20 && (
               <p className="border-t border-stone-100 px-5 py-3 text-[12px] text-stone-400">
                 +{stage.rows.length - 20} more rows, all are included in the import; only rows with errors are skipped.
@@ -321,6 +356,7 @@ function StagingRowGroup({
   hasErrors,
   nameOf,
   onToggle,
+  onCellEdit,
 }: {
   row: StagingState["rows"][number];
   cols: { sourceIndex: number; target: StageField }[];
@@ -328,6 +364,7 @@ function StagingRowGroup({
   hasErrors: boolean;
   nameOf: (id: string) => string | undefined;
   onToggle: () => void;
+  onCellEdit: (rowKey: string, sourceIndex: number, value: string) => void;
 }) {
   return (
     <>
@@ -343,8 +380,8 @@ function StagingRowGroup({
           </button>
         </td>
         {cols.map((c, i) => (
-          <td key={i} className="max-w-[180px] truncate py-2.5 pr-3 text-stone-700">
-            {formatCell(row, c.target)}
+          <td key={i} className="max-w-[190px] py-1.5 pr-2 pl-0.5 align-middle text-stone-700">
+            <CellEditor row={row} col={c} onCommit={(v) => onCellEdit(row.key, c.sourceIndex, v)} />
           </td>
         ))}
         <td className="py-2.5 pr-4">
@@ -389,10 +426,67 @@ function StagingRowGroup({
   );
 }
 
-function formatCell(row: StagingState["rows"][number], target: StageField): string {
-  const v = row.parsed[target];
-  if (target === "quantityKg" && typeof v === "number") return `${v.toLocaleString()} kg`;
-  if (target === "acreage" && typeof v === "number") return `${v.toLocaleString()} ac`;
-  if (v === undefined || v === "") return "N/A";
-  return String(v);
+function CellEditor({
+  row,
+  col,
+  onCommit,
+}: {
+  row: StagingState["rows"][number];
+  col: { sourceIndex: number; target: StageField };
+  onCommit: (value: string) => void;
+}) {
+  const raw = row.cells[String(col.sourceIndex)] ?? "";
+  const baseCls =
+    "w-full min-w-[96px] rounded-md border border-transparent bg-transparent px-1.5 py-1.5 text-[13px] text-stone-700 outline-none transition-colors hover:border-stone-200 focus:border-forest-500 focus:bg-white focus:ring-2 focus:ring-forest-100";
+
+  // selectors for the fixed-option fields
+  if (col.target === "qualityGrade") {
+    const opts = ["A", "B", "REJECT"];
+    return (
+      <select
+        value={raw}
+        onChange={(e) => onCommit(e.target.value)}
+        className={cx(baseCls, "cursor-pointer")}
+      >
+        {opts.map((o) => (
+          <option key={o} value={o}>{o === "REJECT" ? "Reject" : `Grade ${o}`}</option>
+        ))}
+      </select>
+    );
+  }
+  if (col.target === "gender") {
+    const opts = ["M", "F", "OTHER"];
+    return (
+      <select value={raw} onChange={(e) => onCommit(e.target.value)} className={cx(baseCls, "cursor-pointer")}>
+        {opts.map((o) => (
+          <option key={o} value={o}>{o === "M" ? "Male" : o === "F" ? "Female" : "Other"}</option>
+        ))}
+      </select>
+    );
+  }
+  if (col.target === "refugeeStatus") {
+    const opts = ["REFUGEE", "HOST", "NONE"];
+    return (
+      <select value={raw} onChange={(e) => onCommit(e.target.value)} className={cx(baseCls, "cursor-pointer")}>
+        {opts.map((o) => (
+          <option key={o} value={o}>{o === "REFUGEE" ? "Refugee" : o === "HOST" ? "Host community" : "None"}</option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <input
+      defaultValue={raw}
+      onBlur={(e) => {
+        const v = e.target.value.trim();
+        if (v !== raw) onCommit(v);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      placeholder="—"
+      className={baseCls}
+    />
+  );
 }
