@@ -269,7 +269,7 @@ On completion:
 - the farmer appears in all dashboards immediately,
 - the rule engine tags their scale tier and Roki tier.
 
-**Farmer self-registration:** a farmer who hasn't been registered yet is invited to complete this same survey from their dashboard ("Complete my farmer survey"). Self mode hides the enumerator fields (Section 1.1) and the enumerator assessment (Section 15); when they finish, their profile is created and their account is linked to it automatically.
+**Farmer self-registration (mandatory):** a new farmer account is held at the survey until it's completed, then their account is linked to the finished record automatically. Self mode hides the enumerator fields (Section 1.1) and the enumerator assessment (Section 15). **Phone-based claiming:** if the farmer enters a phone that matches an existing record (e.g. from an uploaded list with no email), the survey offers to link their login to that record — their history then appears on their account.
 
 **Editing:** open the farmer → **Edit** → the same wizard opens pre-filled; changes re-run the engine and re-sync.
 
@@ -430,5 +430,6 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 2.0 | 2026-08-03 | Signup is farmer-only: the role picker is removed (field agents use the access code; Admin stays admin-only), self-signups are always FARMER, and right after sign-in farmers are auto-directed to complete their registration survey (which creates + links their profile). Existing FIELD_AGENT self-signups are retro-fixed to FARMER (migration_v4.sql). |
 | 2.1 | 2026-08-03 | Accounts ARE farmers: every signup automatically gets its OWN farmer record + ID (sequence-generated, email stored on the record) with no linking step ever. Self-registration now fills the account's own record; the 'Link a farmer' control is removed from Team & roles; farmers list shows new signups (email + 'Pending survey' badge) newest first; farmers can update their own record. Requires migration_v5.sql. |
 | 2.2 | 2026-08-03 | Upload↔account linking model: rows match farmer records by ID → phone → email (email added as a matching key + column); signup CLAIMS an existing farmer record by email instead of duplicating (migration_v6.sql); simulation file gained an Email column to demo both scenarios; new manual section 5.7b explains it all. |
+| 2.3 | 2026-08-03 | Onboarding is mandatory: new farmer accounts are held at the survey until it's completed (no skip); survey completion reliably links and updates the account's own record. Phone-based claiming: entering a phone during the survey that matches an existing record (e.g. from an uploaded list) offers to link the login to that record. Survey mobile polish: full-width inputs on the crop/production rows, more spacing. |
 
 *Every future release appends a row here.*

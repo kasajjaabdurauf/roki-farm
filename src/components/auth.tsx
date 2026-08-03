@@ -97,19 +97,35 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  // auto-nudge: signed-in farmer with no farmer record → point at the survey
+  // MANDATORY onboarding survey: a signed-in farmer whose own record has
+  // not completed the survey is held at /survey until it's done.
   const db = useDb();
-  const needsSurvey = ready && db.meta.role === "FARMER" && !db.meta.demoFarmerId && pathname === "/";
+  const ownFarmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
+  const surveyDone =
+    !!ownFarmer && !!ownFarmer.survey?.consentDate && ownFarmer.plannedProductions.length > 0;
+  const needsSurvey =
+    ready && remoteConfigured() && db.meta.role === "FARMER" && !!ownFarmer && !surveyDone;
+
   useEffect(() => {
-    if (needsSurvey) {
-      try {
-        if (!localStorage.getItem("roki-survey-nudged")) {
-          localStorage.setItem("roki-survey-nudged", "1");
-          window.location.href = "/survey";
-        }
-      } catch { /* ignore */ }
+    if (!needsSurvey) return;
+    if (pathname !== "/survey" && pathname !== "/login" && pathname !== "/reset-password") {
+      router.replace("/survey");
     }
-  }, [needsSurvey]);
+  }, [needsSurvey, pathname, router]);
+
+  if (needsSurvey) {
+    return (
+      <div className="grid min-h-[80vh] place-items-center">
+        <div className="flex flex-col items-center gap-4">
+          <LogoMark className="h-14 w-auto animate-pulse" />
+          <div className="flex items-center gap-2 text-sm font-semibold text-stone-400">
+            <span className="h-2 w-2 animate-ping rounded-full bg-ochre-500" />
+            Setting up your farmer profile…
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!ready) {
     return (
