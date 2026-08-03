@@ -2,6 +2,36 @@
 
 import { useEffect } from "react";
 
+/**
+ * Global error logger: captures any uncaught runtime error into
+ * localStorage so the error screen can show the real cause, and logs
+ * it to the console for support.
+ */
+function ErrorLogger() {
+  useEffect(() => {
+    const onErr = (e: ErrorEvent) => {
+      try {
+        localStorage.setItem(
+          "roki-last-error",
+          `${e.message} @ ${e.filename ?? "?"}:${e.lineno ?? "?"}`
+        );
+      } catch { /* ignore */ }
+    };
+    const onRej = (e: PromiseRejectionEvent) => {
+      try {
+        localStorage.setItem("roki-last-error", `Unhandled promise: ${String(e.reason ?? "unknown")}`);
+      } catch { /* ignore */ }
+    };
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onRej);
+    return () => {
+      window.removeEventListener("error", onErr);
+      window.removeEventListener("unhandledrejection", onRej);
+    };
+  }, []);
+  return null;
+}
+
 /** Registers the service worker (production builds only). */
 export function PwaRegister() {
   useEffect(() => {
@@ -29,5 +59,5 @@ export function PwaRegister() {
         /* offline caching unavailable, app still works */
       });
   }, []);
-  return null;
+  return <ErrorLogger />;
 }

@@ -6,6 +6,7 @@ import { BadgeCheck, LogOut, RefreshCw, ShieldCheck, User, UserCog, Users } from
 import { resetDemoData, setRole, syncNow, useDb } from "@/lib/db";
 import { getSession, remoteConfigured, signOut } from "@/lib/remote";
 import { ROLE_LABEL, type Role } from "@/lib/types";
+import { APP_VERSION } from "@/lib/format";
 import { Badge, Button, Card, Select } from "@/components/ui";
 import { cx } from "@/lib/format";
 
@@ -119,6 +120,8 @@ export default function AccountPage() {
       )}
 
       {/* ---------- what your role can do ---------- */}
+      <p className="text-[11px] text-stone-300">Roki platform v{APP_VERSION}</p>
+
       <Card>
         <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
           <BadgeCheck className="h-5 w-5 text-ochre-500" /> What your role includes

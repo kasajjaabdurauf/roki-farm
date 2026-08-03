@@ -51,3 +51,6 @@ export function relTime(iso: string): string {
 export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
+
+/** App version — shown in Settings/Account so stale builds are easy to spot. */
+export const APP_VERSION = "1.7.0";

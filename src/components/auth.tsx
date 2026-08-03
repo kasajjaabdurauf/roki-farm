@@ -54,16 +54,28 @@ export function AuthGate({ children }: { children: ReactNode }) {
     if (checked.current) return;
     checked.current = true;
 
-    let cancelled = false;
-    getSession().then((s) => {
-      if (cancelled) return;
-      if (s) {
-        void bootstrapRemote().catch(() => {});
-      } else if (pathname !== "/login") {
-        router.replace("/login");
-      }
+    // field-agent access-code sessions skip the login redirect entirely
+    let agentSession = false;
+    try {
+      agentSession = localStorage.getItem("roki-agent-session") === "1";
+    } catch { /* ignore */ }
+    if (agentSession) {
       setReady(true);
-    });
+      return;
+    }
+
+    let cancelled = false;
+    getSession()
+      .then((s) => {
+        if (cancelled) return;
+        if (s) {
+          void bootstrapRemote().catch(() => {});
+        } else if (pathname !== "/login") {
+          router.replace("/login");
+        }
+        setReady(true);
+      })
+      .catch(() => setReady(true)); // never leave the user stuck on the splash
 
     const sub = onAuthChange((event, session) => {
       if (event === "SIGNED_IN" && session) {

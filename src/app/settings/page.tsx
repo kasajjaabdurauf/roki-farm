@@ -21,7 +21,7 @@ import { matchesAgentCode, resetDemoData, setAgentCode, syncNow, updateCropDefau
 import { downloadSummaryPdf } from "@/lib/report";
 import { signOut } from "@/lib/remote";
 import { downloadCSV, downloadMasterBackup, downloadXLSX, stamp, type ExportColumn } from "@/lib/export";
-import { fmtDateTime } from "@/lib/format";
+import { APP_VERSION, fmtDateTime } from "@/lib/format";
 import { CROPS } from "@/lib/reference";
 import { fetchAllProfiles, remoteConfigured, updateProfileRole, type TeamMember } from "@/lib/remote";
 import { TIER_LABEL } from "@/lib/types";
@@ -268,6 +268,9 @@ export default function SettingsPage() {
               </Button>
             )}
           </div>
+          <p className="mt-4 text-[11px] text-stone-300">
+            Roki platform v{APP_VERSION} · build {new Date().toISOString().slice(0, 10)}
+          </p>
           <div className="flex flex-wrap gap-2">
             {!remoteConfigured() && (
               <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={() => setConfirmReset(true)}>

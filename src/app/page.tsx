@@ -35,7 +35,15 @@ export default function DashboardPage() {
   // ALL hooks must run on every render (no early returns before them):
   // an early return before a useMemo/useState makes React's hook order
   // change between renders and crashes the page ("Continue as a farmer").
-  const [continueAsFarmer, setContinueAsFarmer] = useState(false);
+  const [continueAsFarmer, setContinueAsFarmer] = useState<boolean>(() => {
+    // persist the choice so refreshes/restarts go straight to the dashboard
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("roki-farmer-continued") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   const scopedLogs = useMemo(() => {
     if (!isFarmer) return db.logs;
@@ -119,7 +127,15 @@ export default function DashboardPage() {
         description="Your account isn't linked to a farmer profile yet (an administrator can link it anytime). You can still continue as a farmer and log produce now."
         action={
           <div className="flex flex-wrap justify-center gap-2">
-            <Button variant="primary" onClick={() => setContinueAsFarmer(true)}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setContinueAsFarmer(true);
+                try {
+                  localStorage.setItem("roki-farmer-continued", "1");
+                } catch { /* ignore */ }
+              }}
+            >
               Continue as a farmer
             </Button>
             <Link href="/help">
