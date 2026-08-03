@@ -57,10 +57,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="grid min-h-[60vh] place-items-center">
-        <div className="flex flex-col items-center gap-3">
-          <LogoMark className="h-12 w-auto" />
-          <p className="text-sm font-semibold text-stone-400">Loading…</p>
+      <div className="grid min-h-[80vh] place-items-center">
+        <div className="flex flex-col items-center gap-4">
+          <LogoMark className="h-14 w-auto animate-pulse" />
+          <div className="flex items-center gap-2 text-sm font-semibold text-stone-400">
+            <span className="h-2 w-2 animate-ping rounded-full bg-ochre-500" />
+            Roki is waking up…
+          </div>
         </div>
       </div>
     );

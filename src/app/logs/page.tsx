@@ -73,7 +73,7 @@ function LogsPageInner() {
     if (foc) setFocusId(foc);
   }, [searchParams]);
 
-  // Phones default to the card view — much friendlier than a wide table.
+  // Phones default to the card view, much friendlier than a wide table.
   useEffect(() => {
     if (window.matchMedia("(max-width: 767px)").matches) setView("cards");
   }, []);
@@ -150,7 +150,7 @@ function LogsPageInner() {
           {isFarmerRole ? "Log my harvest" : "Harvest Logs"}
         </h2>
         <p className="mt-0.5 text-sm text-stone-500">
-          Every entry is checked instantly by the rule engine — anomalies, duplicates and yield scoring.
+          Every entry is checked instantly by the rule engine, anomalies, duplicates and yield scoring.
         </p>
       </div>
 
@@ -166,7 +166,7 @@ function LogsPageInner() {
                 <option value="">Type-ahead / search farmer…</option>
                 {farmerOptions.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.fullName} — {f.id} ({f.district})
+                    {f.fullName}, {f.id} ({f.district})
                   </option>
                 ))}
               </Select>
@@ -258,7 +258,7 @@ function LogsPageInner() {
                   <p key={i} className="mt-1 leading-snug">{n}</p>
                 ))}
                 {savedLog.auditNotes.length === 0 && (
-                  <p className="mt-1">No rule violations — log verified clean.</p>
+                  <p className="mt-1">No rule violations, log verified clean.</p>
                 )}
               </div>
             )}
@@ -267,7 +267,7 @@ function LogsPageInner() {
 
         {/* ------------------------------------------------ history */}
         <div className="space-y-4">
-          {/* filters — desktop / tablet grid */}
+          {/* filters, desktop / tablet grid */}
           <div className="hidden gap-2.5 sm:grid sm:grid-cols-2 xl:grid-cols-[1fr_150px_150px_130px_130px]">
             <FilterControls
               q={q} setQ={setQ}
@@ -279,7 +279,7 @@ function LogsPageInner() {
             />
           </div>
 
-          {/* filters — mobile collapsible panel */}
+          {/* filters, mobile collapsible panel */}
           <div className="sm:hidden">
             <button
               onClick={() => setShowFilters((v) => !v)}
@@ -518,7 +518,7 @@ function FilterControls({
 }
 
 // ------------------------------------------------------------------
-// Inline edit modal for a single log — re-runs the rule engine on save
+// Inline edit modal for a single log, re-runs the rule engine on save
 // ------------------------------------------------------------------
 function EditLogModal({
   logId,

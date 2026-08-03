@@ -99,7 +99,7 @@ export const STAGE_FIELDS: StageField[] = [
 ];
 
 export function stageFieldLabel(f: StageField): string {
-  return f === "ignore" ? "— Ignore column —" : FIELD_LABELS[f];
+  return f === "ignore" ? "Ignore column" : FIELD_LABELS[f];
 }
 
 // ------------------------------------------------------------------
@@ -316,7 +316,7 @@ function validateRow(
         out.farmerId = resolvedFarmer.id;
         out.farmerName = resolvedFarmer.fullName;
         if (parsed.fullName && norm(String(parsed.fullName)) !== norm(resolvedFarmer.fullName)) {
-          warnings.push(`Phone matches existing farmer ${resolvedFarmer.fullName} — row will link to them`);
+          warnings.push(`Phone matches existing farmer ${resolvedFarmer.fullName}, row will link to them`);
         } else {
           out.resolveNote = `Linked to existing profile ${resolvedFarmer.id}`;
         }
@@ -324,7 +324,7 @@ function validateRow(
     }
   }
   if (!resolvedFarmer && parsed.farmerId) {
-    warnings.push(`No farmer matches ID "${parsed.farmerId}" — a new profile will be created`);
+    warnings.push(`No farmer matches ID "${parsed.farmerId}", a new profile will be created`);
   }
   out.farmerId = resolvedFarmer?.id;
   out.farmerName = resolvedFarmer?.fullName;
@@ -333,7 +333,7 @@ function validateRow(
   const name = parsed.fullName ? String(parsed.fullName) : undefined;
 
   if (out.isLogRow && !resolvedFarmer && !name) {
-    errors.push(`Row ${rowNumber}: produce row needs a farmer — match a Farmer ID, a phone number, or provide a name`);
+    errors.push(`Row ${rowNumber}: produce row needs a farmer, match a Farmer ID, a phone number, or provide a name`);
   }
 
   if (parsed.phone !== undefined && parsed.phone !== "") {
@@ -358,7 +358,7 @@ function validateRow(
   if (parsed.cropType !== undefined && parsed.cropType !== "") {
     const c = String(parsed.cropType);
     const known = CROPS.find((k) => k.toLowerCase() === c.toLowerCase()) ?? CROPS.find((k) => c.toLowerCase().includes(k.toLowerCase()));
-    if (!known) warnings.push(`Crop "${c}" is not in the standard list — it will be stored under "Other"`);
+    if (!known) warnings.push(`Crop "${c}" is not in the standard list, it will be stored under "Other"`);
   }
 
   if (!out.isLogRow && !name) errors.push(`Farmer row needs a name`);

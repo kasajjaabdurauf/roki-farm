@@ -15,6 +15,7 @@ create table if not exists public.profiles (
               check (role in ('ADMIN', 'FIELD_AGENT', 'FARMER')),
   farmer_id   text,               -- linked farmer id (for FARMER accounts)
   full_name   text,
+  email       text,
   created_at  timestamptz not null default now()
 );
 
@@ -24,8 +25,13 @@ returns trigger
 language plpgsql security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, role, full_name)
-  values (new.id, 'FIELD_AGENT', coalesce(new.raw_user_meta_data->>'full_name', ''));
+  insert into public.profiles (id, role, full_name, email)
+  values (
+    new.id,
+    case when not exists (select 1 from public.profiles) then 'ADMIN' else 'FIELD_AGENT' end,
+    coalesce(new.raw_user_meta_data->>'full_name', ''),
+    new.email
+  );
   return new;
 end;
 $$;
@@ -122,6 +128,14 @@ create policy "profiles select own or admin" on public.profiles
 drop policy if exists "profiles update own" on public.profiles;
 create policy "profiles update own" on public.profiles
   for update using (id = auth.uid());
+
+drop policy if exists "profiles update as admin" on public.profiles;
+create policy "profiles update as admin" on public.profiles
+  for update using (public.get_user_role() = 'ADMIN');
+
+drop policy if exists "profiles insert as admin" on public.profiles;
+create policy "profiles insert as admin" on public.profiles
+  for insert with check (public.get_user_role() = 'ADMIN');
 
 -- ---------- FARMERS ----------
 -- read: admins + field agents see all; farmers see only their own row

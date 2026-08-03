@@ -88,13 +88,13 @@ The installed app works offline. (Note: the home-screen icon can lag behind an u
 1. On the sign-in screen, switch to **Create account**.
 2. Enter the person's email + a password → Create account.
 3. They confirm their email from the inbox, then sign in.
-4. **Joan must then assign the role** (Supabase SQL — one line, see the audit document §2.2). Until assigned, new accounts default to Field Agent.
+4. **Joan assigns the role in the app**: Settings → **Team & roles** (Admin only) → pick the person → choose Admin / Field Agent / Farmer. No database work needed. The very first account created on a fresh database automatically becomes the Admin; everyone else starts as Field Agent.
 
 ### 3.4 Demo mode
 If the platform is running without a backend (demonstrations), there is no sign-in: use the **role switcher** in the header to flip between Admin / Field Agent / Farmer and explore with sample data. Sample data can be reset in **Settings → Reset demo data**.
 
 ### 3.5 Signing out
-Click your email chip in the top-right (or the log-out icon on mobile) → Sign out.
+Open **Account** (sidebar / More menu) → **Sign out**. (The header just shows who you are; sign-out lives in Account.)
 
 ---
 
@@ -373,5 +373,6 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | Version | Date | Changes |
 |---|---|---|
 | 1.0 | 2026-08-03 | Production-ready build: Supabase backend + auth + RLS, sync engine, keep-alive + nightly backup automation, in-app Help & Guide, master backup, full audit + this manual |
+| 1.1 | 2026-08-03 | Polish pass: role management in-app (Settings → Team & roles, no SQL), new Account page with sign-out, login page standalone (no nav), role switcher moved to Account (demo mode), Roki name in mobile header, roomier data grid with responsive columns, settings cards fixed on phones, em dashes replaced with commas |
 
 *Every future release appends a row here.*

@@ -92,7 +92,7 @@ export default function UploadPage() {
         <div>
           <h2 className="font-display text-2xl font-semibold text-forest-900">Bulk Upload & Mapping</h2>
           <p className="mt-0.5 text-sm text-stone-500">
-            Drop an <b>.xlsx / .xls / .csv</b> file — columns are auto-mapped (Tel → phone, Qty (Kg) → quantity…), staged for review, then imported.
+            Drop an <b>.xlsx / .xls / .csv</b> file, columns are auto-mapped (Tel → phone, Qty (Kg) → quantity…), staged for review, then imported.
           </p>
         </div>
         <Button variant="outline" onClick={downloadSample}>
@@ -118,7 +118,7 @@ export default function UploadPage() {
             <p className="font-display text-xl font-semibold text-forest-900">
               Drag & drop your spreadsheet here
             </p>
-            <p className="mt-1 text-sm text-stone-500">or tap to browse — .xlsx, .xls, .csv up to 10 MB</p>
+            <p className="mt-1 text-sm text-stone-500">or tap to browse, .xlsx, .xls, .csv up to 10 MB</p>
             <p className="mt-4 max-w-md text-[12px] leading-relaxed text-stone-400">
               Rules handle the rest: flexible column auto-mapping, Ugandan phone validation (MTN / Airtel),
               negative-yield detection, duplicate suspicion and farmer association by ID or phone.
@@ -178,7 +178,7 @@ export default function UploadPage() {
           <Card>
             <h3 className="mb-1 font-display text-lg font-semibold text-forest-900">Column mapping</h3>
             <p className="mb-4 text-[13px] text-stone-500">
-              Auto-detected by the rule engine — override any column with the dropdowns.
+              Auto-detected by the rule engine, override any column with the dropdowns.
             </p>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {stage.columns.map((col, i) => (
@@ -254,7 +254,7 @@ export default function UploadPage() {
             </div>
             {stage.rows.length > 20 && (
               <p className="border-t border-stone-100 px-5 py-3 text-[12px] text-stone-400">
-                +{stage.rows.length - 20} more rows — all are included in the import; only rows with errors are skipped.
+                +{stage.rows.length - 20} more rows, all are included in the import; only rows with errors are skipped.
               </p>
             )}
           </Card>
@@ -296,7 +296,7 @@ export default function UploadPage() {
               </ul>
             </div>
             <p className="text-[12px] text-stone-400">
-              {summary.warnings} warning{summary.warnings === 1 ? "" : "s"} noted. Every imported log was checked by the rule engine — flagged items appear in the dashboard.
+              {summary.warnings} warning{summary.warnings === 1 ? "" : "s"} noted. Every imported log was checked by the rule engine, flagged items appear in the dashboard.
             </p>
           </div>
         )}
@@ -393,6 +393,6 @@ function formatCell(row: StagingState["rows"][number], target: StageField): stri
   const v = row.parsed[target];
   if (target === "quantityKg" && typeof v === "number") return `${v.toLocaleString()} kg`;
   if (target === "acreage" && typeof v === "number") return `${v.toLocaleString()} ac`;
-  if (v === undefined || v === "") return "—";
+  if (v === undefined || v === "") return "N/A";
   return String(v);
 }

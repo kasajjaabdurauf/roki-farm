@@ -20,11 +20,11 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "Roki — Farm & Supply Platform",
+    default: "Roki, Farm & Supply Platform",
     template: "%s · Roki",
   },
   description:
-    "Farmer registration surveys, production forecasting, export supply planning and rule-based validation for Roki Fruit & Vegetables Ltd — 1,000+ farmers in Uganda. Zero AI.",
+    "Farmer registration surveys, production forecasting, export supply planning and rule-based validation for Roki Fruit & Vegetables Ltd, 1,000+ farmers in Uganda. Zero AI.",
   applicationName: "Roki",
   manifest: "/manifest.json",
   appleWebApp: {

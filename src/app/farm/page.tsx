@@ -61,7 +61,7 @@ export default function FarmPage() {
           </Link>
         </div>
         <div className="mt-5 grid gap-3 border-t border-stone-100 pt-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Fact icon={<PhoneCall className="h-4 w-4" />} label="Phone" value={farmer.phone || "—"} />
+          <Fact icon={<PhoneCall className="h-4 w-4" />} label="Phone" value={farmer.phone || "N/A"} />
           <Fact icon={<LandPlot className="h-4 w-4" />} label="Acreage" value={`${fmtNumber(farmer.acreage)} acres`} />
           <Fact icon={<Droplets className="h-4 w-4" />} label="Irrigation" value={irrigationLabel} />
           <Fact
@@ -91,7 +91,7 @@ export default function FarmPage() {
           <EmptyState
             icon={<Sprout className="h-6 w-6" />}
             title="No harvests yet"
-            description="Log your first harvest — it takes under a minute and works offline."
+            description="Log your first harvest, it takes under a minute and works offline."
             action={
               <Link href="/logs">
                 <Button variant="accent">Log a harvest</Button>

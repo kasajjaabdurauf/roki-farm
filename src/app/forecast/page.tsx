@@ -89,7 +89,7 @@ export default function ForecastPage() {
         <div>
           <h2 className="font-display text-2xl font-semibold text-forest-900">Production Forecast</h2>
           <p className="mt-0.5 text-sm text-stone-500">
-            Built from every farmer&apos;s registration survey — who grows what, expected volumes and harvest periods.
+            Built from every farmer&apos;s registration survey, who grows what, expected volumes and harvest periods.
           </p>
         </div>
         <div className="flex gap-2">
@@ -166,7 +166,7 @@ export default function ForecastPage() {
         <p className="text-[13px] leading-relaxed text-stone-500">
           Expected volumes come from the <b>production plans</b> captured in each farmer&apos;s registration survey
           (crop × acres × expected yield per acre, with farmer-confirmed overrides). Harvest periods aggregate the
-          months each farmer expects to harvest. Volumes are indicative for planning — the <b>Export Supply Planning</b>{" "}
+          months each farmer expects to harvest. Volumes are indicative for planning, the <b>Export Supply Planning</b>{" "}
           tab shows the individual farmers behind every number, and harvest logs confirm actuals as the season runs.
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">

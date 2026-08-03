@@ -8,6 +8,7 @@ import {
   CalendarRange,
   ClipboardPlus,
   Flag,
+  Home,
   MapPin,
   PackagePlus,
   Sprout,
@@ -87,7 +88,7 @@ export default function DashboardPage() {
           out.push({
             type: "PROFILE",
             title: f.fullName,
-            detail: "Incomplete profile — critical contact details missing",
+            detail: "Incomplete profile, critical contact details missing",
             link: `/farmers/${f.id}`,
             time: f.updatedAt,
           });
@@ -136,9 +137,16 @@ export default function DashboardPage() {
               </Link>
             </>
           )}
-          <Link href={`/logs${isFarmer ? `?farmer=${farmer?.id}` : ""}`} className="col-span-2 sm:col-span-1">
+          {isFarmer && (
+            <Link href="/farm">
+              <Button variant="outline" className="w-full">
+                <Home className="h-4 w-4" /> My Farm
+              </Button>
+            </Link>
+          )}
+          <Link href={`/logs${isFarmer ? `?farmer=${farmer?.id}` : ""}`} className={isFarmer ? "col-span-1" : "col-span-2 sm:col-span-1"}>
             <Button variant="accent" className="w-full">
-              <ClipboardPlus className="h-4 w-4" /> Log Harvest
+              <ClipboardPlus className="h-4 w-4" /> {isFarmer ? "Log my harvest" : "Log Harvest"}
             </Button>
           </Link>
         </div>
@@ -225,7 +233,7 @@ export default function DashboardPage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {[
-            { tier: 1 as const, count: farmerStats.tier1, desc: "Export-ready — consistent Grade-A volume", cls: "border-forest-700 bg-forest-800 text-white" },
+            { tier: 1 as const, count: farmerStats.tier1, desc: "Export-ready, consistent Grade-A volume", cls: "border-forest-700 bg-forest-800 text-white" },
             { tier: 2 as const, count: farmerStats.tier2, desc: "Developing commercial farmers", cls: "border-ochre-500 bg-ochre-50" },
             { tier: 3 as const, count: farmerStats.tier3, desc: "New farmers requiring support", cls: "border-stone-200 bg-stone-50" },
           ].map((t) => (
@@ -251,7 +259,7 @@ export default function DashboardPage() {
         {alerts.length === 0 ? (
           <EmptyState
             icon={<AlertTriangle className="h-6 w-6" />}
-            title="No findings — all clear"
+            title="No findings, all clear"
             description="The rule engine checks every entry for yield anomalies, duplicates and incomplete profiles."
           />
         ) : (

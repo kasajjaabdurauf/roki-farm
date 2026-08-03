@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------
-// Demo seed data — 36 farmers across 24 districts, ~250 harvest logs,
+// Demo seed data, 36 farmers across 24 districts, ~250 harvest logs,
 // full survey answers (gender, refugee status, land ownership, age,
 // production plans) and intentional anomalies/duplicates so the rule
 // engine has real findings. Deterministic (seeded RNG).
@@ -34,7 +34,7 @@ import { CROP_DEFAULTS, CROP_HARVEST_WINDOW, DEFAULT_SETTINGS_RULES } from "./re
 import { computeRokiTier, evaluateLog } from "./rules";
 import { MONTHS } from "./reference";
 
-/** mulberry32 — tiny deterministic PRNG */
+/** mulberry32, tiny deterministic PRNG */
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -125,7 +125,7 @@ const PER_ACRE_RANGE: Record<string, [number, number]> = {
 };
 
 const STORAGE = [
-  "Roki Hub — Entebbe Road",
+  "Roki Hub, Entebbe Road",
   "Kawempe Collection Centre",
   "Nakasero Market Depot",
   "Kisenyi Warehouse",

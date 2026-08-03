@@ -1,11 +1,11 @@
 // ------------------------------------------------------------------
-// Roki Fruit & Vegetables — repository layer.
+// Roki Fruit & Vegetables, repository layer.
 //
 // Offline-first: the browser database lives in localStorage so the
 // PWA works in the field with zero connectivity. Every mutation is
 // also recorded in an outbox while offline ("3 items pending sync")
 // and flushed when connectivity returns. Swap this file for a
-// Supabase/PostgreSQL repository when going to production — the rest
+// Supabase/PostgreSQL repository when going to production, the rest
 // of the app only talks to the functions exposed here.
 // ------------------------------------------------------------------
 
@@ -60,7 +60,7 @@ function persist(db: Db): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(db));
   } catch {
-    /* storage full — demo scale is well within limits */
+    /* storage full, demo scale is well within limits */
   }
 }
 
@@ -122,7 +122,7 @@ export function useDb(): Db {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-/** True when the device is offline — drives the pending-sync indicator. */
+/** True when the device is offline, drives the pending-sync indicator. */
 export function isOffline(): boolean {
   return typeof navigator !== "undefined" && navigator.onLine === false;
 }
@@ -608,10 +608,10 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
         db.farmers.push(farmer);
         enqueue(db, { kind: "CREATE_FARMER", farmer });
         summary.createdFarmers += 1;
-        summary.results.push({ row: row.rowIndex, message: `Created profile ${farmer.id} — ${farmer.fullName}`, ok: true });
+        summary.results.push({ row: row.rowIndex, message: `Created profile ${farmer.id}, ${farmer.fullName}`, ok: true });
       } else {
         summary.linkedExisting += 1;
-        summary.results.push({ row: row.rowIndex, message: `Linked to ${farmer.id} — ${farmer.fullName}`, ok: true });
+        summary.results.push({ row: row.rowIndex, message: `Linked to ${farmer.id}, ${farmer.fullName}`, ok: true });
       }
 
       // --- create produce log when the row carries produce data ------
@@ -653,7 +653,7 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
         if (log.status !== "VERIFIED") {
           summary.results.push({
             row: row.rowIndex,
-            message: `Log ${log.id} created — ${log.status === "FLAGGED" ? "FLAGGED (duplicate check)" : "NEEDS AUDIT (yield ceiling)"}: ${log.auditNotes[0] ?? ""}`.slice(0, 200),
+            message: `Log ${log.id} created, ${log.status === "FLAGGED" ? "FLAGGED (duplicate check)" : "NEEDS AUDIT (yield ceiling)"}: ${log.auditNotes[0] ?? ""}`.slice(0, 200),
             ok: true,
           });
         }

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Roki — Farm & Supply Platform",
+    name: "Roki, Farm & Supply Platform",
     short_name: "Roki",
     description:
       "Farmer registration surveys, production forecasting and export supply planning for Roki Fruit & Vegetables Ltd, Uganda.",

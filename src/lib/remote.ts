@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------
-// Roki — remote (Supabase) layer.
+// Roki, remote (Supabase) layer.
 //
 // The app is offline-first: the UI always reads/writes the local store
 // (src/lib/db.ts). This module is the *only* place that talks to
-// Supabase — it handles auth, pulling remote tables into the local
+// Supabase, it handles auth, pulling remote tables into the local
 // store, and pushing queued mutations to the cloud.
 //
 // When NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are
@@ -60,19 +60,19 @@ export function onAuthChange(cb: (event: string, session: unknown) => void) {
 
 export async function signInWithEmail(email: string, password: string) {
   const c = sb();
-  if (!c) throw new Error("Backend not configured — run in demo mode or set Supabase keys.");
+  if (!c) throw new Error("Backend not configured, run in demo mode or set Supabase keys.");
   return c.auth.signInWithPassword({ email, password });
 }
 
 export async function signInWithMagicLink(email: string) {
   const c = sb();
-  if (!c) throw new Error("Backend not configured — run in demo mode or set Supabase keys.");
+  if (!c) throw new Error("Backend not configured, run in demo mode or set Supabase keys.");
   return c.auth.signInWithOtp({ email });
 }
 
 export async function signUp(email: string, password: string) {
   const c = sb();
-  if (!c) throw new Error("Backend not configured — run in demo mode or set Supabase keys.");
+  if (!c) throw new Error("Backend not configured, run in demo mode or set Supabase keys.");
   return c.auth.signUp({ email, password });
 }
 
@@ -241,4 +241,39 @@ export async function pushOp(op: OutboxOp): Promise<void> {
       break;
     }
   }
+}
+
+// ------------------------------------------------------------------
+// Team management (admin only — enforced by RLS)
+// ------------------------------------------------------------------
+export interface TeamMember {
+  id: string;
+  email: string | null;
+  role: string;
+  farmer_id: string | null;
+  full_name: string | null;
+  created_at: string;
+}
+
+/** Admin: list all profiles. Non-admins get their own row only. */
+export async function fetchAllProfiles(): Promise<TeamMember[]> {
+  const c = sb();
+  if (!c) return [];
+  const { data, error } = await c.from("profiles").select("*").order("created_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as TeamMember[];
+}
+
+/** Admin: update a profile's role and optional farmer link. */
+export async function updateProfileRole(
+  uid: string,
+  role: string,
+  farmerId?: string | null
+): Promise<void> {
+  const c = sb();
+  if (!c) return;
+  const patch: Record<string, unknown> = { role };
+  if (farmerId !== undefined) patch.farmer_id = farmerId || null;
+  const { error } = await c.from("profiles").update(patch).eq("id", uid);
+  if (error) throw new Error(error.message);
 }

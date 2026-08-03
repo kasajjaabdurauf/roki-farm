@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------
-// RULE-BASED INTELLIGENCE ENGINE — deterministic, zero AI.
+// RULE-BASED INTELLIGENCE ENGINE, deterministic, zero AI.
 //
 // 1. Anomaly detection   : yield_kg > acreage * max_expected_yield_per_acre
 //                          → status NEEDS_AUDIT
@@ -31,7 +31,7 @@ export function computeScaleTier(acreage: number): ScaleTier {
 }
 
 // ------------------------------------------------------------------
-// Farmer Scoring System (Roki) — deterministic, explainable:
+// Farmer Scoring System (Roki), deterministic, explainable:
 //   Tier 1 · Export-ready     : ≥ 3 acres, ≥ 6 harvest logs, Grade-A
 //                               verified volume in the last 180 days
 //   Tier 2 · Developing comm. : ≥ 1.5 acres, ≥ 3 harvest logs
@@ -54,7 +54,7 @@ export function computeRokiTier(
 export function rokiTierCriteria(tier: RokiTier): string {
   if (tier === 1) return "≥ 3 acres · ≥ 6 harvest logs · verified Grade-A produce in the last 180 days";
   if (tier === 2) return "≥ 1.5 acres · ≥ 3 harvest logs (commercial development)";
-  return "Newly registered or below commercial thresholds — needs agronomy & market support";
+  return "Newly registered or below commercial thresholds, needs agronomy & market support";
 }
 
 // ------------------------------------------------------------------
@@ -79,7 +79,7 @@ export function anomalyCheck(
 }
 
 // ------------------------------------------------------------------
-// 2. Duplicate guard — same farmer + harvest date + crop within 24h
+// 2. Duplicate guard, same farmer + harvest date + crop within 24h
 // ------------------------------------------------------------------
 export function duplicateCheck(
   log: Pick<ProduceLog, "farmerId" | "cropType" | "harvestDate" | "createdAt" | "id">,
@@ -125,7 +125,7 @@ export function incompleteProfileNote(farmer: Partial<Farmer>): string | undefin
 }
 
 // ------------------------------------------------------------------
-// 5. Yield scoring — Low / Expected / Bumper
+// 5. Yield scoring, Low / Expected / Bumper
 // Baseline: median historical per-acre yield for the crop (≥ 5 logs),
 // falling back to the deterministic per-crop default.
 // ------------------------------------------------------------------
@@ -147,7 +147,7 @@ export function computeYieldScore(
   if (sameCrop.length >= 5) {
     const medians: number[] = [];
     for (const l of sameCrop) {
-      // per-acre basis requires the farmer's acreage — approximated from
+      // per-acre basis requires the farmer's acreage, approximated from
       // current farmer record (deterministic and stable).
       medians.push(l.quantityKg / (farmer.acreage > 0 ? farmer.acreage : 1));
     }
@@ -162,7 +162,7 @@ export function computeYieldScore(
 }
 
 // ------------------------------------------------------------------
-// Master evaluation — used on every create/edit of a produce log.
+// Master evaluation, used on every create/edit of a produce log.
 // Status priority: FLAGGED (duplicate) > NEEDS_AUDIT (anomaly) > VERIFIED.
 // ------------------------------------------------------------------
 export interface EvaluationResult {

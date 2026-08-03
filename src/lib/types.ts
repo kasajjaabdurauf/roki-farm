@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------
-// Roki Fruit & Vegetables — core data models (TypeScript)
+// Roki Fruit & Vegetables, core data models (TypeScript)
 // ------------------------------------------------------------------
 
 export type ScaleTier = "MICRO" | "MID_SCALE" | "LARGE_SCALE";
@@ -29,7 +29,7 @@ export interface PlannedProduction {
 }
 
 // ------------------------------------------------------------------
-// Full farmer registration questionnaire (15 sections) — mirrors the
+// Full farmer registration questionnaire (15 sections), mirrors the
 // official Roki "Digital Farmer Registration, Profiling and Production
 // Planning Questionnaire".
 // ------------------------------------------------------------------
@@ -283,7 +283,7 @@ export const TIER_LABEL: Record<ScaleTier, string> = {
 export const ROKI_TIER_LABEL: Record<RokiTier, string> = {
   1: "Tier 1 · Export-ready",
   2: "Tier 2 · Developing commercial",
-  3: "Tier 3 · New — needs support",
+  3: "Tier 3 · New, needs support",
 };
 
 export const STATUS_LABEL: Record<LogStatus, string> = {
@@ -319,7 +319,7 @@ export const GENDER_LABEL: Record<Gender, string> = {
 export const REFUGEE_LABEL: Record<RefugeeStatus, string> = {
   REFUGEE: "Refugee",
   HOST: "Host community",
-  NONE: "—",
+  NONE: "N/A",
 };
 
 export const AGE_GROUPS: AgeGroup[] = ["18-25", "26-35", "36-45", "46-60", "60+"];

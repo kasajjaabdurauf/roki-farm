@@ -8,7 +8,7 @@ export function PwaRegister() {
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
 
-    // updateViaCache: "none" — never serve the shell from the HTTP cache,
+    // updateViaCache: "none", never serve the shell from the HTTP cache,
     // always check for a newer service worker on reload.
     navigator.serviceWorker
       .register("/sw.js", { updateViaCache: "none" })
@@ -26,7 +26,7 @@ export function PwaRegister() {
         });
       })
       .catch(() => {
-        /* offline caching unavailable — app still works */
+        /* offline caching unavailable, app still works */
       });
   }, []);
   return null;

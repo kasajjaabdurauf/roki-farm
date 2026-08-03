@@ -16,6 +16,20 @@ body {
   @apply bg-cream text-stone-800 antialiased;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overflow-x: clip;
+  /* kill double-tap zoom delay and 300ms tap lag on mobile */
+  touch-action: manipulation;
+}
+
+/* subtle page-enter animation: feels instant, not jumpy */
+@keyframes jfl-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+main {
+  animation: jfl-rise 0.25s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  main { animation: none; }
 }
 
 /* hide number input spinners */
@@ -56,7 +70,7 @@ input[type="number"] {
     @apply min-h-[48px] min-w-[48px];
   }
   .card {
-    @apply rounded-2xl border border-stone-200 bg-white shadow-card;
+    @apply overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-card;
   }
   .tabular {
     font-variant-numeric: tabular-nums;

@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------
-// Static reference data — crops (with rule-engine thresholds per acre),
+// Static reference data, crops (with rule-engine thresholds per acre),
 // harvest windows, and Uganda admin geography. All deterministic.
 // ------------------------------------------------------------------
 

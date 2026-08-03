@@ -29,6 +29,7 @@ Tick items off as they are completed.
 - [x] In-app Help & Guide page with clickable walkthrough, FAQs, glossary
 - [x] Admin master backup button (header + Settings)
 - [x] 73 automated rule-engine checks (phones, tiers, rules, mapping, import, survey integrity)
+- [x] Polish pass v1.1: in-app Team & roles (no SQL), Account page with sign-out, standalone login page, Roki name in mobile header, roomier grid with responsive columns, settings card overflow fixed, em dashes removed
 
 ---
 
@@ -47,8 +48,7 @@ Tick items off as they are completed.
 - [ ] Confirm nightly backup workflow runs and email arrives (run manually once)
 
 ### 2.2 Accounts & roles
-- [ ] Create admin account (Joan) — sign up in the app, then run:
-      `update public.profiles set role = 'ADMIN' where id = '<uid>';`
+- [x] In-app role management: Settings → Team & roles (Admin) — no SQL for new admins; first account on a fresh DB auto-becomes Admin (migration_v2.sql)
 - [ ] Create field agent accounts and assign `FIELD_AGENT`
 - [ ] Create farmer accounts (optional per farmer) and assign `FARMER` + `farmer_id` link
 - [ ] Password reset flow tested (Supabase built-in email)

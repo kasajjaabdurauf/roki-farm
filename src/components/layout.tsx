@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   BookOpen,
   CalendarRange,
@@ -10,9 +10,9 @@ import {
   CloudUpload,
   Download,
   LayoutDashboard,
-  LogOut,
   MoreHorizontal,
   Settings,
+  UserCircle2,
   Sprout,
   Table2,
   Truck,
@@ -25,12 +25,11 @@ import {
   X,
 } from "lucide-react";
 import { cx } from "@/lib/format";
-import { flushOutbox, pendingSync, setRole, syncNow, useDb } from "@/lib/db";
-import { ROLE_LABEL, type Role } from "@/lib/types";
+import { flushOutbox, pendingSync, useDb } from "@/lib/db";
 import { downloadMasterBackup, stamp } from "@/lib/export";
-import { remoteConfigured, signOut } from "@/lib/remote";
+import { remoteConfigured } from "@/lib/remote";
+import { type Role } from "@/lib/types";
 import { Wordmark } from "./brand";
-import { Select } from "./ui";
 import { AuthGate } from "./auth";
 
 interface NavItem {
@@ -51,6 +50,7 @@ const NAV: NavItem[] = [
   { href: "/grid", label: "Data Grid", icon: <Table2 className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT"] },
   { href: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/help", label: "Help & Guide", icon: <BookOpen className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
+  { href: "/account", label: "Account", icon: <UserCircle2 className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
 ];
 
 const isRemote = remoteConfigured();
@@ -67,6 +67,7 @@ const TITLES: Record<string, string> = {
   "/grid": "Data Grid & Export",
   "/settings": "Settings",
   "/help": "Help & Guide",
+  "/account": "Account",
 };
 
 function useOnline(): boolean {
@@ -130,38 +131,15 @@ function SyncChip({ compact }: { compact?: boolean }) {
   );
 }
 
-/** Role switcher — applies instantly and navigates to the role's home. */
-function RoleSwitcher({ className }: { className?: string }) {
-  const db = useDb();
-  const router = useRouter();
-
-  function handleChange(role: Role) {
-    setRole(role);
-    router.push(role === "FARMER" ? "/farm" : "/");
-  }
-
-  return (
-    <Select
-      value={db.meta.role}
-      onChange={(e) => handleChange(e.target.value as Role)}
-      className={cx("h-10 rounded-lg text-[12px] font-semibold", className)}
-      aria-label="Switch role"
-    >
-      {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
-        <option key={r} value={r}>
-          {r === "FARMER" ? "Farmer" : r === "FIELD_AGENT" ? "Field Agent" : "Admin"}
-        </option>
-      ))}
-    </Select>
-  );
-}
-
 export function AppShell({ children }: { children: ReactNode }) {
   const db = useDb();
   const pathname = usePathname();
   const role = db.meta.role;
   const online = useOnline();
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // the sign-in screen is standalone: no header, no bottom nav, no brand strip
+  if (pathname === "/login") return <>{children}</>;
 
   function masterBackup() {
     const nameOf = (id: string) => db.farmers.find((f) => f.id === id)?.fullName ?? "Unknown";
@@ -206,7 +184,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2.5 rounded-xl bg-forest-50 px-3 py-2.5">
             <ShieldCheck className="h-4 w-4 shrink-0 text-forest-700" />
             <p className="text-[11px] leading-snug font-medium text-forest-800">
-              Rule engine active — deterministic validation, zero AI
+              Rule engine active, deterministic validation, zero AI
             </p>
           </div>
         </div>
@@ -223,9 +201,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2">
               <div className="hidden lg:block">
                 <SyncChip />
-              </div>
-              <div className="hidden lg:block">
-                <RoleSwitcher className="w-44" />
               </div>
               <div className="lg:hidden">
                 <SyncChip compact />
@@ -258,28 +233,28 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="border-t border-stone-200/70 bg-white px-4 py-2 sm:px-6 lg:hidden">
-            {isRemote ? (
-              <div className="flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-[13px] font-semibold text-stone-600">
+            <div className="flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate text-[13px] font-semibold text-stone-600">
+                {isRemote ? (
                   <RemoteUserChip compact />
-                </span>
-              </div>
-            ) : (
-              <RoleSwitcher className="w-full" />
-            )}
+                ) : (
+                  <span className="text-stone-400">Demo mode · manage roles in Account</span>
+                )}
+              </span>
+            </div>
           </div>
 
           {!online && (
             <div className="flex items-center justify-center gap-1.5 bg-danger-500 px-4 py-2 text-center text-[12px] font-semibold text-white">
               <CloudOff className="h-3.5 w-3.5 shrink-0" />
-              Offline — your entries are saved on this device and will sync when you're back online
+              Offline, your entries are saved on this device and will sync when you're back online
             </div>
           )}
         </header>
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:pb-10">{children}</main>
 
-        {/* bottom nav (mobile / tablet) — sticky & in-flow */}
+        {/* bottom nav (mobile / tablet), sticky & in-flow */}
         <nav
           className="sticky bottom-0 z-40 border-t border-stone-200 bg-white lg:hidden"
           aria-label="Primary"
@@ -379,28 +354,12 @@ function RemoteUserChip({ compact }: { compact?: boolean }) {
     return (
       <span className="flex min-w-0 items-center gap-2">
         <span className="truncate text-[12px] font-semibold text-stone-500">{email ?? "Signed in"}</span>
-        <button
-          onClick={() => void signOut()}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-stone-500 hover:bg-danger-50 hover:text-danger-600"
-          aria-label="Sign out"
-          title="Sign out"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
       </span>
     );
   }
   return (
     <span className="hidden items-center gap-1.5 rounded-full bg-forest-50 px-3 py-1.5 text-[12px] font-semibold text-forest-800 lg:inline-flex">
-      <span className="max-w-[160px] truncate">{email ?? "Signed in"}</span>
-      <button
-        onClick={() => void signOut()}
-        className="grid h-6 w-6 place-items-center rounded-full text-forest-600 hover:bg-forest-100"
-        aria-label="Sign out"
-        title="Sign out"
-      >
-        <LogOut className="h-3.5 w-3.5" />
-      </button>
+      <span className="max-w-[180px] truncate">{email ?? "Signed in"}</span>
     </span>
   );
 }
@@ -415,7 +374,7 @@ export function PwaHint({ className }: { className?: string }) {
   return (
     <p className={cx("flex items-center gap-1.5 text-[11px] text-stone-400", className)}>
       <Leaf className="h-3.5 w-3.5" />
-      Installable PWA — add to home screen for offline field use
+      Installable PWA, add to home screen for offline field use
     </p>
   );
 }

@@ -24,7 +24,18 @@ const SUPABASE_URL = process.env.SUPABASE_URL.replace(/\/$/, "");
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_KEY = process.env.RESEND_API_KEY;
 const EMAIL_TO = process.env.BACKUP_EMAIL_TO;
-const EMAIL_FROM = process.env.BACKUP_EMAIL_FROM || "onboarding@resend.dev";
+const EMAIL_FROM = buildFrom();
+
+/**
+ * Build a valid Resend `from` value.
+ * Accepts either a bare address ("onboarding@resend.dev") or an already
+ * formatted "Name <email>" — sanitises quotes/whitespace either way.
+ */
+function buildFrom() {
+  const raw = (process.env.BACKUP_EMAIL_FROM || "onboarding@resend.dev").trim().replace(/^"|"$/g, "");
+  if (raw.includes("<") && raw.includes(">")) return raw;
+  return `Roki Backups <${raw}>`;
+}
 
 function stamp() {
   const d = new Date();

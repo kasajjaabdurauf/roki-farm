@@ -61,7 +61,7 @@ export default function GridPage() {
       <div>
         <h2 className="font-display text-2xl font-semibold text-forest-900">Data Grid & Export</h2>
         <p className="mt-0.5 text-sm text-stone-500">
-          Click any cell to edit inline — the rule engine re-checks automatically. Sort, filter, bulk-delete and export.
+          Click any cell to edit inline, the rule engine re-checks automatically. Sort, filter, bulk-delete and export.
         </p>
       </div>
 
@@ -160,12 +160,12 @@ function EditableText({ value, onSave, mono }: { value: string; onSave: (v: stri
       <button
         onClick={() => { setDraft(value); setEditing(true); }}
         className={cx(
-          "group inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-1 -mx-1.5 text-left hover:bg-forest-50",
+          "group -mx-1.5 inline-flex min-h-[32px] max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-left ring-1 ring-transparent transition-all hover:bg-forest-50 hover:ring-forest-100",
           mono && "font-mono text-[12px]"
         )}
-        title="Click to edit"
+        title="Tap to edit"
       >
-        <span className="truncate">{value || "—"}</span>
+        <span className="truncate">{value || "N/A"}</span>
         <Pencil className="h-3 w-3 shrink-0 text-forest-300 opacity-0 transition-opacity group-hover:opacity-100" />
       </button>
     );
@@ -290,10 +290,10 @@ function FarmersGrid({ db }: { db: ReturnType<typeof useDb> }) {
       }),
       col.accessor("rokiTier", { header: "Roki Tier", cell: (i) => <RokiTierBadge tier={i.getValue()} /> }),
       col.accessor("gender", { header: "Gender", cell: (i) => (i.getValue() === "F" ? "Female" : i.getValue() === "M" ? "Male" : "Other") }),
-      col.accessor("refugeeStatus", { header: "Community", cell: (i) => (i.getValue() === "REFUGEE" ? "Refugee" : i.getValue() === "HOST" ? "Host" : "—") }),
+      col.accessor("refugeeStatus", { header: "Community", cell: (i) => (i.getValue() === "REFUGEE" ? "Refugee" : i.getValue() === "HOST" ? "Host" : "N/A") }),
       col.accessor("scaleTier", { header: "Farm size", cell: (i) => <TierBadge tier={i.getValue()} /> }),
       col.accessor("primaryCrops", { header: "Crops", cell: (i) => <span className="text-[12px] text-stone-500">{i.getValue().join(", ")}</span> }),
-      col.accessor("flags", { header: "Flags", cell: (i) => (i.getValue().length > 0 ? <Badge tone="warning" dot>Attention</Badge> : <span className="text-stone-300">—</span>) }),
+      col.accessor("flags", { header: "Flags", cell: (i) => (i.getValue().length > 0 ? <Badge tone="warning" dot>Attention</Badge> : <span className="text-stone-300">N/A</span>) }),
       col.accessor("createdAt", { header: "Registered", cell: (i) => <span className="text-[12px] text-stone-400">{fmtDate(i.getValue().slice(0, 10))}</span> }),
     ],
     [col]
@@ -392,7 +392,7 @@ function LogsGrid({ db }: { db: ReturnType<typeof useDb> }) {
   const columns = useMemo<ColumnDef<ProduceLog, any>[]>(
     () => [
       col.display({ id: "sel", header: ({ table }) => <SelHeader table={table} />, cell: ({ row }) => <SelCell row={row} />, size: 40 }),
-      col.accessor("id", { header: "Log ID", cell: (i) => <span className="font-mono text-[11px] text-stone-400">{i.getValue()}</span> }),
+      col.accessor("id", { header: "Log ID", cell: (i) => <span className="font-mono text-[11px] text-stone-400">{i.getValue()}</span>, meta: { hideOnMobile: true } }),
       col.accessor("farmerId", {
         header: "Farmer",
         cell: (i) => (
@@ -431,8 +431,8 @@ function LogsGrid({ db }: { db: ReturnType<typeof useDb> }) {
         ),
       }),
       col.accessor("status", { header: "Status", cell: (i) => <StatusBadge status={i.getValue()} /> }),
-      col.accessor("yieldScore", { header: "Yield", cell: (i) => <YieldBadge score={i.getValue()} /> }),
-      col.accessor("batchId", { header: "Batch", cell: (i) => <span className="font-mono text-[11px] text-stone-400">{i.getValue() ?? "—"}</span> }),
+      col.accessor("yieldScore", { header: "Yield", cell: (i) => <YieldBadge score={i.getValue()} />, meta: { hideOnMobile: true } }),
+      col.accessor("batchId", { header: "Batch", cell: (i) => <span className="font-mono text-[11px] text-stone-400">{i.getValue() ?? "N/A"}</span> }),
       col.accessor("storageLocation", { header: "Storage", cell: (i) => <EditableText value={i.getValue() ?? ""} onSave={(v) => updateLog(i.row.original.id, { storageLocation: v })} /> }),
       col.accessor("source", { header: "Source", cell: (i) => <SourceChip source={i.getValue()} /> }),
     ],
@@ -591,13 +591,18 @@ function TableShell({ table }: { table: any }) {
       </p>
       <div className="overflow-x-auto">
       <table className="w-full min-w-[1050px] text-left text-[13px]">
+        <colgroup>
+          {table.getAllLeafColumns().map((c: any) => (
+            <col key={c.id} className={cx(c.id.includes("sel") && "w-12")} />
+          ))}
+        </colgroup>
         <thead>
           {table.getHeaderGroups().map((hg: any) => (
             <tr key={hg.id} className="border-b border-stone-200 bg-stone-50/70 text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
               {hg.headers.map((h: any) => (
                 <th
                   key={h.id}
-                  className={cx("py-2.5 px-3 first:pl-4 last:pr-4", h.column.getCanSort() && "cursor-pointer select-none")}
+                  className={cx("py-3 px-3 first:pl-4 last:pr-4", h.column.columnDef.meta?.hideOnMobile && "hidden md:table-cell", h.column.getCanSort() && "cursor-pointer select-none")}
                   onClick={h.column.getToggleSortingHandler()}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -613,9 +618,9 @@ function TableShell({ table }: { table: any }) {
         </thead>
         <tbody className="divide-y divide-stone-100">
           {table.getRowModel().rows.map((row: any) => (
-            <tr key={row.id} className={cx("hover:bg-stone-50/60", row.getIsSelected() && "bg-forest-50/60")}>
+            <tr key={row.id} className={cx("transition-colors odd:bg-white even:bg-stone-50/40 hover:bg-forest-50/50", row.getIsSelected() && "bg-forest-50/70")}>
               {row.getVisibleCells().map((cell: any) => (
-                <td key={cell.id} className="max-w-[220px] px-3 py-2 first:pl-4 last:pr-4 text-stone-700">
+                <td key={cell.id} className={cx("max-w-[240px] px-3 py-3 first:pl-4 last:pr-4 text-stone-700 align-middle", cell.column.columnDef.meta?.hideOnMobile && "hidden md:table-cell")}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}

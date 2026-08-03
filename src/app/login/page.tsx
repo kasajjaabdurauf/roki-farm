@@ -145,9 +145,9 @@ export default function LoginPage() {
       </Card>
 
       <div className="grid gap-2.5 sm:grid-cols-3">
-        <MiniCard icon={<ShieldCheck className="h-4 w-4" />} title="Bank-grade security" text="Row-level security — you only ever see data you're allowed to see." />
+        <MiniCard icon={<ShieldCheck className="h-4 w-4" />} title="Bank-grade security" text="Row-level security, you only ever see data you're allowed to see." />
         <MiniCard icon={<Sparkles className="h-4 w-4" />} title="Works offline" text="Field agents keep working without network; sync happens automatically." />
-        <MiniCard icon={<KeyRound className="h-4 w-4" />} title="Magic link" text="No password needed — sign in straight from your email." />
+        <MiniCard icon={<KeyRound className="h-4 w-4" />} title="Magic link" text="No password needed, sign in straight from your email." />
       </div>
 
       <p className="text-center text-[13px] text-stone-500">

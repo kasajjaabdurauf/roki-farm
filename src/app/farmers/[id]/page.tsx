@@ -62,7 +62,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
     for (const l of logs) m[l.cropType] = (m[l.cropType] ?? 0) + l.quantityKg;
     return Object.entries(m).sort((a, b) => b[1] - a[1]);
   }, [logs]);
-  const topCrop = byCrop[0]?.[0] ?? "—";
+  const topCrop = byCrop[0]?.[0] ?? "N/A";
   const perAcre = farmer.acreage > 0 ? totalKg / farmer.acreage : 0;
   const irrigationLabel = IRRIGATION_OPTIONS.find((o) => o.value === farmer.irrigationType)?.label ?? farmer.irrigationType;
 
@@ -159,10 +159,10 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
             <SurveyFact label="Gender" value={GENDER_LABEL[farmer.gender]} />
             <SurveyFact label="Community" value={REFUGEE_LABEL[farmer.refugeeStatus]} />
             <SurveyFact label="Age" value={farmer.survey?.ageYears ? `${farmer.survey.ageYears} years` : farmer.ageGroup} />
-            <SurveyFact label="Household" value={farmer.householdSize ? `${farmer.householdSize} members` : "—"} />
+            <SurveyFact label="Household" value={farmer.householdSize ? `${farmer.householdSize} members` : "N/A"} />
             <SurveyFact label="Land ownership" value={LAND_OWNERSHIP_LABEL[farmer.landOwnership]} />
             <SurveyFact label="Irrigation" value={irrigationLabel} />
-            <SurveyFact label="Enumerator" value={farmer.survey?.enumeratorName || "—"} />
+            <SurveyFact label="Enumerator" value={farmer.survey?.enumeratorName || "N/A"} />
             <SurveyFact label="Registered" value={fmtDate(farmer.createdAt.slice(0, 10))} />
           </dl>
           <div className="mt-4 rounded-xl bg-forest-50 px-3.5 py-3">
@@ -184,7 +184,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
         <Card className="min-w-0">
           <h3 className="mb-3 font-display text-lg font-semibold text-forest-900">Production plan</h3>
           {farmer.plannedProductions.length === 0 ? (
-            <p className="text-sm text-stone-400">No production plan captured yet — edit the survey to add one.</p>
+            <p className="text-sm text-stone-400">No production plan captured yet, edit the survey to add one.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[13px]">
@@ -221,7 +221,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
           <ul className="space-y-2">
             {flaggedLogs.slice(0, 5).map((l) => (
               <li key={l.id} className="text-[13px] text-stone-700">
-                <span className="font-semibold">{l.id}</span> · {l.cropType} · {fmtKg(l.quantityKg)} — {l.auditNotes[0]}
+                <span className="font-semibold">{l.id}</span> · {l.cropType} · {fmtKg(l.quantityKg)}, {l.auditNotes[0]}
               </li>
             ))}
           </ul>
@@ -238,7 +238,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
           <p className="py-8 text-center text-sm text-stone-400">No harvests logged yet.</p>
         ) : (
           <>
-            {/* desktop / tablet — table */}
+            {/* desktop / tablet, table */}
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] text-left text-sm">
                 <thead>
@@ -270,7 +270,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
               </table>
             </div>
 
-            {/* mobile — stacked cards */}
+            {/* mobile, stacked cards */}
             <div className="space-y-2.5 md:hidden">
               {logs.map((l) => (
                 <div key={l.id} className="rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-card">

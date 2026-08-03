@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------
-// Uganda phone validation — deterministic rule-based (MTN / Airtel).
+// Uganda phone validation, deterministic rule-based (MTN / Airtel).
 // Accepts: 07XXXXXXXX, +2567XXXXXXXX, 2567XXXXXXXX, 7XXXXXXXX,
 // with separators (spaces, dashes, parens) stripped.
 // Normalized output: +2567XXXXXXXX (used in exports & profiles).

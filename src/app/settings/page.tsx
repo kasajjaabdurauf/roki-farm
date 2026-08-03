@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Database,
   Download,
@@ -10,14 +10,17 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  UserCog,
+  UserRound,
+  Loader2,
 } from "lucide-react";
 import { resetDemoData, syncNow, updateCropDefaults, updateSettings, useDb } from "@/lib/db";
 import { downloadCSV, downloadMasterBackup, downloadXLSX, stamp, type ExportColumn } from "@/lib/export";
 import { fmtDateTime } from "@/lib/format";
 import { CROPS } from "@/lib/reference";
-import { remoteConfigured } from "@/lib/remote";
+import { fetchAllProfiles, remoteConfigured, updateProfileRole, type TeamMember } from "@/lib/remote";
 import { TIER_LABEL } from "@/lib/types";
-import { Button, Card, ConfirmDialog, Input, Toggle } from "@/components/ui";
+import { Button, Card, ConfirmDialog, Input, Select, Toggle } from "@/components/ui";
 import { PwaHint } from "@/components/layout";
 
 export default function SettingsPage() {
@@ -30,7 +33,7 @@ export default function SettingsPage() {
       const raw = localStorage.getItem("jfl-db-v1") ?? "";
       return `${(raw.length / 1024).toFixed(0)} KB`;
     } catch {
-      return "—";
+      return "N/A";
     }
   }, [db]);
 
@@ -74,6 +77,9 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
+        {/* team & roles (admin, production) */}
+        {remoteConfigured() && <TeamRolesCard />}
+
         {/* rule toggles */}
         <Card>
           <h3 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
@@ -118,8 +124,8 @@ export default function SettingsPage() {
             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-stone-400" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search crop…" className="h-10 pl-9 text-sm" />
           </div>
-          <div className="max-h-[420px] overflow-y-auto rounded-xl border border-stone-200">
-            <table className="w-full text-left text-[13px]">
+          <div className="max-h-[420px] overflow-x-auto overflow-y-auto rounded-xl border border-stone-200">
+            <table className="w-full min-w-[460px] text-left text-[13px]">
               <thead className="sticky top-0 bg-stone-50">
                 <tr className="text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
                   <th className="py-2.5 pr-3 pl-3">Crop</th>
@@ -161,7 +167,7 @@ export default function SettingsPage() {
             <p className="mt-1 mb-3 text-[12.5px] leading-relaxed text-stone-500">
               {remoteConfigured()
                 ? "All changes are pushed to Supabase automatically and pulled on sign-in. The local copy keeps the app fast and offline-capable."
-                : "No Supabase keys configured — data lives only on this device. Set NEXT_PUBLIC_SUPABASE_URL / ANON_KEY to go live."}
+                : "No Supabase keys configured, data lives only on this device. Set NEXT_PUBLIC_SUPABASE_URL / ANON_KEY to go live."}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => void syncNow()}>
@@ -175,7 +181,7 @@ export default function SettingsPage() {
             </p>
             <p className="mt-1 text-[12.5px] leading-relaxed text-stone-500">
               <b>{db.farmers.length.toLocaleString()}</b> farmers · <b>{db.logs.length.toLocaleString()}</b> logs ·{" "}
-              <b>{storageSize}</b> on this device. Data lives in the browser (offline-first) — the repository layer in{" "}
+              <b>{storageSize}</b> on this device. Data lives in the browser (offline-first), the repository layer in{" "}
               <code className="rounded bg-stone-100 px-1 font-mono text-[11px]">src/lib/db.ts</code> is the single swap point for a
               Supabase/PostgreSQL backend.
             </p>
@@ -237,5 +243,142 @@ function CropInput({ value, onSave }: { value: number; onSave: (v: number) => vo
       }}
       className="h-9 w-24 rounded-lg border border-stone-300 px-2 text-right text-[13px] font-semibold tabular outline-none focus:border-forest-600 focus:ring-2 focus:ring-forest-100"
     />
+  );
+}
+
+
+// ------------------------------------------------------------------
+// Team & roles — manage admins / agents / farmers without SQL.
+// Only visible to admins (RLS enforces this on the server too).
+// ------------------------------------------------------------------
+function TeamRolesCard() {
+  const db = useDb();
+  const [members, setMembers] = useState<TeamMember[] | null>(null);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    fetchAllProfiles()
+      .then(setMembers)
+      .catch((e) => setError(e instanceof Error ? e.message : "Could not load team"));
+  }, []);
+
+  async function changeRole(m: TeamMember, role: string) {
+    setSaving(m.id);
+    setError("");
+    setNotice("");
+    try {
+      const farmerId = role === "FARMER" ? m.farmer_id : null;
+      await updateProfileRole(m.id, role, role === "FARMER" ? m.farmer_id : null);
+      setMembers((prev) => prev?.map((x) => (x.id === m.id ? { ...x, role } : x)) ?? null);
+      setNotice(`${m.email ?? "Member"} is now ${role}. They'll see the new role on their next sign-in.`);
+      void farmerId;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function changeFarmerLink(m: TeamMember, farmerId: string | null) {
+    setSaving(m.id);
+    setError("");
+    setNotice("");
+    try {
+      await updateProfileRole(m.id, m.role, farmerId);
+      setMembers((prev) => prev?.map((x) => (x.id === m.id ? { ...x, farmer_id: farmerId } : x)) ?? null);
+      setNotice(`Farmer link updated for ${m.email ?? "member"}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  return (
+    <Card>
+      <div className="mb-1 flex items-center gap-2">
+        <h3 className="font-display text-lg font-semibold text-forest-900">Team &amp; roles</h3>
+        <span className="rounded-full bg-forest-50 px-2.5 py-1 text-[11px] font-bold text-forest-700 uppercase">
+          Admin
+        </span>
+      </div>
+      <p className="mb-4 text-[13px] text-stone-500">
+        Add and manage administrators, field agents and farmers without touching the database. New sign-ups
+        automatically join as Field Agents; the very first account on a fresh database becomes the Admin.
+      </p>
+
+      {error && <p className="mb-3 rounded-xl bg-danger-bg px-3.5 py-2.5 text-[13px] font-semibold text-danger-dark">{error}</p>}
+      {notice && <p className="mb-3 rounded-xl bg-success-bg px-3.5 py-2.5 text-[13px] font-semibold text-success-dark">{notice}</p>}
+
+      {!members ? (
+        <p className="flex items-center gap-2 py-6 text-center text-[13px] text-stone-400">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading team…
+        </p>
+      ) : members.length === 0 ? (
+        <p className="py-6 text-center text-[13px] text-stone-400">No accounts yet. Ask team members to sign up in the app.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[620px] text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-stone-200 text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
+                <th className="py-2.5 pr-3 pl-1">Email</th>
+                <th className="py-2.5 pr-3">Role</th>
+                <th className="py-2.5 pr-3">Linked farmer</th>
+                <th className="py-2.5">Joined</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {members.map((m) => (
+                <tr key={m.id} className="hover:bg-stone-50/60">
+                  <td className="max-w-[220px] truncate py-2.5 pr-3 pl-1 font-semibold text-stone-700">
+                    {m.email ?? "—"}
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    <Select
+                      value={m.role}
+                      disabled={saving === m.id}
+                      onChange={(e) => changeRole(m, e.target.value)}
+                      className="h-10 w-44 rounded-lg text-[12px] font-semibold"
+                    >
+                      <option value="ADMIN">Admin</option>
+                      <option value="FIELD_AGENT">Field Agent</option>
+                      <option value="FARMER">Farmer</option>
+                    </Select>
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    {m.role === "FARMER" ? (
+                      <Select
+                        value={m.farmer_id ?? ""}
+                        disabled={saving === m.id}
+                        onChange={(e) => changeFarmerLink(m, e.target.value || null)}
+                        className="h-10 w-48 rounded-lg text-[12px] font-semibold"
+                      >
+                        <option value="">Link a farmer…</option>
+                        {db.farmers.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.id} · {f.fullName}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <span className="text-[12px] text-stone-400">—</span>
+                    )}
+                  </td>
+                  <td className="py-2.5 text-[12px] text-stone-400">{m.created_at?.slice(0, 10)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="mt-3 flex items-start gap-1.5 text-[12px] leading-snug text-stone-400">
+        <UserCog className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        Role changes take effect on that person's next sign-in. Farmers linked to a profile can only see and log
+        their own harvests. <UserRound className="ml-1 h-3.5 w-3.5" />
+      </p>
+    </Card>
   );
 }

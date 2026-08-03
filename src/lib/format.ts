@@ -19,14 +19,14 @@ export function isoDaysAgo(days: number): string {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function fmtDate(iso: string): string {
-  if (!iso) return "—";
+  if (!iso) return "N/A";
   const d = new Date(iso.length === 10 ? iso + "T00:00:00" : iso);
   if (isNaN(d.getTime())) return iso;
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export function fmtDateTime(iso: string): string {
-  if (!iso) return "—";
+  if (!iso) return "N/A";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${String(d.getHours()).padStart(2, "0")}:${String(
