@@ -25,13 +25,34 @@ import type {
 
 let client: SupabaseClient | null = null;
 
-export function sb(): SupabaseClient | null {
-  if (typeof window === "undefined") return null; // server-side: no client
+/**
+ * Validate the config so a malformed env var (stray quotes, trailing
+ * spaces/newlines, placeholder URL) can NEVER crash the app — it just
+ * falls back to demo mode with a clear console warning.
+ */
+function configValid(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
+  if (!url || !key) return false;
+  try {
+    const u = new URL(url.trim());
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    if (typeof console !== "undefined") {
+      console.warn(
+        "[Roki] NEXT_PUBLIC_SUPABASE_URL is not a valid URL — running in demo mode.",
+        JSON.stringify(url)
+      );
+    }
+    return false;
+  }
+}
+
+export function sb(): SupabaseClient | null {
+  if (typeof window === "undefined") return null; // server-side: no client
+  if (!configValid()) return null;
   if (!client) {
-    client = createClient(url, key, {
+    client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!.trim(), process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!.trim(), {
       auth: { persistSession: true, autoRefreshToken: true },
     });
   }
@@ -39,7 +60,7 @@ export function sb(): SupabaseClient | null {
 }
 
 export function remoteConfigured(): boolean {
-  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  return configValid();
 }
 
 // ------------------------------------------------------------------

@@ -38,7 +38,7 @@ import { normalizeUgPhone } from "./phone";
 import { todayISO } from "./format";
 import { fetchAll, fetchMyProfile, pushOp, remoteConfigured, sb } from "./remote";
 
-const KEY = "roki-db-v1";
+const KEY = "roki-db-v2";
 
 // guards against recursive sync (mutate → syncNow → mutate)
 let syncing = false;
@@ -71,7 +71,23 @@ export function loadDb(): Db {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Db;
-      if (parsed && parsed.farmers && parsed.meta) {
+      if (
+        parsed &&
+        Array.isArray(parsed.farmers) &&
+        Array.isArray(parsed.logs) &&
+        parsed.meta &&
+        Array.isArray(parsed.meta.outbox)
+      ) {
+        // normalize any legacy rows so a missing array can never crash a page
+        for (const f of parsed.farmers) {
+          if (!Array.isArray(f.plannedProductions)) f.plannedProductions = [];
+          if (!Array.isArray(f.primaryCrops)) f.primaryCrops = [];
+          if (!Array.isArray(f.flags)) f.flags = [];
+          if (!f.survey) f.survey = { ...DEFAULT_SURVEY };
+        }
+        for (const l of parsed.logs) {
+          if (!Array.isArray(l.auditNotes)) l.auditNotes = [];
+        }
         cache = parsed;
         return cache;
       }
