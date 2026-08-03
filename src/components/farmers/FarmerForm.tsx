@@ -126,6 +126,11 @@ function draftFromFarmer(f: Farmer | undefined): SurveyDraft {
     climatePractices: sv?.climatePractices ?? [],
     consent: sv?.consent ?? false,
     consentDate: sv?.consentDate ?? new Date().toISOString().slice(0, 10),
+    farmName: sv?.farmName ?? "",
+    preferredLanguage: sv?.preferredLanguage ?? "English",
+    hasSmartphone: sv?.hasSmartphone ?? true,
+    marketDistanceKm: sv?.marketDistanceKm,
+    otherIncome: sv?.otherIncome ?? "None",
     landAvailability: sv?.landAvailability ?? "MEDIUM",
     productionPotential: sv?.productionPotential ?? "MEDIUM",
     recommendedCategory: sv?.recommendedCategory ?? "EMERGING",
@@ -153,6 +158,7 @@ const STEPS = [
   { id: "inputs", label: "Sections 7–8 · Inputs, technology & management" },
   { id: "market", label: "Sections 9–10 · Market & interest in Roki" },
   { id: "contract", label: "Sections 11–13 · Contract, finance & climate" },
+  { id: "extras", label: "More about your farm" },
   { id: "consent", label: "Sections 14–15 · Consent, assessment & review" },
 ] as const;
 
@@ -317,7 +323,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
       if (d.wantsToSupplyRoki && d.productions.length === 0)
         errs.push("Add at least one crop to the expected production plan for Roki (10.3), or set interest to No (10.1)");
     }
-    if (i === 8) {
+    if (i === 9) {
       if (!d.consent) errs.push("Farmer consent is required to register them on the digital platform (Section 14)");
     }
     return errs;
@@ -406,6 +412,11 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
       climatePractices: d.willingClimateSmart ? d.climatePractices : [],
       consent: d.consent,
       consentDate: d.consent ? d.consentDate : undefined,
+      farmName: d.farmName || undefined,
+      preferredLanguage: d.preferredLanguage,
+      hasSmartphone: d.hasSmartphone,
+      marketDistanceKm: d.marketDistanceKm,
+      otherIncome: d.otherIncome,
       landAvailability: d.landAvailability,
       productionPotential: d.productionPotential,
       recommendedCategory: d.recommendedCategory,
@@ -1117,8 +1128,45 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
         </div>
       )}
 
-      {/* ============ STEP 9 · SECTIONS 14–15, CONSENT, ASSESSMENT, REVIEW ============ */}
+      {/* ============ STEP 9 · MORE ABOUT YOUR FARM ============ */}
       {step === 8 && (
+        <div className="space-y-5">
+          <SectionNote>
+            A few extra details that help Roki plan support and communication. All optional except your preferred
+            language.
+          </SectionNote>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Farm name" hint="optional">
+              <Input value={d.farmName} onChange={(e) => set("farmName", e.target.value)} placeholder="e.g. Namukwaya Farm" />
+            </Field>
+            <Field label="Preferred language" required>
+              <Select value={d.preferredLanguage} onChange={(e) => set("preferredLanguage", e.target.value)}>
+                {["English", "Luganda", "Runyankole/Rukiga", "Acholi/Luo", "Swahili", "French", "Other"].map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Do you have a smartphone?" hint="we can send SMS updates either way">
+              <YesNo value={d.hasSmartphone ?? true} onChange={(v) => set("hasSmartphone", v)} />
+            </Field>
+            <Field label="Distance to nearest market" hint="km · optional">
+              <Input type="number" min={0} step="0.5" value={d.marketDistanceKm ?? ""} onChange={(e) => set("marketDistanceKm", e.target.value ? parseFloat(e.target.value) : undefined)} placeholder="e.g. 5" inputMode="decimal" />
+            </Field>
+          </div>
+          <Field label="Any other income besides farming?" hint="optional">
+            <Select value={d.otherIncome} onChange={(e) => set("otherIncome", e.target.value)}>
+              {["None", "Small business", "Employment", "Remittances", "Other"].map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      )}
+
+      {/* ============ STEP 10 · SECTIONS 14–15, CONSENT, ASSESSMENT, REVIEW ============ */}
+      {step === 9 && (
         <div className="space-y-6">
           <div className="rounded-2xl border border-ochre-200 bg-ochre-50/50 p-4">
             <p className="mb-2 text-[12px] font-bold tracking-wide text-ochre-700 uppercase">Section 14 · Digital platform registration, consent</p>
@@ -1183,6 +1231,10 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
               <ReviewRow label="Experience" value={`${FARMING_YEARS_OPTIONS.find((o) => o.value === d.farmingYears)?.label ?? ""} · ${d.farmingTypes.join(", ") || "N/A"}`} />
               <ReviewRow label="Current crops" value={d.currentCrops.map((c) => c.crop).join(", ") || "N/A"} />
               <ReviewRow label="Roki production plan" value={d.productions.length === 0 ? "N/A" : `${d.productions.length} crops · ${totalPlanAcres.toFixed(1)} ac · ≈ ${(totalPlanKg / 1000).toFixed(1)} t`} />
+              <ReviewRow label="Language" value={d.preferredLanguage || "N/A"} />
+              <ReviewRow label="Farm name" value={d.farmName || "N/A"} />
+              <ReviewRow label="Smartphone" value={d.hasSmartphone ? "Yes" : "No"} />
+              <ReviewRow label="Other income" value={d.otherIncome || "N/A"} />
             </div>
             <div className="mt-4 rounded-xl bg-ochre-50 px-3.5 py-3">
               <p className="text-[11px] font-bold tracking-wide text-ochre-700 uppercase">Roki farmer scoring</p>

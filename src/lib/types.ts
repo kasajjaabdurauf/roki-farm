@@ -109,6 +109,12 @@ export interface FarmerSurvey {
   // --- Section 14 · Digital platform registration (consent) ----------
   consent: boolean;
   consentDate?: string;
+  // --- Extra profile details (captured during onboarding) ------------
+  farmName?: string;
+  preferredLanguage?: string;
+  hasSmartphone?: boolean;
+  marketDistanceKm?: number;
+  otherIncome?: string;
   // --- Section 15 · Enumerator observation ---------------------------
   landAvailability: string; // HIGH | MEDIUM | LOW
   productionPotential: string; // HIGH | MEDIUM | LOW
@@ -430,6 +436,8 @@ export const DEFAULT_SURVEY: FarmerSurvey = {
   willingClimateSmart: false,
   climatePractices: [],
   consent: true,
+  preferredLanguage: "English",
+  hasSmartphone: true,
   landAvailability: "MEDIUM",
   productionPotential: "MEDIUM",
   recommendedCategory: "EMERGING",

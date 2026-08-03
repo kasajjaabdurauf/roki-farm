@@ -42,6 +42,7 @@ Tick items off as they are completed.
 - [x] v2.1: accounts ARE farmers (own ID + record at signup, email on record, no linking; migration_v5.sql; 'Link a farmer' removed; pending-survey badges; farmers update own record)
 - [x] v2.2: upload↔account linking (match by ID → phone → email; email column support; signup claims existing record by email, migration_v6.sql; simulation email demo; manual §5.7b)
 - [x] v2.3: mandatory onboarding survey (no skip), reliable survey→profile linking, phone-based record claiming during onboarding, survey mobile polish (full-width rows, spacing)
+- [x] v2.4: fixed stuck "Setting up your farmer profile" gate (survey page no longer blocked), survey "More about your farm" extras step, farmer dashboard card cleanup, full factory reset SQL (accounts included)
 
 ---
 

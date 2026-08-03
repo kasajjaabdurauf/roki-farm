@@ -113,7 +113,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   }, [needsSurvey, pathname, router]);
 
-  if (needsSurvey) {
+  // The splash only blocks OTHER pages — the /survey page itself must
+  // render so the farmer can actually complete it (this was the "stuck
+  // on Setting up your farmer profile" bug).
+  if (needsSurvey && pathname !== "/survey") {
     return (
       <div className="grid min-h-[80vh] place-items-center">
         <div className="flex flex-col items-center gap-4">

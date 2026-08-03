@@ -179,6 +179,12 @@ Narration crib: the full screen-by-screen explanations are in `docs/ROKI-USER-MA
 
 ---
 
+## Appendix C — Factory reset (start completely over)
+
+To wipe the platform including ALL accounts: Supabase → SQL Editor → run the entire contents of `supabase/wipe_everything.sql`. It deletes all farmers, logs and user accounts and resets IDs. The next person to sign up becomes the Admin again. (Settings → Delete all data… only clears farmer/log data, not accounts.)
+
+---
+
 ## Appendix A — Master Credentials Template (fill in, keep in password manager)
 
 | System | URL | Email | Password / Key | Notes |

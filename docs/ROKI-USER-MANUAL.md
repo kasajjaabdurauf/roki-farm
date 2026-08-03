@@ -375,6 +375,7 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | Grid looks different on phone | Swipe sideways — tables are horizontally scrollable; key info is in the first columns |
 | Accidentally deleted a farmer | Contact the admin within 30 days — the nightly backup can restore data (as an Excel import) |
 | I imported a test file and want to start clean | Admin: Settings → Data management → **Delete all data…** (type DELETE to confirm). This clears the local store and the cloud, then syncs |
+| I want to wipe EVERYTHING including accounts | Run `supabase/wipe_everything.sql` in the Supabase SQL Editor. It deletes all farmers, logs and user accounts and resets IDs to start fresh (the next signup becomes Admin again). Permanent, no undo except the nightly backup |
 | App feels slow | Refresh once; ensure the app is updated; on very old phones, close other apps |
 | Demo data messed up | Settings → Reset demo data (demo mode only) |
 
@@ -431,5 +432,6 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 2.1 | 2026-08-03 | Accounts ARE farmers: every signup automatically gets its OWN farmer record + ID (sequence-generated, email stored on the record) with no linking step ever. Self-registration now fills the account's own record; the 'Link a farmer' control is removed from Team & roles; farmers list shows new signups (email + 'Pending survey' badge) newest first; farmers can update their own record. Requires migration_v5.sql. |
 | 2.2 | 2026-08-03 | Upload↔account linking model: rows match farmer records by ID → phone → email (email added as a matching key + column); signup CLAIMS an existing farmer record by email instead of duplicating (migration_v6.sql); simulation file gained an Email column to demo both scenarios; new manual section 5.7b explains it all. |
 | 2.3 | 2026-08-03 | Onboarding is mandatory: new farmer accounts are held at the survey until it's completed (no skip); survey completion reliably links and updates the account's own record. Phone-based claiming: entering a phone during the survey that matches an existing record (e.g. from an uploaded list) offers to link the login to that record. Survey mobile polish: full-width inputs on the crop/production rows, more spacing. |
+| 2.4 | 2026-08-03 | Fixed the "Setting up your farmer profile" stuck screen (the gate no longer blocks the survey page itself). Added an optional **More about your farm** step to the survey (farm name, preferred language, smartphone access, market distance, other income). Cleaned up the farmer dashboard profile card (no overlapping button). Added **full factory reset** SQL (wipes accounts too). |
 
 *Every future release appends a row here.*

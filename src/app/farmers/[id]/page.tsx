@@ -164,6 +164,12 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
             <SurveyFact label="Irrigation" value={irrigationLabel} />
             <SurveyFact label="Enumerator" value={farmer.survey?.enumeratorName || "N/A"} />
             <SurveyFact label="Registered" value={fmtDate(farmer.createdAt.slice(0, 10))} />
+            {farmer.survey?.preferredLanguage && (
+              <SurveyFact label="Language" value={farmer.survey.preferredLanguage} />
+            )}
+            {farmer.survey?.hasSmartphone !== undefined && (
+              <SurveyFact label="Smartphone" value={farmer.survey.hasSmartphone ? "Yes" : "No"} />
+            )}
           </dl>
           <div className="mt-4 rounded-xl bg-forest-50 px-3.5 py-3">
             <p className="text-[11px] font-bold tracking-wide text-forest-700 uppercase">
