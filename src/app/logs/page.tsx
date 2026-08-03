@@ -41,7 +41,22 @@ function LogsPageInner() {
   const db = useDb();
   const searchParams = useSearchParams();
   const isFarmerRole = db.meta.role === "FARMER";
-  const farmerScope = isFarmerRole ? db.meta.demoFarmerId : undefined;
+
+  if (isFarmerRole && !db.meta.demoFarmerId) {
+    return (
+      <EmptyState
+        icon={<Sprout className="h-6 w-6" />}
+        title="Your account is not linked to a farmer profile yet"
+        description="Ask an administrator to link this account to a farmer record (Settings → Team & roles → Linked farmer), then this page will show your own harvests."
+        action={
+          <Link href="/help">
+            <Button variant="primary">Open Help & Guide</Button>
+          </Link>
+        }
+      />
+    );
+  }
+  const farmerScope = isFarmerRole && db.meta.demoFarmerId ? db.meta.demoFarmerId : undefined;
 
   // ---------------- entry form state ----------------
   const [farmerId, setFarmerId] = useState(searchParams.get("farmer") ?? farmerScope ?? "");

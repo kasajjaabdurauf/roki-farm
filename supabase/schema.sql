@@ -24,11 +24,17 @@ create or replace function public.handle_new_user()
 returns trigger
 language plpgsql security definer set search_path = public
 as $$
+declare
+  chosen_role text := coalesce(new.raw_user_meta_data->>'role', '');
 begin
   insert into public.profiles (id, role, full_name, email)
   values (
     new.id,
-    case when not exists (select 1 from public.profiles) then 'ADMIN' else 'FIELD_AGENT' end,
+    case
+      when not exists (select 1 from public.profiles) then 'ADMIN'
+      when chosen_role = 'FARMER' then 'FARMER'
+      else 'FIELD_AGENT'
+    end,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
     new.email
   );

@@ -91,10 +91,33 @@ export async function signInWithMagicLink(email: string) {
   return c.auth.signInWithOtp({ email });
 }
 
-export async function signUp(email: string, password: string) {
+export async function signUp(email: string, password: string, role?: "FIELD_AGENT" | "FARMER") {
   const c = sb();
   if (!c) throw new Error("Backend not configured, run in demo mode or set Supabase keys.");
-  return c.auth.signUp({ email, password });
+  // The chosen role is stored in user metadata; the database trigger only
+  // ever honours FARMER / FIELD_AGENT. ADMIN can never be self-selected
+  // (the first account on a fresh database becomes Admin automatically).
+  return c.auth.signUp({
+    email,
+    password,
+    options: { data: { role: role === "FARMER" ? "FARMER" : "FIELD_AGENT" } },
+  });
+}
+
+/** Send a password reset email (Supabase handles the recovery link). */
+export async function resetPasswordForEmail(email: string) {
+  const c = sb();
+  if (!c) throw new Error("Backend not configured, run in demo mode or set Supabase keys.");
+  return c.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+}
+
+/** Set a new password (called from the recovery page with a valid session). */
+export async function updatePassword(newPassword: string) {
+  const c = sb();
+  if (!c) throw new Error("Backend not configured, run in demo mode or set Supabase keys.");
+  return c.auth.updateUser({ password: newPassword });
 }
 
 export async function signOut() {

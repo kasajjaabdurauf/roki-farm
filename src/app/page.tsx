@@ -7,6 +7,7 @@ import {
   ArrowRight,
   CalendarRange,
   ClipboardPlus,
+  FileText,
   Flag,
   Home,
   MapPin,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { useDb } from "@/lib/db";
 import { cx, fmtDate, fmtDateTime, isoDaysAgo, relTime } from "@/lib/format";
+import { downloadSummaryPdf } from "@/lib/report";
 import { fmtKg } from "@/lib/rules";
 import { GENDER_LABEL, REFUGEE_LABEL, type LogStatus } from "@/lib/types";
 import { Button, Card, EmptyState, Stat } from "@/components/ui";
@@ -52,6 +54,21 @@ export default function DashboardPage() {
   }, [db.farmers]);
 
   // ---------------- Roki survey aggregates ----------------
+  if (isFarmer && !farmer) {
+    return (
+      <EmptyState
+        icon={<Users className="h-6 w-6" />}
+        title="Your account is not linked to a farmer profile yet"
+        description="An administrator needs to link this account to a farmer record (Settings → Team & roles → Linked farmer). Until then, you can use Help and Account."
+        action={
+          <Link href="/help">
+            <Button variant="primary">Open Help & Guide</Button>
+          </Link>
+        }
+      />
+    );
+  }
+
   const farmerStats = useMemo(() => {
     const fs = isFarmer ? [farmer!] : db.farmers;
     const refugee = fs.filter((f) => f.refugeeStatus === "REFUGEE").length;
@@ -135,6 +152,11 @@ export default function DashboardPage() {
                   <Truck className="h-4 w-4" /> Supply
                 </Button>
               </Link>
+              <button onClick={() => void downloadSummaryPdf(db)}>
+                <Button variant="outline" className="w-full">
+                  <FileText className="h-4 w-4" /> Report (PDF)
+                </Button>
+              </button>
             </>
           )}
           {isFarmer && (

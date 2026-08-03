@@ -83,12 +83,14 @@ The installed app works offline. (Note: the home-screen icon can lag behind an u
 1. Open the app. If the platform is in **production mode** you'll land on the sign-in screen.
 2. Enter your email + password → **Sign in**.
 3. Prefer no password? Enter your email and press **Send magic link** — a link arrives in your inbox; tap it to sign in.
+4. **Forgot your password?** Tap **Forgot password?** under the password field → enter your email → **Send link** → open the email and choose a new password on the recovery page.
 
 ### 3.3 Creating an account (for team members)
 1. On the sign-in screen, switch to **Create account**.
-2. Enter the person's email + a password → Create account.
-3. They confirm their email from the inbox, then sign in.
-4. **Joan assigns the role in the app**: Settings → **Team & roles** (Admin only) → pick the person → choose Admin / Field Agent / Farmer. No database work needed. The very first account created on a fresh database automatically becomes the Admin; everyone else starts as Field Agent.
+2. Enter the person's email + a password.
+3. **Choose what describes you**: **Field agent** (works with Roki) or **Farmer** (grows produce). This choice becomes the account role until an admin changes it. **Admin can never be self-selected** — only an existing administrator can grant Admin in Settings → Team & roles (the very first account on a fresh database becomes Admin automatically).
+4. They confirm their email from the inbox, then sign in.
+5. **Farmer accounts need one more step**: an administrator must link the account to a farmer profile (Settings → Team & roles → **Linked farmer**). Until then the account shows a friendly "not linked yet" screen instead of data (this also protects their privacy).
 
 ### 3.4 Demo mode
 If the platform is running without a backend (demonstrations), there is no sign-in: use the **role switcher** in the header to flip between Admin / Field Agent / Farmer and explore with sample data. Sample data can be reset in **Settings → Reset demo data**.
@@ -328,6 +330,7 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | Symptom | Fix |
 |---|---|
 | App shows an old version | Fully close the app (swipe from app switcher) and reopen; it updates automatically. Re-add the home-screen icon if it looks stale |
+| "Application error" screen | Usually stale cached files from an older version: fully close and reopen the app (or hard-refresh the browser with Ctrl/Cmd+Shift+R). If it persists, check the browser console (right-click → Inspect → Console) and send the red error text to support; the most common cause is a Supabase URL/key with stray spaces or quotes in the Vercel environment variables |
 | "N pending sync" never clears | Check internet; tap the chip to retry; if it persists for days, tell the admin (server-side logs will show the failure) |
 | Home-screen icon wrong/old | iOS: delete + re-add from Safari's Share → Add to Home Screen |
 | Can't sign in | Check the confirmation email; try the magic link; ask Joan to confirm your account exists |
@@ -376,5 +379,7 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 1.0 | 2026-08-03 | Production-ready build: Supabase backend + auth + RLS, sync engine, keep-alive + nightly backup automation, in-app Help & Guide, master backup, full audit + this manual |
 | 1.1 | 2026-08-03 | Polish pass: role management in-app (Settings → Team & roles, no SQL), new Account page with sign-out, login page standalone (no nav), role switcher moved to Account (demo mode), Roki name in mobile header, roomier data grid with responsive columns, settings cards fixed on phones, em dashes replaced with commas |
 | 1.2 | 2026-08-03 | Upload staging is now editable (fix errors inline with tap-to-edit cells and dropdowns; rows with errors are visibly excluded with a Remove-invalid option). Harvest logs page fixed on desktop (filters wrap, tables show a right-edge fade when they continue). Header reduced to one clean row (logo + sync + settings; email lives in Account only). Admins can wipe all data from Settings (typed DELETE confirmation). |
+| 1.3 | 2026-08-03 | Stability: malformed Supabase settings can no longer crash the app (falls back to demo mode with a console warning), stale device data is ignored (storage key bumped), service-worker cache bumped, and friendly branded error screens replace the generic "Application error" page. |
+| 1.4 | 2026-08-03 | Role changes no longer break accounts: farmer views show a friendly "not linked" screen when a farmer record isn't linked, and farmers can never see other farmers' data even when unlinked. Signup now asks Field agent vs Farmer (Admin is never self-selectable). Forgot-password flow with a branded reset page. New admin **Summary report (PDF)**: branded one-page KPI, forecast, location and Tier-1 shortlist export. |
 
 *Every future release appends a row here.*

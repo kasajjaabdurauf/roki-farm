@@ -17,6 +17,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { resetDemoData, syncNow, updateCropDefaults, updateSettings, useDb, wipeAllData } from "@/lib/db";
+import { downloadSummaryPdf } from "@/lib/report";
 import { downloadCSV, downloadMasterBackup, downloadXLSX, stamp, type ExportColumn } from "@/lib/export";
 import { fmtDateTime } from "@/lib/format";
 import { CROPS } from "@/lib/reference";
@@ -205,9 +206,13 @@ export default function SettingsPage() {
               <Button variant="accent" size="sm" onClick={masterBackup}>
                 <Download className="h-3.5 w-3.5" /> Master backup (.xlsx)
               </Button>
+              <Button variant="outline" size="sm" onClick={() => void downloadSummaryPdf(db)}>
+                <Download className="h-3.5 w-3.5" /> Summary report (PDF)
+              </Button>
             </div>
             <p className="mt-2 text-[11.5px] text-stone-400">
-              Master backup = one workbook with Farmers + Harvest Logs sheets (surveys and plans included).
+              Master backup = one workbook with Farmers + Harvest Logs sheets (surveys and plans included). The PDF
+              report is a branded one-page summary: KPIs, forecast, locations and Tier-1 shortlist.
             </p>
           </div>
         </div>

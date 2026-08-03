@@ -57,6 +57,7 @@
 - [ ] **2.2** Create project: Organization name `Roki Fruits`, Project name `roki-farm-platform`, **Database Password** (write it in the password manager — this is the postgres master password), Region: **EU Central (Frankfurt)** or the closest to Uganda. → Create. Wait ~2 min for provisioning.
 - [ ] **2.3** Open the project → left sidebar → **SQL Editor** → **New query** → paste the ENTIRE contents of `roki-farm-platform/supabase/schema.sql` → **Run**. (It creates tables, security rules, the profile trigger, and default settings.)
 - [ ] **2.3b** In the SQL Editor, open a second query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v2.sql` → **Run**. (Adds the email column, first-user-becomes-admin and in-app role management.)
+- [ ] **2.3c** In the SQL Editor, open a third query → paste the ENTIRE contents of `roki-farm-platform/supabase/migration_v3.sql` → **Run**. (Honours the Field agent / Farmer choice made at signup; Admin stays admin-only.)
 - [ ] **2.4** Get the keys: sidebar → **Settings → API** (or Project Settings → API). Copy:
   - `Project URL` → this is `SUPABASE_URL`
   - `anon public` key → `SUPABASE_ANON_KEY`
@@ -102,7 +103,7 @@
   ```sql
   update public.profiles set role = 'ADMIN' where id = '<uuid>';
   ```
-- [ ] **5.4** Create team accounts the same way (agents sign up in the app). Then assign roles **in the app**: sign in as Joan → **Settings → Team & roles** → pick each person → Admin / Field Agent / Farmer (link a farmer record for Farmer accounts). Done — no SQL.
+- [ ] **5.4** Create team accounts: they sign up in the app choosing **Field agent** or **Farmer** (Admin is never self-selectable). Then manage roles **in the app**: sign in as Joan → **Settings → Team & roles** → pick each person → Admin / Field Agent / Farmer. **Always link a farmer record for Farmer accounts** (Linked farmer column) — otherwise the account shows a "not linked yet" screen instead of data.
   💡 (SQL fallback if ever needed: `update public.profiles set role = 'FARMER', farmer_id = 'RFV-UG-00001' where id = '<uid>';` — UUIDs live in Supabase → Authentication → Users.)
 - [ ] **5.5** ✅ **Verify:** sign out, sign back in as Joan → you should see **Dashboard, Forecast, Supply, Farmers, Upload, Grid, Settings** and your email chip (no role switcher). Sign in as a farmer account → only **My Farm / Harvest Logs / Help** and no other farmers' data.
 
@@ -135,6 +136,7 @@ Do this with Joan watching — it's also Handover Deliverable 3:
 - [ ] **8.3** **Data Grid → Logs tab** → filter → **Export Excel** → opens on her computer with clean +256 phones.
 - [ ] **8.4** Check her inbox: the nightly backup email arrived (run the workflow manually if needed).
 - [ ] **8.5** Install on both phones: Android Chrome ⋮ → Add to Home screen · iPhone Safari Share → Add to Home Screen → open from home screen → works offline.
+- [ ] **8.6** Demo the extras: **Forgot password** flow (send link, set new password) and the admin **Summary report (PDF)** export.
 
 ---
 
