@@ -139,6 +139,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   // the sign-in screen is standalone: no header, no bottom nav, no brand strip
   if (pathname === "/login") return <>{children}</>;
 
+  // if a field-agent session was started with the access code on this
+  // browser, let them straight in (skip the login screen on reloads)
+  const agentSession = useMemo(() => {
+    if (role !== "FIELD_AGENT") return false;
+    try {
+      return localStorage.getItem("roki-agent-session") === "1";
+    } catch {
+      return false;
+    }
+  }, [role]);
+
   const items = useMemo(() => NAV.filter((n) => n.roles.includes(role)), [role]);
   const title = TITLES[pathname] ?? "Roki";
 

@@ -3,14 +3,17 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { KeyRound, Loader2, LogIn, Mail, ShieldCheck, Sparkles, Sprout, UserPlus, Users } from "lucide-react";
+import { KeyRound, Loader2, LogIn, Mail, ShieldCheck, Sparkles, Sprout, UserPlus, Users, UserCog } from "lucide-react";
+import { matchesAgentCode, setRole, useDb } from "@/lib/db";
 import { resetPasswordForEmail, signInWithEmail, signInWithMagicLink, signUp } from "@/lib/remote";
 import { Button, Card, Field, Input } from "@/components/ui";
 import { Wordmark } from "@/components/brand";
 
 export default function LoginPage() {
   const router = useRouter();
+  const db = useDb();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [agentCode, setAgentCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [signupRole, setSignupRole] = useState<"FIELD_AGENT" | "FARMER">("FIELD_AGENT");
@@ -43,6 +46,20 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  function onAgentCode(e: FormEvent) {
+    e.preventDefault();
+    if (matchesAgentCode(agentCode)) {
+      // remember the agent session for this browser (skips this screen next time)
+      try {
+        localStorage.setItem("roki-agent-session", "1");
+      } catch { /* ignore */ }
+      setRole("FIELD_AGENT");
+      router.push("/");
+    } else {
+      setError("That access code is not recognised. Check with your administrator.");
     }
   }
 
@@ -85,6 +102,32 @@ export default function LoginPage() {
           Farmer registration surveys, production forecasting and export supply planning.
         </p>
       </div>
+
+      {db.meta.role !== "FIELD_AGENT" && (
+        <Card className="p-5">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-ochre-50 text-ochre-700">
+              <UserCog className="h-4.5 w-4.5" />
+            </span>
+            <p className="font-display text-base font-semibold text-forest-900">Field agent? Use the access code</p>
+          </div>
+          <p className="mb-3 text-[12.5px] leading-snug text-stone-500">
+            No account needed. Enter the shared field-agent access code from your administrator to continue.
+          </p>
+          <form onSubmit={onAgentCode} className="flex gap-2">
+            <Input
+              value={agentCode}
+              onChange={(e) => setAgentCode(e.target.value)}
+              placeholder="Enter access code"
+              autoComplete="off"
+              className="h-11 flex-1 text-sm"
+            />
+            <Button type="submit" variant="accent" size="sm" className="h-11 shrink-0">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCog className="h-4 w-4" />} Continue
+            </Button>
+          </form>
+        </Card>
+      )}
 
       <Card className="p-6">
         <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1">

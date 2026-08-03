@@ -5,6 +5,7 @@ import {
   Database,
   Download,
   HardDrive,
+  LogOut,
   RefreshCw,
   RotateCcw,
   Search,
@@ -16,11 +17,13 @@ import {
   AlertTriangle,
   KeyRound,
 } from "lucide-react";
-import { resetDemoData, syncNow, updateCropDefaults, updateSettings, useDb, wipeAllData } from "@/lib/db";
+import { matchesAgentCode, resetDemoData, setAgentCode, syncNow, updateCropDefaults, updateSettings, useDb, wipeAllData } from "@/lib/db";
 import { downloadSummaryPdf } from "@/lib/report";
+import { signOut } from "@/lib/remote";
 import { downloadCSV, downloadMasterBackup, downloadXLSX, stamp, type ExportColumn } from "@/lib/export";
 import { fmtDateTime } from "@/lib/format";
 import { CROPS } from "@/lib/reference";
+import { DEFAULT_AGENT_CODE } from "@/lib/db";
 import { fetchAllProfiles, remoteConfigured, updateProfileRole, type TeamMember } from "@/lib/remote";
 import { TIER_LABEL } from "@/lib/types";
 import { Button, Card, ConfirmDialog, Input, Select, Toggle } from "@/components/ui";
@@ -32,6 +35,8 @@ export default function SettingsPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState("");
+  const [agentCode, setAgentCodeInput] = useState("");
+  const [agentMsg, setAgentMsg] = useState("");
 
   const storageSize = useMemo(() => {
     try {
@@ -84,6 +89,47 @@ export default function SettingsPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         {/* team & roles (admin, production) */}
         {remoteConfigured() && <TeamRolesCard />}
+
+        {/* field-agent access code (admin) */}
+        {remoteConfigured() && (
+          <Card>
+            <h3 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
+              <UserCog className="h-5 w-5 text-ochre-500" /> Field-agent access code
+            </h3>
+            <p className="mb-4 text-[13px] text-stone-500">
+              Field agents can enter the shared code on the sign-in screen to continue without an account. Change it
+              here anytime; the old code stops working immediately.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={agentCode}
+                onChange={(e) => { setAgentCodeInput(e.target.value); setAgentMsg(""); }}
+                placeholder="New access code"
+                className="h-11 w-64 text-sm"
+                autoComplete="off"
+              />
+              <Button
+                variant="accent"
+                size="sm"
+                className="h-11"
+                disabled={agentCode.trim().length < 4}
+                onClick={() => {
+                  setAgentCode(agentCode.trim());
+                  setAgentCodeInput("");
+                  setAgentMsg(`Access code updated. Agents must use "${agentCode.trim()}".`);
+                }}
+              >
+                <KeyRound className="h-4 w-4" /> Update code
+              </Button>
+            </div>
+            {agentMsg && <p className="mt-2 text-[12.5px] font-semibold text-success-dark">{agentMsg}</p>}
+            <p className="mt-2 text-[12px] text-stone-400">
+              Current code in use on this device:{" "}
+              <code className="rounded bg-stone-100 px-1.5 py-0.5 font-mono text-[11px]">{DEFAULT_AGENT_CODE}</code>{" "}
+              (or the last code set here).
+            </p>
+          </Card>
+        )}
 
         {/* rule toggles */}
         <Card>
@@ -217,7 +263,14 @@ export default function SettingsPage() {
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-4">
-          <PwaHint />
+          <div className="flex items-center gap-2">
+            <PwaHint />
+            {remoteConfigured() && (
+              <Button variant="ghost" className="text-stone-500 hover:bg-stone-100" onClick={() => void signOut().then(() => { window.location.href = "/login"; })}>
+                <LogOut className="h-4 w-4" /> Sign out
+              </Button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             {!remoteConfigured() && (
               <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={() => setConfirmReset(true)}>

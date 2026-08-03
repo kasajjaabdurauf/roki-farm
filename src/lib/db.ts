@@ -30,7 +30,7 @@ import type {
   LandOwnership,
   FarmerSurvey,
 } from "./types";
-import { DEFAULT_SURVEY } from "./types";
+import { DEFAULT_SURVEY, hashCode } from "./types";
 import { DEFAULT_SETTINGS_RULES, CROP_DEFAULTS } from "./reference";
 import { buildSeed } from "./seed";
 import { computeRokiTier, computeScaleTier, computeFarmerFlags, evaluateLog } from "./rules";
@@ -39,6 +39,12 @@ import { todayISO } from "./format";
 import { fetchAll, fetchMyProfile, pushOp, remoteConfigured, sb } from "./remote";
 
 const KEY = "roki-db-v2";
+
+/** Default shared field-agent access code (admin can change it). */
+export const DEFAULT_AGENT_CODE = "roki-agent-2026";
+export function agentCodeHash(): string {
+  return hashCode(DEFAULT_AGENT_CODE);
+}
 
 // guards against recursive sync (mutate → syncNow → mutate)
 let syncing = false;
@@ -53,7 +59,7 @@ export const EMPTY_DB: Db = {
   farmers: [],
   logs: [],
   settings: { rules: { ...DEFAULT_SETTINGS_RULES }, crops: { ...CROP_DEFAULTS } },
-  meta: { nextFarmerSeq: 1, nextLogSeq: 1, outbox: [], role: "ADMIN", demoFarmerId: "", seededAt: "" },
+  meta: { nextFarmerSeq: 1, nextLogSeq: 1, outbox: [], role: "ADMIN", demoFarmerId: "", seededAt: "", agentCodeHash: agentCodeHash() },
 };
 
 function persist(db: Db): void {
@@ -88,6 +94,7 @@ export function loadDb(): Db {
         for (const l of parsed.logs) {
           if (!Array.isArray(l.auditNotes)) l.auditNotes = [];
         }
+        if (!parsed.meta.agentCodeHash) parsed.meta.agentCodeHash = agentCodeHash();
         cache = parsed;
         return cache;
       }
@@ -526,6 +533,24 @@ export function setRole(role: Role): void {
   mutate((db) => {
     db.meta.role = role;
   });
+}
+
+export function setAgentCode(code: string): void {
+  mutate((db) => {
+    db.meta.agentCodeHash = hashCode(code);
+  });
+}
+
+/** Whether the given code matches the configured agent code. */
+export function matchesAgentCode(code: string): boolean {
+  const db = loadDb();
+  const expected = db.meta.agentCodeHash ?? agentCodeHash();
+  return hashCode(code.trim()) === expected;
+}
+
+/** True when the current session came from the agent access code (not an account). */
+export function isAgentSession(): boolean {
+  return !remoteConfigured() && loadDb().meta.role === "FIELD_AGENT";
 }
 
 export function setDemoFarmer(id: string): void {

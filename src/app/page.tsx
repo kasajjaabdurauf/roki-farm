@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -54,23 +54,30 @@ export default function DashboardPage() {
   }, [db.farmers]);
 
   // ---------------- Roki survey aggregates ----------------
-  if (isFarmer && !farmer) {
+  const [continueAsFarmer, setContinueAsFarmer] = useState(false);
+
+  if (isFarmer && !farmer && !continueAsFarmer) {
     return (
       <EmptyState
         icon={<Users className="h-6 w-6" />}
-        title="Your account is not linked to a farmer profile yet"
-        description="An administrator needs to link this account to a farmer record (Settings → Team & roles → Linked farmer). Until then, you can use Help and Account."
+        title="Welcome to the Roki farm platform"
+        description="Your account isn't linked to a farmer profile yet (an administrator can link it anytime). You can still continue as a farmer and log produce now."
         action={
-          <Link href="/help">
-            <Button variant="primary">Open Help & Guide</Button>
-          </Link>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="primary" onClick={() => setContinueAsFarmer(true)}>
+              Continue as a farmer
+            </Button>
+            <Link href="/help">
+              <Button variant="outline">Help & Guide</Button>
+            </Link>
+          </div>
         }
       />
     );
   }
 
   const farmerStats = useMemo(() => {
-    const fs = isFarmer ? [farmer!] : db.farmers;
+    const fs = isFarmer ? (farmer ? [farmer] : []) : db.farmers;
     const refugee = fs.filter((f) => f.refugeeStatus === "REFUGEE").length;
     const host = fs.filter((f) => f.refugeeStatus === "HOST").length;
     const women = fs.filter((f) => f.gender === "F").length;

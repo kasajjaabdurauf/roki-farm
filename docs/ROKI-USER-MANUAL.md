@@ -79,18 +79,22 @@ The installed app works offline. (Note: the home-screen icon can lag behind an u
 | **Field Agent** | Register farmers (full survey), log harvests, bulk upload, view farmers/logs/forecast/supply. Cannot delete farmers or change settings |
 | **Farmer** | Their own profile ("My Farm"), logging their own harvests, viewing their summaries. Sees only their own data |
 
-### 3.2 Signing in
+### 3.2 Field agents: shared access code (no account needed)
+Field agents don't need accounts. On the sign-in screen, the **"Field agent? Use the access code"** card is always available: enter the shared code (given by the administrator) and continue as a field agent. The code is remembered on that device. Administrators can change it anytime in Settings → Field-agent access code (the old code stops working immediately).
+
+### 3.3 Signing in
 1. Open the app. If the platform is in **production mode** you'll land on the sign-in screen.
 2. Enter your email + password → **Sign in**.
 3. Prefer no password? Enter your email and press **Send magic link** — a link arrives in your inbox; tap it to sign in.
 4. **Forgot your password?** Tap **Forgot password?** under the password field → enter your email → **Send link** → open the email and choose a new password on the recovery page.
+5. **Sign out** whenever you like: **Settings → Sign out** (bottom of the Data management section).
 
 ### 3.3 Creating an account (for team members)
 1. On the sign-in screen, switch to **Create account**.
 2. Enter the person's email + a password.
 3. **Choose what describes you**: **Field agent** (works with Roki) or **Farmer** (grows produce). This choice becomes the account role until an admin changes it. **Admin can never be self-selected** — only an existing administrator can grant Admin in Settings → Team & roles (the very first account on a fresh database becomes Admin automatically).
 4. They confirm their email from the inbox, then sign in.
-5. **Farmer accounts need one more step**: an administrator must link the account to a farmer profile (Settings → Team & roles → **Linked farmer**). Until then the account shows a friendly "not linked yet" screen instead of data (this also protects their privacy).
+5. **Linking is optional, not a roadblock**: an administrator can link the account to a farmer profile (Settings → Team & roles → **Linked farmer**) so the farmer sees their own profile and harvests. Until then, the farmer can still **Continue as a farmer** and log produce from the harvest logs page.
 
 ### 3.4 Demo mode
 If the platform is running without a backend (demonstrations), there is no sign-in: use the **role switcher** in the header to flip between Admin / Field Agent / Farmer and explore with sample data. Sample data can be reset in **Settings → Reset demo data**.
@@ -381,5 +385,6 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 1.2 | 2026-08-03 | Upload staging is now editable (fix errors inline with tap-to-edit cells and dropdowns; rows with errors are visibly excluded with a Remove-invalid option). Harvest logs page fixed on desktop (filters wrap, tables show a right-edge fade when they continue). Header reduced to one clean row (logo + sync + settings; email lives in Account only). Admins can wipe all data from Settings (typed DELETE confirmation). |
 | 1.3 | 2026-08-03 | Stability: malformed Supabase settings can no longer crash the app (falls back to demo mode with a console warning), stale device data is ignored (storage key bumped), service-worker cache bumped, and friendly branded error screens replace the generic "Application error" page. |
 | 1.4 | 2026-08-03 | Role changes no longer break accounts: farmer views show a friendly "not linked" screen when a farmer record isn't linked, and farmers can never see other farmers' data even when unlinked. Signup now asks Field agent vs Farmer (Admin is never self-selectable). Forgot-password flow with a branded reset page. New admin **Summary report (PDF)**: branded one-page KPI, forecast, location and Tier-1 shortlist export. |
+| 1.5 | 2026-08-03 | Farmers can always continue: linking to a farmer profile is optional (a calm "Continue as a farmer" card appears if unlinked, and they can log produce). Field agents can enter a shared **access code** on the sign-in screen instead of creating an account (admin changes it in Settings). Sign-out added to Settings. |
 
 *Every future release appends a row here.*

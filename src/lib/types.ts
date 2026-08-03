@@ -190,6 +190,18 @@ export interface DbMeta {
   role: Role;
   demoFarmerId: string;
   seededAt: string;
+  /** Deterministic hash of the shared field-agent access code. */
+  agentCodeHash?: string;
+}
+
+/** Deterministic (non-cryptographic) hash — FNV-1a 32-bit, hex. */
+export function hashCode(code: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < code.length; i++) {
+    h ^= code.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16);
 }
 
 export interface Db {

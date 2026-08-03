@@ -32,6 +32,7 @@ Tick items off as they are completed.
 - [x] Polish pass v1.1: in-app Team & roles (no SQL), Account page with sign-out, standalone login page, Roki name in mobile header, roomier grid with responsive columns, settings card overflow fixed, em dashes removed
 - [x] Polish pass v1.2: editable staging grid (inline fixes + dropdowns, visible drop messaging, remove-invalid), logs-page desktop overflow fixed, single-row header (email moved to Account), admin Delete-all-data with typed confirm
 - [x] v1.4: role-change crash fixed (unlinked farmer accounts get a safe screen; no data leak for unlinked farmers), signup role picker (Field agent/Farmer; Admin gatekept), forgot-password + reset page, admin PDF summary report (migration_v3.sql)
+- [x] v1.5: farmers can continue without linking (optional link, no roadblock), field-agent shared access code (no accounts needed; admin-managed), sign-out in Settings
 
 ---
 
