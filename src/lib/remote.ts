@@ -90,24 +90,31 @@ export async function validateSession(): Promise<{ user: { id: string; email?: s
   try {
     const { data, error } = await c.auth.getUser();
     if (!error && data.user) return { user: data.user };
-    // The session is definitely dead ONLY for real auth errors (deleted
-    // account, revoked/expired token). Transient network failures must
-    // NOT sign the user out, fall back to the cached session instead.
+    // Only DEFINITIVE auth errors (invalid/expired/revoked token, deleted
+    // user) mean the session is dead. Everything else (network blips,
+    // timeouts) must never bounce a signed-in user — keep the cached
+    // session instead.
     const msg = (error?.message ?? "").toLowerCase();
     const definitelyInvalid =
       !!error &&
-      (msg.includes("invalid") || msg.includes("session") || msg.includes("token") ||
-        msg.includes("jwt") || msg.includes("not found") || msg.includes("user") ||
-        msg.includes("401") || msg.includes("403"));
+      (msg.includes("invalid") || msg.includes("expired") || msg.includes("revoked") ||
+        msg.includes("jwt") || msg.includes("token") || msg.includes("not found") ||
+        msg.includes("user") || msg.includes("401") || msg.includes("403"));
     if (definitelyInvalid) {
       await c.auth.signOut().catch(() => {});
       return null;
     }
-    // network / transient: keep the cached session so the user stays in
+    // network / transient / unknown: keep the cached session
     const { data: cached } = await c.auth.getSession();
     return cached.session ? { user: cached.session.user } : null;
   } catch {
-    return null;
+    // hard failure (offline): keep the cached session, never bounce
+    try {
+      const { data: cached } = await c.auth.getSession();
+      return cached.session ? { user: cached.session.user } : null;
+    } catch {
+      return null;
+    }
   }
 }
 

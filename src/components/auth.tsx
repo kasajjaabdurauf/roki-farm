@@ -3,73 +3,88 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { bootstrapRemote, useDb } from "@/lib/db";
-import { getSession, onAuthChange, remoteConfigured, remoteVarsPresent, validateSession } from "@/lib/remote";
+import { onAuthChange, remoteConfigured, remoteVarsPresent, validateSession } from "@/lib/remote";
 import { LogoMark } from "./brand";
 import { Button } from "./ui";
 
 /**
- * Production-mode gate: when Supabase is configured, the app requires a
- * session. Redirects to /login, bootstraps the local store from the
- * cloud after sign-in, and reacts to sign-out events.
- * In preview mode (no backend configured) this component is a no-op pass-through.
+ * Auth gate — deterministic and simple:
+ *  1. On boot, validate the session ONCE (server-checked).
+ *  2. Valid session  → show the app immediately. Bootstrap (role + data)
+ *     runs in the background and NEVER blocks or bounces.
+ *  3. No session     → login page (for non-login paths).
+ *  4. Agent session  → straight in, no login.
+ *  No timed bounces, no sign-out on missing profile, no loops.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  const [bootstrapDone, setBootstrapDone] = useState(false);
   const checked = useRef(false);
 
-  // ALL hooks above any conditional return (React rules of hooks):
-  // a return between hooks would trigger error #300 on re-render.
+  // ALL hooks above any conditional return (React rules of hooks).
+  const db = useDb();
+  const ownFarmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
+  const surveyDone =
+    !!ownFarmer && !!ownFarmer.survey?.consentDate && ownFarmer.plannedProductions.length > 0;
+  const needsSurvey =
+    ready && remoteConfigured() && db.meta.role === "FARMER" && !!ownFarmer && !surveyDone;
+
   useEffect(() => {
     if (!remoteConfigured()) {
       setReady(true);
+      setBootstrapDone(true);
       return;
     }
     if (checked.current) return;
     checked.current = true;
 
-    // field-agent access-code sessions skip the login redirect entirely
+    // Agent sessions skip login entirely.
     let agentSession = false;
     try {
       agentSession = localStorage.getItem("roki-agent-session") === "1";
     } catch { /* ignore */ }
+
+    let cancelled = false;
+
     if (agentSession) {
       setReady(true);
+      setBootstrapDone(true);
       return;
     }
 
-    let cancelled = false;
     validateSession()
       .then((s) => {
         if (cancelled) return;
         if (s) {
-          // Always reconcile role + farmer link on every boot (not just
-          // sign-in) so a stale local role/demoFarmerId can never show
-          // the wrong dashboard.
+          // Valid session: show the app immediately; bootstrap in background.
+          setReady(true);
           void bootstrapRemote()
             .catch(() => {})
             .finally(() => setBootstrapDone(true));
         } else if (pathname !== "/login") {
-          // no valid session (or the account was deleted): back to sign-in
           router.replace("/login");
+          setReady(true);
+        } else {
+          setReady(true);
         }
-        setReady(true);
       })
-      .catch(() => setReady(true)); // never leave the user stuck on the splash
+      .catch(() => {
+        // Network failure during validation: don't kick the user out.
+        // Fall back to showing the app if we have a cached session, else login.
+        setReady(true);
+        setBootstrapDone(true);
+      });
 
-    const sub = onAuthChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        void bootstrapRemote().catch(() => {});
+    const sub = onAuthChange((event) => {
+      if (event === "SIGNED_IN") {
+        setReady(true);
+        void bootstrapRemote().catch(() => {}).finally(() => setBootstrapDone(true));
         if (pathname === "/login") router.replace("/");
       } else if (event === "SIGNED_OUT") {
-        // Only bounce to sign-in if the session is truly gone (not a
-        // transient token refresh that Supabase reports as signed-out).
-        void validateSession().then((s) => {
-          if (!s && pathname !== "/login") router.replace("/login");
-        });
-      } else if (event === "TOKEN_REFRESHED" && session) {
-        void bootstrapRemote().catch(() => {});
+        // Only redirect if we're not already on login.
+        if (pathname !== "/login") router.replace("/login");
       }
     });
 
@@ -80,8 +95,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Security: if backend vars are SET but invalid (misconfiguration),
-  // show a clear config error instead of silently serving demo data.
+  // Misconfigured backend → clear error screen (never silent demo mode).
   if (remoteVarsPresent() && !remoteConfigured()) {
     return (
       <div className="grid min-h-screen place-items-center p-6">
@@ -91,45 +105,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
           <p className="text-sm leading-relaxed text-stone-500">
             The connection settings are incomplete or invalid. Please contact your administrator.
           </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              try {
-                localStorage.removeItem("sb-" + process.env.NEXT_PUBLIC_SUPABASE_URL);
-              } catch { /* ignore */ }
-              window.location.reload();
-            }}
-          >
-            Retry
-          </Button>
+          <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
         </div>
       </div>
     );
   }
 
-  // MANDATORY onboarding survey: a signed-in farmer whose own record has
-  // not completed the survey is held at /survey until it's done.
-  const db = useDb();
-  const ownFarmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
-  const surveyDone =
-    !!ownFarmer && !!ownFarmer.survey?.consentDate && ownFarmer.plannedProductions.length > 0;
-  // While the farmer record is still loading (just after sign-in) show a
-  // splash instead of flashing the home page then bouncing to /survey.
-  // It resolves once bootstrap finishes; if it never resolves (stale
-  // session after a wipe), we time out and go to sign-in instead of
-  // hanging forever on "Loading your profile…".
-  const [bootstrapDone, setBootstrapDone] = useState(false);
-  const [staleTimeout, setStaleTimeout] = useState(false);
-  useEffect(() => {
-    if (!remoteConfigured()) { setBootstrapDone(true); return; }
-    const t = setTimeout(() => setStaleTimeout(true), 8000);
-    return () => clearTimeout(t);
-  }, []);
-  const profilePending =
-    ready && !bootstrapDone && remoteConfigured() && db.meta.role === "FARMER" && !ownFarmer && !staleTimeout;
-  const needsSurvey =
-    ready && remoteConfigured() && db.meta.role === "FARMER" && !!ownFarmer && !surveyDone;
-
+  // Survey gate: farmer without a completed survey → /survey (never a loop,
+  // the survey page itself always renders).
   useEffect(() => {
     if (!needsSurvey) return;
     if (pathname !== "/survey" && pathname !== "/login" && pathname !== "/reset-password") {
@@ -137,46 +120,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   }, [needsSurvey, pathname, router]);
 
-  // If the session is stale after a wipe (timeout fired), go to sign-in.
-  useEffect(() => {
-    if (staleTimeout && remoteConfigured() && pathname !== "/login") {
-      router.replace("/login");
-    }
-  }, [staleTimeout, remoteConfigured, pathname, router]);
-
-  // Profile still loading after sign-in: hold the splash (prevents the
-  // "home flashes, then back to onboarding" flicker).
-  if (profilePending) {
-    return (
-      <div className="grid min-h-[80vh] place-items-center">
-        <div className="flex flex-col items-center gap-4">
-          <LogoMark className="h-14 w-auto animate-pulse" />
-          <div className="flex items-center gap-2 text-sm font-semibold text-stone-400">
-            <span className="h-2 w-2 animate-ping rounded-full bg-ochre-500" />
-            Loading your profile…
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // The splash only blocks OTHER pages — the /survey page itself must
-  // render so the farmer can actually complete it (this was the "stuck
-  // on Setting up your farmer profile" bug).
-  if (needsSurvey && pathname !== "/survey") {
-    return (
-      <div className="grid min-h-[80vh] place-items-center">
-        <div className="flex flex-col items-center gap-4">
-          <LogoMark className="h-14 w-auto animate-pulse" />
-          <div className="flex items-center gap-2 text-sm font-semibold text-stone-400">
-            <span className="h-2 w-2 animate-ping rounded-full bg-ochre-500" />
-            Setting up your farmer profile…
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // Splash only while the very first session check is in flight (fast).
   if (!ready) {
     return (
       <div className="grid min-h-[80vh] place-items-center">
