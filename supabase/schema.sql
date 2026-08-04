@@ -225,11 +225,16 @@ create policy "logs select anon" on public.produce_logs
   for select using (auth.role() = 'anon');
 
 -- insert: any authenticated user; farmers may only log their own farmer_id
+-- (profile link OR email match on the farmer record — covers unlinked accounts)
 drop policy if exists "logs insert" on public.produce_logs;
 create policy "logs insert" on public.produce_logs
   for insert with check (
     public.get_user_role() in ('ADMIN', 'FIELD_AGENT')
     or farmer_id = (select farmer_id from public.profiles where id = auth.uid())
+    or farmer_id in (
+      select id from public.farmers
+      where lower(coalesce(email, '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    )
   );
 
 -- insert: anonymous (access-code agents) may log harvests — core field work
