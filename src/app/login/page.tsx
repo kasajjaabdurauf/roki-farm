@@ -67,6 +67,12 @@ export default function LoginPage() {
         localStorage.setItem("roki-agent-session", "1");
       } catch { /* ignore */ }
       setRole("FIELD_AGENT");
+      // pull the real farmer database (read-only anon) so the agent
+      // immediately sees who is registered
+      try {
+        const { refreshFromRemote } = await import("@/lib/db");
+        await refreshFromRemote();
+      } catch { /* ignore */ }
       router.push("/");
     } else {
       const locked = agentLimiter.registerFailure();

@@ -277,8 +277,10 @@ function logToRow(l: ProduceLog) {
 // ------------------------------------------------------------------
 export async function fetchAll(): Promise<{ farmers: Farmer[]; logs: ProduceLog[] } | null> {
   const c = sb();
-  const session = await getSession();
-  if (!c || !session) return null;
+  if (!c) return null;
+  // NOTE: works WITHOUT a session so access-code agents (no login) can
+  // see the real database. Read-only via anon RLS; writes still require
+  // an authenticated session.
   const [fRes, lRes] = await Promise.all([
     c.from("farmers").select("*").order("created_at"),
     c.from("produce_logs").select("*").order("created_at"),
