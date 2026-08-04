@@ -63,7 +63,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
         void bootstrapRemote().catch(() => {});
         if (pathname === "/login") router.replace("/");
       } else if (event === "SIGNED_OUT") {
-        if (pathname !== "/login") router.replace("/login");
+        // Only bounce to sign-in if the session is truly gone (not a
+        // transient token refresh that Supabase reports as signed-out).
+        void validateSession().then((s) => {
+          if (!s && pathname !== "/login") router.replace("/login");
+        });
       } else if (event === "TOKEN_REFRESHED" && session) {
         void bootstrapRemote().catch(() => {});
       }

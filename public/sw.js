@@ -4,7 +4,7 @@
    Cache version bumped on every release so updated builds
    replace what was cached on users' phones. */
 
-const CACHE = "roki-cache-v19";
+const CACHE = "roki-cache-v20";
 const PRECACHE = ["/"];
 
 self.addEventListener("install", (event) => {

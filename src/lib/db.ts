@@ -305,8 +305,16 @@ export async function bootstrapRemote(): Promise<void> {
   if (!valid) return; // stale session — gate will send the user to login
   const profile = await fetchMyProfile();
   if (!profile) {
-    // account exists but has no profile row (e.g. was deleted): sign out
-    await signOutRemote();
+    // Profile row missing (e.g. trigger hiccup after a wipe): do NOT sign
+    // the user out — that causes the sign-in loop. Keep the session and
+    // fall back to a sensible default; the profile can be recreated.
+    mutate((db) => {
+      db.meta.role = "FIELD_AGENT";
+      db.meta.demoFarmerId = "";
+    });
+    try {
+      await refreshFromRemote();
+    } catch { /* ignore */ }
     return;
   }
   if (profile) {
