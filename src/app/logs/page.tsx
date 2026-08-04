@@ -126,8 +126,10 @@ function LogsPageInner() {
       source: isFarmerRole ? "FARMER" : "FIELD_AGENT",
     });
     setLastSaved(log.id);
-    // surface a sync problem immediately instead of a silent pending pill
+    // surface a sync problem only if it appears AFTER this save
+    // (a stale error from before must not keep showing once fixed)
     try {
+      localStorage.removeItem("roki-sync-check");
       const err = localStorage.getItem("roki-last-sync-error");
       if (err) setFormError(`Saved on this device, but syncing is blocked: ${err}`);
     } catch { /* ignore */ }

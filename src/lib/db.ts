@@ -240,6 +240,13 @@ export async function syncNow(): Promise<void> {
         d.meta.outbox = remaining;
       });
     }
+    // everything pushed: clear any stored sync error so stale messages
+    // never keep showing after the problem is resolved
+    if (remaining.length === 0) {
+      try {
+        localStorage.removeItem("roki-last-sync-error");
+      } catch { /* ignore */ }
+    }
   } finally {
     syncing = false;
   }
