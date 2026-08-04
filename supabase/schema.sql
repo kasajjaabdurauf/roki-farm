@@ -78,7 +78,7 @@ $$;
 create sequence if not exists public.farmers_id_seq;
 select setval(
   'public.farmers_id_seq',
-  coalesce(max((regexp_replace(id, '^RFV-UG-', ''))::int), 0)
+  greatest(1, coalesce(max((regexp_replace(id, '^RFV-UG-', ''))::int), 0))
 ) from public.farmers;
 
 -- ---------------------------------------------------------------------

@@ -21,10 +21,10 @@ alter table public.farmers add column if not exists email text;
 -- 2) id sequence for farmer ids
 create sequence if not exists public.farmers_id_seq;
 
--- 3) start the sequence past any existing ids
+-- 3) start the sequence past any existing ids (min 1 — setval 0 is out of bounds)
 select setval(
   'public.farmers_id_seq',
-  coalesce(max((regexp_replace(id, '^RFV-UG-', ''))::int), 0)
+  greatest(1, coalesce(max((regexp_replace(id, '^RFV-UG-', ''))::int), 0))
 ) from public.farmers;
 
 -- 4) new-user trigger: creates the farmer record automatically

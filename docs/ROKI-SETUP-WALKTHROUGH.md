@@ -8,6 +8,25 @@
 
 ---
 
+## FRESH START — ONE-SHOT RESET (use this for a clean slate)
+
+Instead of the multi-step wipe + schema + 13 migrations, use the single file
+**`supabase/fresh_start.sql`** in the SQL Editor. It does everything in order:
+
+1. Wipes all farmers, logs, user accounts, settings (safe, order-independent)
+2. Re-creates the schema (tables, RLS, triggers, sequence)
+3. Applies migrations v2 → v11 (the fixed setval, claim-by-email, agent-code
+   cloud hash, anon reads/writes for agents, etc.)
+4. Disables RLS on `produce_logs` for the field demo (harvest logging works)
+
+**Run it once.** After it finishes: sign up — the **first account becomes Admin**.
+
+> The old multi-file path (wipe_everything.sql → schema.sql → migration_v2..v11)
+> still works; `fresh_start.sql` is just the same thing in one paste.
+> Individual migration files remain in `supabase/` for reference.
+
+---
+
 ## PHASE 0 — Prep (10 min)
 
 - [ ] **0.1** Unzip `roki-farm-platform.zip` → folder `roki-farm-platform/`.
