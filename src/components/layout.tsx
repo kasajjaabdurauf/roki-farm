@@ -9,6 +9,7 @@ import {
   CloudOff,
   CloudUpload,
   LayoutDashboard,
+  GitMerge,
   MoreHorizontal,
   Settings,
   UserCircle2,
@@ -48,6 +49,7 @@ const NAV: NavItem[] = [
   { href: "/grid", label: "Data Grid", icon: <Table2 className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT"] },
   { href: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/help", label: "Help & Guide", icon: <BookOpen className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
+  { href: "/duplicates", label: "Duplicates", icon: <GitMerge className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/account", label: "Account", icon: <UserCircle2 className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
 ];
 
@@ -66,6 +68,7 @@ const TITLES: Record<string, string> = {
   "/settings": "Settings",
   "/help": "Help & Guide",
   "/account": "Account",
+  "/duplicates": "Duplicate records",
 };
 
 function useOnline(): boolean {

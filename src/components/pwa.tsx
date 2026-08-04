@@ -1,25 +1,43 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/react";
 
 /**
  * Global error logger: captures any uncaught runtime error into
- * localStorage so the error screen can show the real cause, and logs
- * it to the console for support.
+ * localStorage (for the error screen), sends it to Sentry when a DSN
+ * is configured, and logs to the console.
  */
 function ErrorLogger() {
   useEffect(() => {
+    // Sentry (optional — only active when NEXT_PUBLIC_SENTRY_DSN is set)
+    try {
+      if (process.env.NEXT_PUBLIC_SENTRY_DSN && !Sentry.getClient()) {
+        Sentry.init({
+          dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+          tracesSampleRate: 0.1,
+          environment: process.env.NEXT_PUBLIC_VERCEL_ENV || "production",
+        });
+      }
+    } catch { /* ignore */ }
+
     const onErr = (e: ErrorEvent) => {
       try {
         localStorage.setItem(
           "roki-last-error",
           `${e.message} @ ${e.filename ?? "?"}:${e.lineno ?? "?"}`
         );
+        if (Sentry.getClient()) {
+          Sentry.captureException(e.error ?? new Error(e.message));
+        }
       } catch { /* ignore */ }
     };
     const onRej = (e: PromiseRejectionEvent) => {
       try {
         localStorage.setItem("roki-last-error", `Unhandled promise: ${String(e.reason ?? "unknown")}`);
+        if (Sentry.getClient()) {
+          Sentry.captureException(e.reason instanceof Error ? e.reason : new Error(String(e.reason)));
+        }
       } catch { /* ignore */ }
     };
     window.addEventListener("error", onErr);

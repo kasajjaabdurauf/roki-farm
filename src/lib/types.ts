@@ -121,6 +121,15 @@ export interface FarmerSurvey {
   recommendedCategory: string; // COMMERCIAL | EMERGING | BEGINNER
 }
 
+export interface PlantingActivity {
+  id: string;
+  crop: string;
+  acres: number;
+  plantingDate?: string; // YYYY-MM-DD
+  sourceOfSeed?: string;
+  status?: string; // e.g. SUPPLYING / CULTIVATING
+}
+
 export interface Farmer {
   id: string; // RFV-UG-XXXXX
   fullName: string;
@@ -135,6 +144,7 @@ export interface Farmer {
   irrigationType: IrrigationType;
   scaleTier: ScaleTier; // farm-size tag (rule engine)
   rokiTier: RokiTier; // export-readiness score (rule engine)
+  plantingHistory?: PlantingActivity[];
   // --- survey answers (farmer registration questionnaire) ---
   gender: Gender;
   refugeeStatus: RefugeeStatus;
@@ -199,6 +209,8 @@ export interface DbMeta {
   seededAt: string;
   /** Deterministic hash of the shared field-agent access code. */
   agentCodeHash?: string;
+  /** UI language for farmer-facing screens. */
+  language: string;
 }
 
 /** Deterministic (non-cryptographic) hash — FNV-1a 32-bit, hex. */
@@ -224,6 +236,8 @@ export interface Db {
 
 export type StageField =
   | "fullName"
+  | "firstName"
+  | "lastName"
   | "phone"
   | "nin"
   | "farmerId"
@@ -241,6 +255,11 @@ export type StageField =
   | "gender"
   | "refugeeStatus"
   | "email"
+  | "plantingDate"
+  | "sourceOfSeed"
+  | "plantingStatus"
+  | "gpsLat"
+  | "gpsLon"
   | "ignore";
 
 export interface ColumnMapping {

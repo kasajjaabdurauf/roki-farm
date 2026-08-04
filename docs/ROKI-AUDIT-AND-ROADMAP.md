@@ -44,6 +44,10 @@ Tick items off as they are completed.
 - [x] v2.3: mandatory onboarding survey (no skip), reliable survey→profile linking, phone-based record claiming during onboarding, survey mobile polish (full-width rows, spacing)
 - [x] v2.4: fixed stuck "Setting up your farmer profile" gate (survey page no longer blocked), survey "More about your farm" extras step, farmer dashboard card cleanup, full factory reset SQL (accounts included)
 - [x] v2.5: server-validated sessions on boot (deleted accounts are signed out automatically), no demo data seeding in production, storage key bumped
+- [x] v2.6: real-world upload resilience (first/last name merge, multi-phone cells, phone spacing, acreage cleanup, COMPANY guard, recommended-format guide, no silent data loss) + 7 new parser tests (80 total)
+- [x] v2.7: planting history capture (planting date, source of seed, status, GPS) from uploads; GPS on survey record; planting history table on farmer profile; STATUS→planting status resolution (88 checks total)
+- [x] v2.8: dedup & merge tool (/duplicates), Sentry client monitoring + /api/health uptime endpoint, multi-language (en/lg/rn/sw) for farmer screens with Account switcher, SMS/USSD removed from all claims, 92 checks
+- [x] v2.9: onboarding flicker fixed (splash while profile loads), resilient session validation (no surprise sign-outs), survey UX polish (step scroll-to-top, labelled row inputs, simplified consent), per-farmer Survey PDF download, docs reorganized (changelog + developer guide)
 
 ---
 
@@ -108,8 +112,9 @@ Tick items off as they are completed.
 - [ ] Set up naming convention guidance for enumerators (avoid typos: e.g. "Nakivale" vs "Nakivalli")
 
 ### 3.2 Monitoring & operations
-- [ ] Add a cheap uptime monitor (UptimeRobot free tier) on `https://rokifarm.vercel.app`
-- [ ] Add error tracking: Sentry free tier (or Vercel Observability) for frontend errors
+- [x] Health endpoint built: `https://<app>/api/health` returns 200 JSON
+- [ ] **UptimeRobot (free, 5 min):** sign up → Add New Monitor → HTTP(s) → URL `https://<app>/api/health` → interval 5 min → create. Add the alert contact email (the client Gmail).
+- [ ] **Sentry (free tier):** sign up → create project → copy the DSN → add `NEXT_PUBLIC_SENTRY_DSN` in Vercel env vars (Production) → redeploy. Errors now auto-report from the browser.
 - [ ] Supabase logs review habit: check auth logins + any RLS denials weekly
 - [ ] Storage size watch: confirm 500 MB free tier headroom; set a monthly size check in the audit
 
@@ -128,7 +133,6 @@ Tick items off as they are completed.
 
 ## 📋 4. P2 — BACKLOG (v1.1+)
 
-- [ ] SMS/USSD integration for farmers without smartphones (Africa's Talking / Twilio)
 - [ ] Multi-language UI (Luganda, Runyankole, Swahili, French for refugees)
 - [ ] Photographs: farmer photo + farm photos stored in Supabase Storage
 - [ ] Contract farming module: forward-purchase agreements with signatures (Section 11)

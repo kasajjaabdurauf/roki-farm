@@ -3,7 +3,8 @@ import { normalizeUgPhone } from "../src/lib/phone";
 import { computeScaleTier, evaluateLog, computeFarmerFlags, anomalyCheck, duplicateCheck, fmtKg } from "../src/lib/rules";
 import { buildSeed } from "../src/lib/seed";
 import { buildStaging, autoDetect } from "../src/lib/sheet";
-import { importStaging, EMPTY_DB } from "../src/lib/db";
+import { importStaging, mergeFarmers, EMPTY_DB } from "../src/lib/db";
+import { findDuplicateGroups } from "../src/lib/dedup";
 import { toCSVString } from "../src/lib/export";
 import { CROP_DEFAULTS, DEFAULT_SETTINGS_RULES } from "../src/lib/reference";
 
@@ -154,7 +155,46 @@ console.log("\n8) Staging validation + import");
   check("linked log attached to existing farmer", db.logs.filter((l) => l.farmerId === existing.id).length === seed.logs.filter((l) => l.farmerId === existing.id).length + 1);
 }
 
-console.log("\n9) CSV export (clean +256, BOM)");
+console.log("\n8b) Real-world upload parsing (Roki Farmers List 2024 style)");
+{
+  const seed = buildSeed();
+  const raw = [
+    ["Sno.", "COMPANY NAME", "FIRST NAME", "LAST NAME", "NIN", "DISTRICT", "PARISH", "VILLAGE", "CROP", "ACREAGE", "CONTACT (S)", "PVY TEST"],
+    ["1", "ROKI FRUITS & VEGETABLES", "AGUSE", "KALIMBA", "CM76009104ROYD", "MUBENDE", "KIJUMBA", "KACWI LC1", "CHILLI", "1.5", "0782408545/0757408545", "YES"],
+    ["2", "ROKI FRUITS & VEGETABLES", "JOEL", "BUKENYA", "N/A", "MUKONO", "NAMA", "WAKISO", "HOT PEPPER", "1", "0759883074", "YES"],
+    ["3", "ROKI FRUITS & VEGETABLES", "ERIISA", "NSUBUGA", "N/A", "BUTAMBALA", "GOMBE", "KAYENJE", "GARDEN EGGS", "0.4", "0704 600996", "NO"],
+  ];
+  const st = buildStaging({ fileName: "roki.xlsx", sheetName: "Sheet1", raw }, seed);
+  check("first+last merged into full name", st.rows[0].parsed.fullName === "AGUSE KALIMBA", st.rows[0].parsed.fullName);
+  check("row 2 name merged", st.rows[1].parsed.fullName === "JOEL BUKENYA");
+  check("multi-phone cell keeps first valid number", st.rows[0].parsed.phone === "0782408545", st.rows[0].parsed.phone);
+  check("multi-phone cell records a warning", st.rows[0].warnings.some((w) => w.includes("Multiple phone numbers")), st.rows[0].warnings);
+  check("acreage parsed as number", st.rows[0].parsed.acreage === 1.5, st.rows[0].parsed.acreage);
+  check("phone with inner space parses", st.rows[2].parsed.phone === "0704600996", st.rows[2].parsed.phone);
+  check("unknown columns ignored, not lost (mapper keeps all)", st.columns.length >= 12, st.columns.length);
+}
+
+console.log("\n8c) Planting history + GPS from upload");
+{
+  const seed = buildSeed();
+  const raw = [
+    ["FIRST NAME", "LAST NAME", "DISTRICT", "CROP", "ACREAGE", "PLANTING DATE", "SOURCE OF SEED", "STATUS", "GPS-LATITUDE", "GPS-LONGITUDE", "CONTACT (S)"],
+    ["AGUSE", "KALIMBA", "MUBENDE", "CHILLI", "1.5", "15.10.2023", "ROKI FRUITS", "CULTIVATING", "0.619933", "31.274045", "0782408545"],
+  ];
+  const st = buildStaging({ fileName: "roki.xlsx", sheetName: "Sheet1", raw }, seed);
+  check("planting date parsed", st.rows[0].parsed.plantingDate === "2023-10-15", st.rows[0].parsed.plantingDate);
+  check("source of seed captured", st.rows[0].parsed.sourceOfSeed === "ROKI FRUITS", st.rows[0].parsed.sourceOfSeed);
+  check("status captured", st.rows[0].parsed.plantingStatus === "CULTIVATING", st.rows[0].parsed.plantingStatus);
+  check("GPS lat parsed", st.rows[0].parsed.gpsLat === 0.619933, st.rows[0].parsed.gpsLat);
+  check("GPS lon parsed", st.rows[0].parsed.gpsLon === 31.274045, st.rows[0].parsed.gpsLon);
+  const db = { ...EMPTY_DB, farmers: [...seed.farmers], logs: [...seed.logs], meta: { ...seed.meta }, settings: { ...seed.settings } };
+  importStaging(st, db);
+  const created = db.farmers.find((f) => f.phone === "+256782408545");
+  check("import created farmer with phone", !!created, created?.id);
+  check("planting history attached", created?.plantingHistory?.length === 1, created?.plantingHistory);
+  check("history has crop + source", created?.plantingHistory?.[0]?.crop === "CHILLI" && created?.plantingHistory?.[0]?.sourceOfSeed === "ROKI FRUITS");
+}
+
 {
   const csv = toCSVString(
     [{ id: "RFV-UG-00001", phone: "+256772456123", crops: ["Maize", "Beans"], note: "bulk, double-entry" }],
@@ -168,6 +208,30 @@ console.log("\n9) CSV export (clean +256, BOM)");
   check("BOM present", csv.charCodeAt(0) === 0xfeff);
   check("field with comma is quoted", csv.includes('"bulk, double-entry"'));
   check("clean phone", csv.includes("+256772456123"));
+}
+
+console.log("\n8d) Dedup & merge");
+{
+  const seed = buildSeed();
+  const db = { ...EMPTY_DB, farmers: [...seed.farmers], logs: [...seed.logs], meta: { ...seed.meta }, settings: { ...seed.settings } };
+  const master = seed.farmers[0]; // has logs in the seed
+  const dup = { ...seed.farmers[1], id: "RFV-UG-99992", phone: master.phone };
+  db.farmers.push(dup);
+  // give the dup a real log so merging reassigns it
+  db.logs.push({
+    ...db.logs[0],
+    id: "RFV-LOG-99999",
+    farmerId: dup.id,
+    createdAt: new Date().toISOString(),
+  });
+  const groups = findDuplicateGroups(db);
+  check("phone group detected", groups.some((g) => g.reason === "Same phone number" && g.farmers.some((f) => f.id === dup.id)));
+  const before = db.logs.length;
+  const masterLogsBefore = db.logs.filter((l) => l.farmerId === master.id).length;
+  mergeFarmers(master.id, [dup.id], db);
+  check("merged record removed", !db.farmers.some((f) => f.id === dup.id));
+  check("logs preserved", db.logs.length === before);
+  check("logs reassigned to master", db.logs.filter((l) => l.farmerId === master.id).length > masterLogsBefore);
 }
 
 console.log("\n10) Yield scoring (median-based, deterministic)");

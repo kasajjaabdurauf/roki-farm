@@ -86,7 +86,10 @@ The installed app works offline. (Note: the home-screen icon can lag behind an u
 | **Field Agent** | Register farmers (full survey), log harvests, bulk upload, view farmers/logs/forecast/supply. Cannot delete farmers or change settings |
 | **Farmer** | Their own profile ("My Farm"), logging their own harvests, viewing their summaries. Sees only their own data |
 
-### 3.2 Field agents: shared access code (no account needed)
+### 3.2 Language (farmers)
+The farmer-facing screens (dashboard, My Farm) support **English, Luganda, Runyankole/Rukiga and Kiswahili**. The language is set automatically from the survey's Preferred language answer, and can be changed anytime in **Account → App language**. Staff screens stay in English.
+
+### 3.3 Field agents: shared access code (no account needed)
 Field agents don't need accounts. On the sign-in screen, the **"Field agent? Use the access code"** card is always available: enter the shared code (given by the administrator) and continue as a field agent. The code is remembered on that device. Administrators can change it anytime in Settings → Field-agent access code (the old code stops working immediately).
 
 ### 3.3 Signing in
@@ -158,6 +161,8 @@ The home screen for everyone (different content per role).
 - **New Survey** button (top-right) starts the registration questionnaire.
 
 ### 5.3 Farmer profile detail (`/farmers/RFV-UG-XXXXX`)
+
+**Survey PDF (admin):** the **Survey PDF** button downloads a branded one-page PDF of that farmer's complete questionnaire, production plan and planting history — handy for records, audits and handing to partners.
 - Header: name, ID, tier badges, location, actions (**Log Harvest**, **Edit** survey, **Delete**).
 - Facts: phone, acreage, irrigation, crops.
 - Stats: total harvested, harvest logs, avg per acre, top crop.
@@ -189,6 +194,8 @@ Filters: search, crop, district, tier. Shows total expected tonnes for the curre
 1. **Drag & drop** a `.xlsx`, `.xls` or `.csv` file (or tap to browse). Download the **sample file** to see the expected shape.
 2. **Column mapping** — the engine auto-detects columns from headers ("Tel"/"Phone"/"Contact" → phone; "Qty (Kg)" → quantity; "Area (Ha)" → acres auto-converted). Override any column with its dropdown.
 3. **Staging grid** — every row previewed. Red rows have errors (bad phone, negative quantity, unreadable date, produce row without a farmer). **Fix them right in the grid**: tap any cell and type the correct value (dropdowns appear for grade, gender and refugee status) and the row re-validates instantly. Expand a row to see the exact errors/warnings and whether it links to an existing farmer (by ID or phone) or creates a new profile.
+
+   **Handles real-world files:** *First Name* + *Last Name* columns auto-merge into the full name; cells with two phones (`0782…/0779…`) keep the first valid number and flag the rest as a warning; phones with spaces normalize; acreage like `1.5` or `0.5000` parses; a `COMPANY NAME` column is never mistaken for a farmer's name; `PLANTING DATE`, `SOURCE OF SEED`, `STATUS` and `GPS-LATITUDE`/`GPS-LONGITUDE` are captured into a **Planting history** on the farmer profile. Nothing is silently dropped — every column appears in the mapper for you to assign.
 4. **Rows that still have errors are NOT imported** — the red banner above the grid says exactly how many will be dropped, and you can press **Remove invalid rows** to discard them first. Then **Import** — a report lists every row's result (created / linked / fixed / skipped).
 5. All imported logs pass through the rule engine immediately.
 
@@ -240,7 +247,10 @@ Two tabs: **Farmers** and **Produce Logs**.
   - **Reset demo data** (demo mode only).
 - **PWA hint** — install instructions.
 
-### 5.10 Help & Guide (`/help`)
+### 5.10 Duplicate records (`/duplicates`) — admin
+Automatically lists farmers that look like the same person (same phone, email or normalized name). For each group: choose the **master** record (the one to keep) and press **Merge** — harvest logs, planting history, production plans and missing fields are combined into the master, and the others are deleted. Records linked to an account can only be the master (to protect logins). Run this monthly to keep the database clean.
+
+### 5.11 Help & Guide (`/help`)
 The in-app manual: quick-start cards, "Explore the app" tiles (tap to jump), step-by-step tasks, **FAQ filtered by audience** (Admin / Field agent / Farmer / Everyone), and a glossary. Point farmers here before calling for support.
 
 ### 5.11 My Farm (`/farm`) — farmer persona

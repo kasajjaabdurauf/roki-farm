@@ -3,7 +3,8 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Info, Plus, Trash2 } from "lucide-react";
-import { addFarmer, setDemoFarmer, updateFarmer, useDb } from "@/lib/db";
+import { addFarmer, setDemoFarmer, setLanguage, updateFarmer, useDb } from "@/lib/db";
+import { langFromPreference } from "@/lib/i18n";
 import { normalizeUgPhone } from "@/lib/phone";
 import { CROPS, CROP_DEFAULTS, DISTRICTS, MONTHS, SUB_COUNTIES } from "@/lib/reference";
 import { computeRokiTier, rokiTierCriteria } from "@/lib/rules";
@@ -333,10 +334,14 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
 
   function next() {
     setTried(true);
-    if (stepErrors(step).length > 0) return;
+    if (stepErrors(step).length > 0) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     if (step < STEPS.length - 1) {
       setStep(step + 1);
       setTried(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       submit();
     }
@@ -445,6 +450,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
     if (target) {
       // accounts ARE farmers: self-registration updates the account's OWN
       // record (created automatically at signup, or claimed via phone).
+      setLanguage(langFromPreference(input.survey.preferredLanguage));
       updateFarmer(target.id, input);
       if (selfRegistration) {
         try {
@@ -857,14 +863,22 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
             <div className="space-y-2.5">
               {d.currentCrops.map((c, idx) => (
                 <div key={idx} className="grid grid-cols-1 items-center gap-2.5 rounded-xl border border-stone-200 bg-white p-3.5 sm:grid-cols-[1fr_100px_150px_120px_36px]">
+                  <Labeled label="Crop">
                   <Select value={c.crop} onChange={(e) => set("currentCrops", d.currentCrops.map((x, i) => (i === idx ? { ...x, crop: e.target.value } : x)))}>
                     {CROPS.map((o) => (
                       <option key={o} value={o} disabled={d.currentCrops.some((x) => x.crop === o && x !== c)}>{o}</option>
                     ))}
                   </Select>
-                  <Input type="number" min={0} step="0.1" value={c.areaAcres || ""} onChange={(e) => set("currentCrops", d.currentCrops.map((x, i) => (i === idx ? { ...x, areaAcres: parseFloat(e.target.value) || 0 } : x)))} placeholder="Acres (ac)" inputMode="decimal" />
-                  <Input type="date" value={c.expectedHarvestDate} onChange={(e) => set("currentCrops", d.currentCrops.map((x, i) => (i === idx ? { ...x, expectedHarvestDate: e.target.value } : x)))} />
-                  <Input type="number" min={0} value={c.expectedQtyKg || ""} onChange={(e) => set("currentCrops", d.currentCrops.map((x, i) => (i === idx ? { ...x, expectedQtyKg: parseFloat(e.target.value) || 0 } : x)))} placeholder="Qty (kg)" inputMode="numeric" />
+                  </Labeled>
+                  <Labeled label="Area (acres)">
+                    <Input type="number" min={0} step="0.1" value={c.areaAcres || ""} onChange={(e) => set("currentCrops", d.currentCrops.map((x, i) => (i === idx ? { ...x, areaAcres: parseFloat(e.target.value) || 0 } : x)))} placeholder="e.g. 1.5" inputMode="decimal" />
+                  </Labeled>
+                  <Labeled label="Expected harvest date">
+                    <Input type="date" value={c.expectedHarvestDate} onChange={(e) => set("currentCrops", d.currentCrops.map((x, i) => (i === idx ? { ...x, expectedHarvestDate: e.target.value } : x)))} />
+                  </Labeled>
+                  <Labeled label="Expected quantity (kg)">
+                    <Input type="number" min={0} value={c.expectedQtyKg || ""} onChange={(e) => set("currentCrops", d.currentCrops.map((x, i) => (i === idx ? { ...x, expectedQtyKg: parseFloat(e.target.value) || 0 } : x)))} placeholder="e.g. 2000" inputMode="numeric" />
+                  </Labeled>
                   <button
                     onClick={() => set("currentCrops", d.currentCrops.filter((_, i) => i !== idx))}
                     className="grid h-11 w-9 place-items-center justify-self-end rounded-lg text-stone-400 hover:bg-danger-50 hover:text-danger-600"
@@ -1033,22 +1047,30 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
               <div className="space-y-2.5">
                 {d.productions.map((p) => (
                   <div key={p.id} className="grid grid-cols-1 items-center gap-2.5 rounded-xl border border-stone-200 bg-white p-3.5 sm:grid-cols-[1fr_100px_120px_120px_1fr_36px]">
+                    <Labeled label="Crop">
                     <Select value={p.crop} onChange={(e) => updateProduction(p.id, { crop: e.target.value })}>
                       {CROPS.map((o) => (
                         <option key={o} value={o} disabled={d.productions.some((x) => x.crop === o && x.id !== p.id)}>{o}</option>
                       ))}
                     </Select>
-                    <Input type="number" min={0} step="0.1" value={p.acres || ""} onChange={(e) => updateProduction(p.id, { acres: parseFloat(e.target.value) || 0 })} placeholder="Acres (ac)" inputMode="decimal" />
-                    <Select value={p.harvestStartMonth} onChange={(e) => updateProduction(p.id, { harvestStartMonth: parseInt(e.target.value, 10) })}>
+                    </Labeled>
+                    <Labeled label="Area (acres)">
+                      <Input type="number" min={0} step="0.1" value={p.acres || ""} onChange={(e) => updateProduction(p.id, { acres: parseFloat(e.target.value) || 0 })} placeholder="e.g. 1" inputMode="decimal" />
+                    </Labeled>
+                    <Labeled label="Harvest from">
+                      <Select value={p.harvestStartMonth} onChange={(e) => updateProduction(p.id, { harvestStartMonth: parseInt(e.target.value, 10) })}>
                       {MONTHS.map((m, i) => (
                         <option key={m} value={i + 1}>{m}</option>
                       ))}
                     </Select>
-                    <Select value={p.harvestEndMonth} onChange={(e) => updateProduction(p.id, { harvestEndMonth: parseInt(e.target.value, 10) })}>
-                      {MONTHS.map((m, i) => (
-                        <option key={m} value={i + 1}>{m}</option>
-                      ))}
-                    </Select>
+                    </Labeled>
+                    <Labeled label="Harvest until">
+                      <Select value={p.harvestEndMonth} onChange={(e) => updateProduction(p.id, { harvestEndMonth: parseInt(e.target.value, 10) })}>
+                        {MONTHS.map((m, i) => (
+                          <option key={m} value={i + 1}>{m}</option>
+                        ))}
+                      </Select>
+                    </Labeled>
                     <div className="flex items-center gap-2">
                       <Input type="number" min={0} value={p.expectedVolumeKg || ""} onChange={(e) => updateProduction(p.id, { expectedVolumeKg: parseFloat(e.target.value) || 0 })} placeholder="Quantity (kg)" inputMode="numeric" />
                       <button
@@ -1148,7 +1170,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
             </Field>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Do you have a smartphone?" hint="we can send SMS updates either way">
+            <Field label="Do you have a smartphone?" hint="helps us know how to reach you">
               <YesNo value={d.hasSmartphone ?? true} onChange={(v) => set("hasSmartphone", v)} />
             </Field>
             <Field label="Distance to nearest market" hint="km · optional">
@@ -1174,20 +1196,23 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
               I agree that Roki may register my farming information in the digital farmer management system to support
               production planning and market linkage.
             </p>
-            <div className="mt-3 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => set("consent", !d.consent)}
-                className={cx(
-                  "touch-target inline-flex h-12 items-center gap-2 rounded-xl border px-4 text-[13px] font-semibold transition-colors",
-                  d.consent ? "border-forest-700 bg-forest-800 text-white" : "border-stone-300 bg-white text-stone-600"
-                )}
-              >
-                {d.consent && <Check className="h-4 w-4" />}
-                {d.consent ? "Consent given" : "Tap to record consent"}
-              </button>
-              <Input type="date" value={d.consentDate} onChange={(e) => set("consentDate", e.target.value)} className="h-12 w-44" />
-            </div>
+            {d.consent ? (
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-success-bg px-4 py-3 text-[13px] font-bold text-success-dark">
+                <Check className="h-4 w-4 shrink-0" />
+                Consent recorded on {d.consentDate}
+              </div>
+            ) : (
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => set("consent", true)}
+                  className="touch-target inline-flex h-12 items-center gap-2 rounded-xl bg-forest-800 px-5 text-[13px] font-bold text-white"
+                >
+                  <Check className="h-4 w-4" /> I agree
+                </button>
+                <Input type="date" value={d.consentDate} onChange={(e) => set("consentDate", e.target.value)} className="h-12 w-44" />
+              </div>
+            )}
           </div>
 
           {!selfRegistration && (
@@ -1335,4 +1360,13 @@ async function linkAccountToFarmer(farmerId: string) {
   } catch {
     /* preview mode or offline: local link is enough for now */
   }
+}
+
+function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <span className="mb-1 block text-[11px] font-bold tracking-wide text-stone-400 uppercase">{label}</span>
+      {children}
+    </div>
+  );
 }

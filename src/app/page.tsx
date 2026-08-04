@@ -27,6 +27,7 @@ import { cx, fmtDate, fmtDateTime, isoDaysAgo, relTime } from "@/lib/format";
 import { fmtKg, fmtNumber } from "@/lib/rules";
 import { downloadSummaryPdf } from "@/lib/report";
 import { getSession } from "@/lib/remote";
+import { t, type Lang } from "@/lib/i18n";
 import { GENDER_LABEL, REFUGEE_LABEL, type LogStatus } from "@/lib/types";
 import { Button, Card, EmptyState, Stat } from "@/components/ui";
 import { GradeBadge, RokiTierBadge, SourceChip, StatusBadge, TierBadge } from "@/components/badges";
@@ -44,6 +45,7 @@ export default function DashboardPage() {
 function FarmerHome() {
   const db = useDb();
   const farmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
+  const lang = (db.meta.language as Lang) || "en";
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -138,10 +140,10 @@ function FarmerHome() {
 
       {/* my stats */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Stat label="My harvests (90 d)" value={recentMine.length.toLocaleString()} sub="this season" icon={<Sprout className="h-5 w-5" />} />
-        <Stat label="My produce" value={fmtKg(totalKg)} sub="last 90 days" icon={<Wheat className="h-5 w-5" />} />
-        <Stat label="Average per acre" value={`${fmtNumber(perAcre)} kg`} sub={farmer ? `${fmtNumber(farmer.acreage)} acres` : "—"} icon={<Wheat className="h-5 w-5" />} tone="ochre" />
-        <Stat label="Harvest logs" value={myLogs.length.toLocaleString()} sub="all time" icon={<ClipboardPlus className="h-5 w-5" />} />
+        <Stat label={t(lang, "myHarvests90")} value={recentMine.length.toLocaleString()} sub={t(lang, "thisSeason")} icon={<Sprout className="h-5 w-5" />} />
+        <Stat label={t(lang, "myProduce")} value={fmtKg(totalKg)} sub={t(lang, "last90")} icon={<Wheat className="h-5 w-5" />} />
+        <Stat label={t(lang, "avgPerAcre")} value={`${fmtNumber(perAcre)} kg`} sub={farmer ? `${fmtNumber(farmer.acreage)} acres` : "—"} icon={<Wheat className="h-5 w-5" />} tone="ochre" />
+        <Stat label={t(lang, "harvestLogs")} value={myLogs.length.toLocaleString()} sub={t(lang, "allTime")} icon={<ClipboardPlus className="h-5 w-5" />} />
       </div>
 
       {/* my recent harvests */}
@@ -155,8 +157,8 @@ function FarmerHome() {
         {myLogs.length === 0 ? (
           <EmptyState
             icon={<PackagePlus className="h-6 w-6" />}
-            title="No harvests logged yet"
-            description="Log your first harvest, it takes less than a minute and works offline."
+            title={t(lang, "noHarvests")}
+            description={t(lang, "noHarvestsDesc")}
             action={
               <Link href="/logs">
                 <Button variant="accent">Log a harvest</Button>

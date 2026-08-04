@@ -117,6 +117,7 @@
 - [ ] **6.1** GitHub → Actions → **Keep Supabase Awake** → **Run workflow** → green check = the 3-day cron will now keep the database from pausing.
 - [ ] **6.2** **Nightly Database Backup** → **Run workflow** → confirm the email arrives (as in 3.4, now with any data you've added).
 - [ ] **6.3** ✅ **Verify:** both workflows green in the Actions tab.
+- [ ] **6.4 Monitoring (optional, 10 min):** (a) UptimeRobot free tier → monitor `https://<app>/api/health` every 5 min → alert email = client Gmail. (b) Sentry → create project → copy DSN → add `NEXT_PUBLIC_SENTRY_DSN` to Vercel env vars → redeploy.
 
 ---
 

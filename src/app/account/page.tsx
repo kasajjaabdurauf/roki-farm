@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, ClipboardList, LogOut, RefreshCw, ShieldCheck, User, UserCog, Users } from "lucide-react";
-import { syncNow, useDb } from "@/lib/db";
+import { setLanguage, syncNow, useDb } from "@/lib/db";
+import { LANGS } from "@/lib/i18n";
 import { getSession, remoteConfigured, signOut } from "@/lib/remote";
 import { ROLE_LABEL, type Role } from "@/lib/types";
 import { APP_VERSION } from "@/lib/format";
@@ -127,6 +128,20 @@ export default function AccountPage() {
               ? "Your account is set up for the farmer experience: you see only your own farm, your harvests and your tier. If something looks wrong, contact your field agent or the Roki office."
               : "You haven't completed your farmer registration survey yet. Do it once and your farm profile, harvests and tier will be ready."}
           </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-1.5 text-[13px] font-semibold text-stone-600">App language</p>
+              <select
+                value={db.meta.language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="h-12 w-full rounded-xl border border-stone-300 bg-white px-3.5 text-[15px] text-stone-800 outline-none focus:border-forest-600 focus:ring-2 focus:ring-forest-100"
+              >
+                {LANGS.map((l) => (
+                  <option key={l.code} value={l.code}>{l.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {!db.meta.demoFarmerId && (
               <Link href="/survey">

@@ -46,6 +46,8 @@ export function parseFile(file: File): Promise<ParsedFile> {
 // ------------------------------------------------------------------
 const SYNONYMS: Record<Exclude<StageField, "ignore">, string[]> = {
   fullName: ["fullname", "name", "names", "farmername", "farmer", "farmers", "fullnames", "beneficiary", "beneficiaryname", "farmerfullname", "farmernames"],
+  firstName: ["firstname", "first name", "first", "givenname", "given name", "forename", "fname", "firstnames"],
+  lastName: ["lastname", "last name", "last", "surname", "familyname", "family name", "lname", "lastnames"],
   phone: ["phone", "phonenumber", "phone1", "tel", "telephone", "contact", "mobile", "cell", "mob", "telno", "telnumber", "phoneno", "mobilephone", "whatsapp", "contactnumber"],
   nin: ["nin", "nationalid", "nationalidnumber", "idnumber", "nationalidentity", "nationalidno"],
   farmerId: ["farmerid", "systemid", "jflid", "farmercode", "jfl", "code"],
@@ -61,8 +63,13 @@ const SYNONYMS: Record<Exclude<StageField, "ignore">, string[]> = {
   batchId: ["batchid", "batch", "lot", "lotno", "batchnumber", "lotnumber"],
   storageLocation: ["storagelocation", "storage", "location", "deliverylocation", "depot", "store", "collectioncenter", "storelocation", "storename"],
   gender: ["gender", "sex", "male", "female"],
-  refugeeStatus: ["refugeestatus", "refugee", "hostcommunity", "host", "status", "displacementstatus"],
+  refugeeStatus: ["refugeestatus", "refugee", "hostcommunity", "host", "displacementstatus"],
   email: ["email", "emailaddress", "mail", "useremail", "accountemail"],
+  plantingDate: ["plantingdate", "dateplanted", "planted", "planting"],
+  sourceOfSeed: ["sourceofseed", "seed source", "seedsource", "source", "seedorigin", "seed"],
+  plantingStatus: ["status", "plantingstatus", "currentstatus", "farmstatus", "farmerstatus"],
+  gpsLat: ["gpslatitude", "latitude", "lat", "gps-latitude"],
+  gpsLon: ["gpslongitude", "longitude", "lon", "long", "gps-longitude"],
 };
 
 const NORM_CACHE: Record<string, string> = {};
@@ -75,6 +82,8 @@ function norm(s: string): string {
 
 const FIELD_LABELS: Record<Exclude<StageField, "ignore">, string> = {
   fullName: "Full name",
+  firstName: "First name",
+  lastName: "Last name",
   phone: "Phone number",
   nin: "National ID (NIN)",
   farmerId: "Farmer ID (RFV-UG-…)",
@@ -92,12 +101,17 @@ const FIELD_LABELS: Record<Exclude<StageField, "ignore">, string> = {
   gender: "Gender",
   refugeeStatus: "Refugee / host status",
   email: "Email (account)",
+  plantingDate: "Planting date",
+  sourceOfSeed: "Source of seed",
+  plantingStatus: "Status",
+  gpsLat: "GPS latitude",
+  gpsLon: "GPS longitude",
 };
 
 export const STAGE_FIELDS: StageField[] = [
-  "fullName", "phone", "nin", "farmerId", "district", "subCounty", "village", "acreage",
-  "crops", "cropType", "harvestDate", "quantityKg", "qualityGrade", "batchId", "storageLocation",
-  "gender", "refugeeStatus", "email", "ignore",
+  "fullName", "firstName", "lastName", "phone", "nin", "farmerId", "district", "subCounty", "village",
+  "acreage", "crops", "cropType", "harvestDate", "quantityKg", "qualityGrade", "batchId", "storageLocation",
+  "gender", "refugeeStatus", "email", "plantingDate", "sourceOfSeed", "plantingStatus", "gpsLat", "gpsLon", "ignore",
 ];
 
 export function stageFieldLabel(f: StageField): string {
@@ -113,6 +127,10 @@ export function autoDetect(header: string): { target: StageField; unit?: "KG" | 
 
   let best: StageField = "ignore";
   let bestScore = 0;
+  // "company name" / "organisation" headers must never become a farmer's name
+  if (/company|organisation|organization|org/.test(n)) {
+    return { target: "ignore" };
+  }
   for (const [field, syns] of Object.entries(SYNONYMS) as [Exclude<StageField, "ignore">, string[]][]) {
     let score = 0;
     for (const s of syns) {
@@ -143,7 +161,9 @@ export function autoDetect(header: string): { target: StageField; unit?: "KG" | 
 // ------------------------------------------------------------------
 function parseNum(raw: string | undefined): number | undefined {
   if (raw === undefined || raw === "") return undefined;
-  const clean = raw.replace(/,/g, "").replace(/\s/g, "");
+  let clean = raw.replace(/,/g, "").replace(/\s/g, "");
+  // allow "ac"/"acres" suffixes and trailing junk that Excel sometimes adds
+  clean = clean.replace(/(ac|acres|ha|hectares)$/i, "");
   const v = Number(clean);
   return isNaN(v) ? undefined : v;
 }
@@ -236,6 +256,12 @@ export function stageRow(
       case "fullName":
         parsed.fullName = raw.trim().replace(/\s+/g, " ");
         break;
+      case "firstName":
+        parsed.firstName = raw.trim().replace(/\s+/g, " ");
+        break;
+      case "lastName":
+        parsed.lastName = raw.trim().replace(/\s+/g, " ");
+        break;
       case "phone":
         parsed.phone = raw.trim();
         break;
@@ -287,6 +313,21 @@ export function stageRow(
       case "email":
         parsed.email = raw.trim().toLowerCase();
         break;
+      case "plantingDate":
+        parsed.plantingDate = parseDateCell(raw);
+        break;
+      case "sourceOfSeed":
+        parsed.sourceOfSeed = raw.trim();
+        break;
+      case "plantingStatus":
+        parsed.plantingStatus = raw.trim();
+        break;
+      case "gpsLat":
+        parsed.gpsLat = parseNum(raw);
+        break;
+      case "gpsLon":
+        parsed.gpsLon = parseNum(raw);
+        break;
     }
   }
 
@@ -302,6 +343,16 @@ function validateRow(
   const errors: string[] = [];
   const warnings: string[] = [];
   const out: StagingRow = { key: `r${rowNumber}-${Math.random().toString(36).slice(2, 7)}`, rowIndex: rowNumber, cells, parsed, errors, warnings, isLogRow: false };
+
+  // MERGE first + last name into fullName when present (keeps useful data
+  // that would otherwise be dropped by the column mapper)
+  const first = parsed.firstName ? String(parsed.firstName) : "";
+  const last = parsed.lastName ? String(parsed.lastName) : "";
+  if ((first || last) && !parsed.fullName) {
+    parsed.fullName = `${first} ${last}`.trim();
+  } else if (first || last) {
+    parsed.fullName = `${String(parsed.fullName)} ${first} ${last}`.replace(/\s+/g, " ").trim();
+  }
 
   const hasQty = parsed.quantityKg !== undefined;
   const hasCropOrDate = parsed.cropType !== undefined || parsed.harvestDate !== undefined;
@@ -342,6 +393,23 @@ function validateRow(
   }
 
   if (parsed.phone !== undefined && parsed.phone !== "") {
+    let rawPhone = String(parsed.phone);
+    // multi-phone cells like "0782408545/0757408545" or with spaces:
+    // keep the first valid number, note the rest in a warning
+    const parts = rawPhone.split(/[/;,|]/).map((x) => x.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      const firstOk = parts.find((x) => normalizeUgPhone(x).ok);
+      if (firstOk) {
+        parsed.phone = firstOk;
+        warnings.push(`Multiple phone numbers found in one cell (${rawPhone}) — kept "${firstOk}"`);
+      }
+    }
+    // normalize inner spaces ("0704 600996" -> "0704600996") when the raw
+    // value wasn't a split multi-phone
+    if (!parts || parts.length <= 1) {
+      const cleaned = String(parsed.phone).replace(/[\s()-]/g, "");
+      if (cleaned !== parsed.phone) parsed.phone = cleaned;
+    }
     const ph = normalizeUgPhone(String(parsed.phone));
     if (!ph.ok) errors.push(ph.reason!);
   }

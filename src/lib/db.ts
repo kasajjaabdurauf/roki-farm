@@ -59,7 +59,7 @@ export const EMPTY_DB: Db = {
   farmers: [],
   logs: [],
   settings: { rules: { ...DEFAULT_SETTINGS_RULES }, crops: { ...CROP_DEFAULTS } },
-  meta: { nextFarmerSeq: 1, nextLogSeq: 1, outbox: [], role: "FIELD_AGENT", demoFarmerId: "", seededAt: "", agentCodeHash: agentCodeHash() },
+  meta: { nextFarmerSeq: 1, nextLogSeq: 1, outbox: [], role: "FIELD_AGENT", demoFarmerId: "", seededAt: "", agentCodeHash: agentCodeHash(), language: "en" },
 };
 
 function persist(db: Db): void {
@@ -95,6 +95,7 @@ export function loadDb(): Db {
           if (!Array.isArray(l.auditNotes)) l.auditNotes = [];
         }
         if (!parsed.meta.agentCodeHash) parsed.meta.agentCodeHash = agentCodeHash();
+        if (!parsed.meta.language) parsed.meta.language = "en";
         cache = parsed;
         return cache;
       }
@@ -429,6 +430,79 @@ export function updateFarmer(id: string, patch: Partial<FarmerInput>): void {
   });
 }
 
+/**
+ * Merge several farmer records into one master:
+ *  - reassign all their harvest logs to the master
+ *  - merge planting history, production plans and crop lists (no dups)
+ *  - fill any missing master fields from the merged records
+ *  - delete the merged-away records
+ * Rule engine (tiers) is recomputed afterwards.
+ * Records linked to an account must NOT be merged away (caller enforces).
+ */
+export function mergeFarmers(masterId: string, otherIds: string[], dbOverride?: Db): { merged: number } {
+  const ok = { merged: 0 };
+  const run = (db: Db) => {
+    const master = db.farmers.find((f) => f.id === masterId);
+    if (!master || otherIds.length === 0) return;
+    const others = db.farmers.filter((f) => otherIds.includes(f.id));
+
+    for (const o of others) {
+      // reassign logs
+      for (const l of db.logs) {
+        if (l.farmerId === o.id) l.farmerId = masterId;
+      }
+      // planting history (dedupe by crop)
+      const crops = new Set((master.plantingHistory ?? []).map((x) => x.crop.toLowerCase()));
+      for (const ph of o.plantingHistory ?? []) {
+        if (!crops.has(ph.crop.toLowerCase())) {
+          master.plantingHistory = [...(master.plantingHistory ?? []), ph];
+          crops.add(ph.crop.toLowerCase());
+        }
+      }
+      // production plans (dedupe by crop)
+      for (const pp of o.plannedProductions) {
+        if (!master.plannedProductions.some((x) => x.crop === pp.crop)) {
+          master.plannedProductions.push(pp);
+        }
+      }
+      // crops union
+      for (const c of o.primaryCrops) {
+        if (!master.primaryCrops.includes(c)) master.primaryCrops.push(c);
+      }
+      // fill missing fields
+      if (!master.phone && o.phone) master.phone = o.phone;
+      if (!master.email && o.email) master.email = o.email;
+      if (!master.fullName.trim() && o.fullName) master.fullName = o.fullName;
+      if (!master.district && o.district) master.district = o.district;
+      if (!master.subCounty && o.subCounty) master.subCounty = o.subCounty;
+      if (!master.village && o.village) master.village = o.village;
+      if (!master.nin && o.nin) master.nin = o.nin;
+      if (o.acreage > master.acreage) master.acreage = o.acreage;
+      if (o.survey) {
+        master.survey = {
+          ...o.survey,
+          ...(master.survey ?? {}),
+        };
+      }
+      ok.merged += 1;
+    }
+
+    master.updatedAt = new Date().toISOString();
+    db.farmers = db.farmers.filter((f) => !otherIds.includes(f.id));
+    enqueue(db, { kind: "UPDATE_FARMER", farmer: master });
+    enqueue(db, { kind: "DELETE_FARMERS", ids: otherIds });
+    // recompute tiers
+    for (const f of db.farmers) f.rokiTier = computeRokiTier(f, db.logs);
+  };
+  if (dbOverride) {
+    run(dbOverride);
+    return ok;
+  }
+  mutate(run);
+  void syncNow();
+  return ok;
+}
+
 export function deleteFarmers(ids: string[]): void {
   mutate((db) => {
     db.farmers = db.farmers.filter((f) => !ids.includes(f.id));
@@ -580,6 +654,12 @@ export function isAgentSession(): boolean {
   return !remoteConfigured() && loadDb().meta.role === "FIELD_AGENT";
 }
 
+export function setLanguage(lang: string): void {
+  mutate((db) => {
+    db.meta.language = lang;
+  });
+}
+
 export function setDemoFarmer(id: string): void {
   mutate((db) => {
     db.meta.demoFarmerId = id;
@@ -629,7 +709,7 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
       }
 
       if (!farmer) {
-        const name = String(row.parsed.fullName ?? "").trim();
+        const name = String(row.parsed.fullName ?? "").trim() || (row.parsed.email ? String(row.parsed.email) : "");
         if (!name) {
           summary.skippedWithErrors += 1;
           summary.results.push({ row: row.rowIndex, message: "No farmer name to create a profile", ok: false });
@@ -671,6 +751,7 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
           landOwnership: "OWN",
           plannedProductions: [],
           survey: { ...DEFAULT_SURVEY },
+          plantingHistory: buildPlantingHistory(row.parsed),
           flags: [] as FarmerFlag[],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -774,4 +855,20 @@ export function wipeAllData(): void {
     }
   });
   void syncNow();
+}
+
+/** Collect planting-history entries from a staged row (dedupe by crop). */
+function buildPlantingHistory(parsed: StagingState["rows"][number]["parsed"]) {
+  const crop = parsed.cropType ? String(parsed.cropType) : undefined;
+  if (!crop) return undefined;
+  return [
+    {
+      id: `PH-${Date.now()}-${crop.slice(0, 4).toUpperCase()}`,
+      crop,
+      acres: typeof parsed.acreage === "number" ? parsed.acreage : 0,
+      plantingDate: parsed.plantingDate ? String(parsed.plantingDate) : undefined,
+      sourceOfSeed: parsed.sourceOfSeed ? String(parsed.sourceOfSeed) : undefined,
+      status: parsed.plantingStatus ? String(parsed.plantingStatus) : undefined,
+    },
+  ];
 }

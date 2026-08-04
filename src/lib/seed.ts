@@ -375,6 +375,7 @@ export function buildSeed(): Db {
       role: "ADMIN",
       demoFarmerId: farmers[0]?.id ?? "",
       seededAt: new Date(now).toISOString(),
+      language: "en",
     },
   };
 }

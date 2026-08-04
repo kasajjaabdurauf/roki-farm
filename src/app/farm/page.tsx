@@ -7,6 +7,7 @@ import { useDb } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { fmtKg, fmtNumber } from "@/lib/rules";
 import { getSession } from "@/lib/remote";
+import { t, type Lang } from "@/lib/i18n";
 import { IRRIGATION_OPTIONS } from "@/lib/types";
 import { Badge, Button, Card, Stat } from "@/components/ui";
 import { GradeBadge, RokiTierBadge, StatusBadge, TierBadge, YieldBadge } from "@/components/badges";
@@ -19,6 +20,7 @@ import { GradeBadge, RokiTierBadge, StatusBadge, TierBadge, YieldBadge } from "@
 export default function FarmPage() {
   const db = useDb();
   const farmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
+  const lang = (db.meta.language as Lang) || "en";
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,7 +104,7 @@ export default function FarmPage() {
           </div>
           <Link href="/logs">
             <Button variant="accent" size="lg">
-              <ClipboardPlus className="h-4 w-4" /> Log today&apos;s harvest
+              <ClipboardPlus className="h-4 w-4" /> {t(lang, "logHarvest")}
             </Button>
           </Link>
         </div>
@@ -134,7 +136,7 @@ export default function FarmPage() {
 
       {/* history */}
       <Card>
-        <h3 className="mb-3 font-display text-lg font-semibold text-forest-900">My harvests</h3>
+        <h3 className="mb-3 font-display text-lg font-semibold text-forest-900">{t(lang, "myRecentHarvests")}</h3>
         {logs.length === 0 ? (
           <p className="py-8 text-center text-sm text-stone-400">
             No harvests yet. <Link href="/logs" className="font-semibold text-forest-700 underline">Log your first harvest</Link>.

@@ -154,6 +154,23 @@ export default function UploadPage() {
               <XCircle className="h-4 w-4" /> {parseError}
             </p>
           )}
+
+          <Card className="border-dashed">
+            <h3 className="mb-2 font-display text-base font-semibold text-forest-900">Recommended spreadsheet format</h3>
+            <p className="mb-3 text-[12.5px] leading-relaxed text-stone-500">
+              The engine auto-detects columns by header words and never silently drops data, but these headers give
+              the cleanest import:
+            </p>
+            <div className="grid gap-2 text-[12px] sm:grid-cols-2">
+              <FormatCol title="Farmer identity" items={["Full Name (or First Name + Last Name separately)", "Phone (one per cell; 07XXXXXXXX or +256…)", "Email (if they have an account)", "NIN (optional)"]} />
+              <FormatCol title="Location & farm" items={["District · Sub-County · Parish · Village", "Acreage (acres or hectares)", "Crop · Harvest Date (YYYY-MM-DD) · Qty (Kg)", "Grade (A / B / Reject)"]} />
+            </div>
+            <p className="mt-3 text-[11.5px] text-stone-400">
+              Tip: if a cell has two phones like 0782…/0779…, the first valid one is kept and the rest are flagged in
+              the row's warnings, so nothing is silently lost. Every column from your file appears in the mapper
+              below — you decide where it goes.
+            </p>
+          </Card>
         </>
       ) : (
         <>
@@ -488,5 +505,21 @@ function CellEditor({
       placeholder="—"
       className={baseCls}
     />
+  );
+}
+
+function FormatCol({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-xl bg-stone-50/60 p-3">
+      <p className="mb-1.5 text-[11px] font-bold tracking-wide text-stone-400 uppercase">{title}</p>
+      <ul className="space-y-1">
+        {items.map((it) => (
+          <li key={it} className="flex items-start gap-1.5 text-stone-600">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-ochre-500" />
+            {it}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

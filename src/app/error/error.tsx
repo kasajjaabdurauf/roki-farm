@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui";
 
 /**
@@ -19,6 +20,9 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       if (saved) setDetails(saved);
     } catch { /* ignore */ }
     console.error("[Roki error]", error);
+    try {
+      if (Sentry.getClient()) Sentry.captureException(error);
+    } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

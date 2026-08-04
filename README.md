@@ -158,7 +158,6 @@ npx tsx scripts/verify.ts   # 64 deterministic checks: phones, rules, tiers, map
 - [ ] Swap in Roki's official logo artwork
 - [ ] Supabase/PostgreSQL repository (`src/lib/db.ts` swap) + row-level security per role
 - [ ] Real offline sync API (POST queued outbox ops instead of flushing locally)
-- [ ] SMS/USSD reporting integration for farmers without smartphones
 
 ---
 

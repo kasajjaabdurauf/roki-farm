@@ -15,8 +15,10 @@ import {
   Trash2,
   Users,
   Wheat,
+  FileText,
 } from "lucide-react";
 import { deleteFarmers, useDb } from "@/lib/db";
+import { downloadFarmerSurveyPdf } from "@/lib/report";
 import { fmtDate, fmtDateTime, relTime } from "@/lib/format";
 import { fmtKg, fmtNumber, rokiTierCriteria } from "@/lib/rules";
 import { IRRIGATION_OPTIONS, LAND_OWNERSHIP_LABEL, REFUGEE_LABEL, ROKI_TIER_LABEL, GENDER_LABEL } from "@/lib/types";
@@ -101,6 +103,9 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
             <Link href={`/logs?farmer=${farmer.id}`}>
               <Button variant="accent"><ClipboardPlus className="h-4 w-4" /> Log Harvest</Button>
             </Link>
+            <Button variant="outline" onClick={() => void downloadFarmerSurveyPdf(farmer)}>
+              <FileText className="h-4 w-4" /> Survey PDF
+            </Button>
             <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" /> Edit</Button>
             <Button variant="ghost" className="text-danger-600 hover:bg-danger-50" onClick={() => setConfirmDelete(true)}>
               <Trash2 className="h-4 w-4" />
@@ -170,6 +175,12 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
             {farmer.survey?.hasSmartphone !== undefined && (
               <SurveyFact label="Smartphone" value={farmer.survey.hasSmartphone ? "Yes" : "No"} />
             )}
+            {farmer.survey?.gpsLat !== undefined && (
+              <SurveyFact
+                label="GPS"
+                value={`${farmer.survey.gpsLat.toFixed(4)}, ${farmer.survey.gpsLon?.toFixed(4) ?? "—"}`}
+              />
+            )}
           </dl>
           <div className="mt-4 rounded-xl bg-forest-50 px-3.5 py-3">
             <p className="text-[11px] font-bold tracking-wide text-forest-700 uppercase">
@@ -219,6 +230,39 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
           )}
         </Card>
       </div>
+
+      {/* planting history (from uploads like the Farmers List) */}
+      {farmer.plantingHistory && farmer.plantingHistory.length > 0 && (
+        <Card>
+          <h3 className="mb-3 font-display text-lg font-semibold text-forest-900">Planting history</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-stone-200 text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
+                  <th className="py-2 pr-3">Crop</th>
+                  <th className="py-2 pr-3 text-right">Acres</th>
+                  <th className="py-2 pr-3">Planted</th>
+                  <th className="py-2 pr-3">Source of seed</th>
+                  <th className="py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {farmer.plantingHistory.map((p) => (
+                  <tr key={p.id}>
+                    <td className="py-2 pr-3 font-semibold text-stone-800">{p.crop}</td>
+                    <td className="py-2 pr-3 text-right text-stone-600 tabular">{p.acres.toFixed(1)}</td>
+                    <td className="py-2 pr-3 text-stone-500">{p.plantingDate ? fmtDate(p.plantingDate) : "—"}</td>
+                    <td className="py-2 pr-3 text-stone-600">{p.sourceOfSeed || "—"}</td>
+                    <td className="py-2">
+                      <Badge tone={p.status?.includes("SUPPLYING") ? "success" : "forest"}>{p.status || "—"}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* rule findings for this farmer */}
       {flaggedLogs.length > 0 && (

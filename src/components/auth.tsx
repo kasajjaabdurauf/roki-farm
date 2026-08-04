@@ -104,6 +104,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const ownFarmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
   const surveyDone =
     !!ownFarmer && !!ownFarmer.survey?.consentDate && ownFarmer.plannedProductions.length > 0;
+  // While the farmer record is still loading (just after sign-in) show a
+  // splash instead of flashing the home page then bouncing to /survey.
+  const profilePending = ready && remoteConfigured() && db.meta.role === "FARMER" && !ownFarmer;
   const needsSurvey =
     ready && remoteConfigured() && db.meta.role === "FARMER" && !!ownFarmer && !surveyDone;
 
@@ -113,6 +116,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
       router.replace("/survey");
     }
   }, [needsSurvey, pathname, router]);
+
+  // Profile still loading after sign-in: hold the splash (prevents the
+  // "home flashes, then back to onboarding" flicker).
+  if (profilePending) {
+    return (
+      <div className="grid min-h-[80vh] place-items-center">
+        <div className="flex flex-col items-center gap-4">
+          <LogoMark className="h-14 w-auto animate-pulse" />
+          <div className="flex items-center gap-2 text-sm font-semibold text-stone-400">
+            <span className="h-2 w-2 animate-ping rounded-full bg-ochre-500" />
+            Loading your profile…
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // The splash only blocks OTHER pages — the /survey page itself must
   // render so the farmer can actually complete it (this was the "stuck

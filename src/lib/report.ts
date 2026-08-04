@@ -6,7 +6,8 @@
 // the main bundle.
 // ------------------------------------------------------------------
 
-import type { Db } from "./types";
+import type { Db, Farmer } from "./types";
+import { LAND_OWNERSHIP_LABEL, REFUGEE_LABEL, TIER_LABEL } from "./types";
 import { MONTHS } from "./reference";
 import { isoDaysAgo } from "./format";
 
@@ -219,4 +220,140 @@ export async function downloadSummaryPdf(db: Db): Promise<void> {
   );
 
   doc.save(`roki-summary-report-${today.toISOString().slice(0, 10)}.pdf`);
+}
+
+// ------------------------------------------------------------------
+// Per-farmer survey PDF — one branded page with the farmer's full
+// questionnaire answers, production plan and planting history.
+// ------------------------------------------------------------------
+export async function downloadFarmerSurveyPdf(farmer: Farmer): Promise<void> {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const sv = farmer.survey ?? ({} as NonNullable<Farmer["survey"]>);
+
+  // header band
+  doc.setFillColor(...FOREST);
+  doc.rect(0, 0, pageW, 30, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("ROKI FRUIT & VEGETABLES LTD", 14, 13);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(240, 231, 211);
+  doc.text(`Farmer Registration Survey · ${farmer.id}`, 14, 20);
+  doc.text(`Generated ${new Date().toISOString().slice(0, 10)}`, 14, 26);
+  doc.setFillColor(...OCHRE);
+  doc.rect(0, 30, pageW, 1.6, "F");
+
+  let y = 38;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...FOREST);
+  doc.text(`${farmer.fullName || farmer.email || farmer.id}`, 14, y);
+  y += 6;
+
+  const kv: [string, string][] = [
+    ["Farmer ID", farmer.id],
+    ["Email", farmer.email ?? ""],
+    ["Phone", farmer.phone],
+    ["District", farmer.district],
+    ["Sub-county", farmer.subCounty],
+    ["Village / Parish", farmer.village ?? ""],
+    ["Gender", farmer.gender === "F" ? "Female" : farmer.gender === "M" ? "Male" : "Other"],
+    ["Community", REFUGEE_LABEL[farmer.refugeeStatus] ?? ""],
+    ["Age", sv.ageYears ? `${sv.ageYears} years` : ""],
+    ["Household", farmer.householdSize ? `${farmer.householdSize} members` : ""],
+    ["Land ownership", LAND_OWNERSHIP_LABEL[farmer.landOwnership] ?? ""],
+    ["Acreage", `${farmer.acreage} acres`],
+    ["Primary crops", farmer.primaryCrops.join(", ")],
+    ["Farming experience", sv.farmingYears?.replace("_", "-").replace("Y", "yrs ") ?? ""],
+    ["Farm types", (sv.farmingTypes ?? []).join(", ")],
+    ["Production season", sv.productionSeason ?? ""],
+    ["Production system", sv.productionSystem ?? ""],
+    ["Irrigation", sv.irrigationType || "None"],
+    ["Uses improved seed", sv.usesImprovedSeed ? "Yes" : "No"],
+    ["Extension support", sv.extensionSupport ? `Yes (${sv.extensionFrom ?? ""})` : "No"],
+    ["Keeps records", sv.keepsRecords ? "Yes" : "No"],
+    ["Wants to supply Roki", sv.wantsToSupplyRoki ? "Yes" : "No"],
+    ["Roki tier", `Tier ${farmer.rokiTier}`],
+    ["Scale tier", TIER_LABEL[farmer.scaleTier] ?? ""],
+    ["Preferred language", sv.preferredLanguage ?? ""],
+    ["Has smartphone", sv.hasSmartphone ? "Yes" : "No"],
+    ["Market distance", sv.marketDistanceKm ? `${sv.marketDistanceKm} km` : ""],
+    ["Other income", sv.otherIncome ?? ""],
+    ["Consent", sv.consentDate ? `Yes (${sv.consentDate})` : "No"],
+    ["Enumerator", sv.enumeratorName ? `${sv.enumeratorName}${sv.enumeratorId ? ` (${sv.enumeratorId})` : ""}` : ""],
+    ["Assessment", `${sv.landAvailability ?? ""} land · ${sv.productionPotential ?? ""} potential · ${sv.recommendedCategory ?? ""}`],
+    ["Registered", farmer.createdAt.slice(0, 10)],
+  ].filter(([, v]) => v) as [string, string][];
+
+  autoTable(doc, {
+    startY: y + 2,
+    body: kv.map(([k, v]) => [k, v]),
+    theme: "grid",
+    styles: { fontSize: 8.5, cellPadding: 1.6 },
+    columnStyles: { 0: { fontStyle: "bold", cellWidth: 52, textColor: FOREST as unknown as number } },
+    margin: { left: 14, right: 14 },
+  });
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // production plan
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...FOREST);
+  doc.text("Production plan for Roki", 14, y);
+  if (farmer.plannedProductions.length > 0) {
+    autoTable(doc, {
+      startY: y + 3,
+      head: [["Crop", "Acres", "Expected (kg)", "Harvest window"]],
+      body: farmer.plannedProductions.map((p) => [
+        p.crop,
+        String(p.acres),
+        String(p.expectedVolumeKg),
+        `${MONTHS[p.harvestStartMonth - 1]}–${MONTHS[p.harvestEndMonth - 1]}`,
+      ]),
+      theme: "grid",
+      headStyles: { fillColor: OCHRE, textColor: 255, fontSize: 8.5 },
+      styles: { fontSize: 8.5 },
+      margin: { left: 14, right: 14 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
+  } else {
+    y += 5;
+  }
+
+  // planting history
+  if (farmer.plantingHistory && farmer.plantingHistory.length > 0) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...FOREST);
+    doc.text("Planting history", 14, y);
+    autoTable(doc, {
+      startY: y + 3,
+      head: [["Crop", "Acres", "Planted", "Source of seed", "Status"]],
+      body: farmer.plantingHistory.map((p) => [
+        p.crop,
+        String(p.acres),
+        p.plantingDate ?? "",
+        p.sourceOfSeed ?? "",
+        p.status ?? "",
+      ]),
+      theme: "grid",
+      headStyles: { fillColor: FOREST, textColor: 255, fontSize: 8.5 },
+      styles: { fontSize: 8.5 },
+      margin: { left: 14, right: 14 },
+    });
+  }
+
+  const pageH = doc.internal.pageSize.getHeight();
+  doc.setFillColor(...FOREST);
+  doc.rect(0, pageH - 12, pageW, 12, "F");
+  doc.setFontSize(7.5);
+  doc.setTextColor(240, 231, 211);
+  doc.text("Roki Fruit & Vegetables Ltd · farmer registration survey", 14, pageH - 5);
+
+  doc.save(`roki-survey-${farmer.id}.pdf`);
 }
