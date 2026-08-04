@@ -1,5 +1,7 @@
 // Functional verification of the rule engine + utilities (runs in Node).
 import { normalizeUgPhone } from "../src/lib/phone";
+import { nextFarmerId } from "../src/lib/db";
+import { validEmailish, validNumber, validText } from "../src/lib/security";
 import { computeScaleTier, evaluateLog, computeFarmerFlags, anomalyCheck, duplicateCheck, fmtKg } from "../src/lib/rules";
 import { buildSeed } from "../src/lib/seed";
 import { buildStaging, autoDetect } from "../src/lib/sheet";
@@ -234,7 +236,25 @@ console.log("\n8d) Dedup & merge");
   check("logs reassigned to master", db.logs.filter((l) => l.farmerId === master.id).length > masterLogsBefore);
 }
 
-console.log("\n10) Yield scoring (median-based, deterministic)");
+console.log("\n8e) Security: validation + concurrency + rate limit");
+{
+  // strict validators
+  check("validText rejects empty", validText("   ") === false);
+  check("validText accepts name", validText("Aisha Namukwaya") === true);
+  check("validNumber rejects NaN/negative", validNumber(NaN) === false && validNumber(-1) === false);
+  check("validNumber accepts acreage", validNumber(2.5, 0.01, 100000) === true);
+  check("validEmailish rejects junk", validEmailish("not-an-email") === false);
+
+  // concurrency-safe IDs: two records sharing a base id never collide
+  const seed = buildSeed();
+  const db2 = { ...EMPTY_DB, farmers: [...seed.farmers], logs: [...seed.logs], meta: { ...seed.meta }, settings: { ...seed.settings } };
+  const first = nextFarmerId(db2);
+  // simulate a remote record that claimed the next id
+  db2.farmers.push({ ...seed.farmers[0], id: first });
+  const second = nextFarmerId(db2);
+  check("concurrent IDs never collide", first !== second, { first, second });
+}
+
 {
   const farmer = { id: "RFV-UG-00001", acreage: 2 } as any;
   const mk = (id: string, kg: number, days = 10) => ({

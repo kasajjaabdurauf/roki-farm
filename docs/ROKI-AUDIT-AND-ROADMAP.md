@@ -48,6 +48,7 @@ Tick items off as they are completed.
 - [x] v2.7: planting history capture (planting date, source of seed, status, GPS) from uploads; GPS on survey record; planting history table on farmer profile; STATUS→planting status resolution (88 checks total)
 - [x] v2.8: dedup & merge tool (/duplicates), Sentry client monitoring + /api/health uptime endpoint, multi-language (en/lg/rn/sw) for farmer screens with Account switcher, SMS/USSD removed from all claims, 92 checks
 - [x] v2.9: onboarding flicker fixed (splash while profile loads), resilient session validation (no surprise sign-outs), survey UX polish (step scroll-to-top, labelled row inputs, simplified consent), per-farmer Survey PDF download, docs reorganized (changelog + developer guide)
+- [x] v2.10: agent link restored on sign-in, brute-force protection on access code, strict survey field validation, concurrency-safe IDs, 98 checks
 
 ---
 

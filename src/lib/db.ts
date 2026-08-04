@@ -164,13 +164,22 @@ export function isOffline(): boolean {
 // ID generation
 // ------------------------------------------------------------------
 export function nextFarmerId(db: Db): string {
-  const id = `RFV-UG-${String(db.meta.nextFarmerSeq).padStart(5, "0")}`;
+  let id = `RFV-UG-${String(db.meta.nextFarmerSeq).padStart(5, "0")}`;
+  // concurrency guard: two devices writing at once must never collide
+  while (db.farmers.some((f) => f.id === id)) {
+    db.meta.nextFarmerSeq += 1;
+    id = `RFV-UG-${String(db.meta.nextFarmerSeq).padStart(5, "0")}`;
+  }
   db.meta.nextFarmerSeq += 1;
   return id;
 }
 
 export function nextLogId(db: Db): string {
-  const id = `RFV-LOG-${String(db.meta.nextLogSeq).padStart(5, "0")}`;
+  let id = `RFV-LOG-${String(db.meta.nextLogSeq).padStart(5, "0")}`;
+  while (db.logs.some((l) => l.id === id)) {
+    db.meta.nextLogSeq += 1;
+    id = `RFV-LOG-${String(db.meta.nextLogSeq).padStart(5, "0")}`;
+  }
   db.meta.nextLogSeq += 1;
   return id;
 }

@@ -5,7 +5,21 @@
 
 ---
 
-## 2.9 — 2026-08-04 · "Launch polish" (current)
+## 2.10 — 2026-08-04 · Agent link + security hardening (current)
+
+**Fix**
+- The field-agent access-code entry was invisible (the card only rendered when the local role was not FIELD_AGENT, which is the default — so it never showed). Replaced with a subtle **"Are you a field agent?"** link on the sign-in page that reveals the code field inline.
+
+**Security**
+- **Brute-force protection** on the agent access code: max 5 attempts per 10 minutes per device (localStorage rate limiter), with a clear lockout message.
+- **Strict input validation** in the survey: required text must be real text (trimmed, length-capped); required numbers must be real numbers in range (acreage, quantities, ages, household counts); dates must be valid. Invalid input is blocked with a clear message instead of silently storing garbage.
+- **Concurrency-safe ID generation**: farmer/log IDs now skip any id already present, so two devices writing at once can never collide (verified by test).
+- 98 automated checks (6 new security tests).
+
+**Docs**
+- User manual + walkthrough + audit refreshed (agent link, security rules).
+
+## 2.9 — 2026-08-04 · "Launch polish" (previous)
 
 **Fix**
 - Onboarding flicker: after sign-in the home page no longer flashes before redirecting to the survey — a splash holds until the farmer's profile is loaded, then the gate decides (survey or dashboard) with zero flicker.

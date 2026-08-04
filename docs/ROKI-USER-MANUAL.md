@@ -90,7 +90,7 @@ The installed app works offline. (Note: the home-screen icon can lag behind an u
 The farmer-facing screens (dashboard, My Farm) support **English, Luganda, Runyankole/Rukiga and Kiswahili**. The language is set automatically from the survey's Preferred language answer, and can be changed anytime in **Account → App language**. Staff screens stay in English.
 
 ### 3.3 Field agents: shared access code (no account needed)
-Field agents don't need accounts. On the sign-in screen, the **"Field agent? Use the access code"** card is always available: enter the shared code (given by the administrator) and continue as a field agent. The code is remembered on that device. Administrators can change it anytime in Settings → Field-agent access code (the old code stops working immediately).
+Field agents don't need accounts. On the sign-in screen, tap **"Are you a field agent?"** (bottom link) to reveal the code field: enter the shared code (given by the administrator) and continue as a field agent. Wrong codes are limited to 5 attempts per 10 minutes per device. The code is remembered on that device. Administrators can change it anytime in Settings → Field-agent access code (the old code stops working immediately).
 
 ### 3.3 Signing in
 1. Open the app. If the platform is in **production mode** you'll land on the sign-in screen.

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Info, Plus, Trash2 } from "lucide-react";
 import { addFarmer, setDemoFarmer, setLanguage, updateFarmer, useDb } from "@/lib/db";
 import { langFromPreference } from "@/lib/i18n";
+import { validNumber, validText } from "@/lib/security";
 import { normalizeUgPhone } from "@/lib/phone";
 import { CROPS, CROP_DEFAULTS, DISTRICTS, MONTHS, SUB_COUNTIES } from "@/lib/reference";
 import { computeRokiTier, rokiTierCriteria } from "@/lib/rules";
@@ -292,11 +293,15 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
   function stepErrors(i: number): string[] {
     const errs: string[] = [];
     if (i === 0) {
-      if (!d.fullName.trim()) errs.push("Full name is required (1.2)");
+      if (!validText(d.fullName, 150)) errs.push("Full name is required (1.2) — text only");
       if (!d.phone.trim()) errs.push("Primary phone number is required (1.5)");
       else if (!phoneResult.ok) errs.push(phoneResult.reason ?? "Invalid phone number");
-      if (d.ageYears !== undefined && (isNaN(d.ageYears) || d.ageYears < 10 || d.ageYears > 110))
-        errs.push("Age in years (1.4) must be between 10 and 110");
+      if (d.ageYears !== undefined && !validNumber(d.ageYears, 10, 110))
+        errs.push("Age in years (1.4) must be a number between 10 and 110");
+      if (d.householdAdults !== undefined && !validNumber(d.householdAdults, 0, 60))
+        errs.push("Adults in household (2.3) must be a number between 0 and 60");
+      if (d.householdChildren !== undefined && !validNumber(d.householdChildren, 0, 60))
+        errs.push("Children in household (2.3) must be a number between 0 and 60");
     }
     if (i === 1) {
       if (d.refugeeStatus === "REFUGEE" && !d.countryOfOrigin) errs.push("Country of origin is required for refugee farmers (2.2)");
@@ -309,16 +314,18 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
     }
     if (i === 4) {
       for (const c of d.currentCrops) {
-        if (!c.crop) errs.push("Every current crop row needs a crop (5.1)");
-        if (c.areaAcres <= 0) errs.push(`${c.crop || "Row"}: area planted must be greater than 0`);
-        if (c.expectedQtyKg <= 0) errs.push(`${c.crop || "Row"}: expected quantity must be greater than 0`);
+        if (!validText(c.crop, 80)) errs.push("Every current crop row needs a crop name (5.1)");
+        if (!validNumber(c.areaAcres, 0.01, 100000)) errs.push(`${c.crop || "Row"}: area planted must be a number greater than 0`);
+        if (!validNumber(c.expectedQtyKg, 1, 1e9)) errs.push(`${c.crop || "Row"}: expected quantity must be a number greater than 0`);
+        if (c.expectedHarvestDate && !/^\d{4}-\d{2}-\d{2}$/.test(c.expectedHarvestDate))
+          errs.push(`${c.crop || "Row"}: expected harvest date must be a valid date`);
       }
     }
     if (i === 6) {
       for (const p of d.productions) {
-        if (!p.crop) errs.push("Every production row needs a crop (10.3)");
-        if (p.acres <= 0) errs.push(`${p.crop || "Row"}: area planned must be greater than 0`);
-        if (p.expectedVolumeKg <= 0) errs.push(`${p.crop || "Row"}: expected quantity must be greater than 0`);
+        if (!validText(p.crop, 80)) errs.push("Every production row needs a crop (10.3)");
+        if (!validNumber(p.acres, 0.01, 100000)) errs.push(`${p.crop || "Row"}: area planned must be a number greater than 0`);
+        if (!validNumber(p.expectedVolumeKg, 1, 1e9)) errs.push(`${p.crop || "Row"}: expected quantity must be a number greater than 0`);
         if (!p.harvestStartMonth || !p.harvestEndMonth) errs.push(`${p.crop || "Row"}: pick the expected harvest period`);
       }
       if (d.wantsToSupplyRoki && d.productions.length === 0)
