@@ -53,4 +53,4 @@ export function clamp(n: number, min: number, max: number): number {
 }
 
 /** App version — shown in Settings/Account so stale builds are easy to spot. */
-export const APP_VERSION = "2.11.2";
+export const APP_VERSION = "2.11.3";

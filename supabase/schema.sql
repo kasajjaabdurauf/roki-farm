@@ -240,6 +240,13 @@ drop policy if exists "settings select" on public.settings;
 create policy "settings select" on public.settings
   for select using (auth.role() = 'authenticated');
 
+-- anon (not signed in) may read the single settings row (id=1) — needed
+-- so field agents can validate the shared access code BEFORE signing in.
+-- Contains only the agent-code hash + rule thresholds, no personal data.
+drop policy if exists "settings select anon" on public.settings;
+create policy "settings select anon" on public.settings
+  for select using (auth.role() = 'anon' and id = 1);
+
 drop policy if exists "settings update" on public.settings;
 create policy "settings update" on public.settings
   for update using (public.get_user_role() = 'ADMIN');

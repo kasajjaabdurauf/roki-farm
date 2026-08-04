@@ -368,8 +368,9 @@ export async function updateProfileRole(
 // ------------------------------------------------------------------
 export async function fetchAgentCodeHash(): Promise<string | null> {
   const c = sb();
-  const session = await getSession();
-  if (!c || !session) return null;
+  if (!c) return null;
+  // NOTE: must work WITHOUT a session — the agent enters the code before
+  // signing in (anonymous). RLS for this column allows anon read.
   const { data, error } = await c.from("settings").select("agent_code_hash").eq("id", 1).maybeSingle();
   if (error) {
     // column missing (migration not run) or RLS: degrade gracefully
