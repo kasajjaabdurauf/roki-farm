@@ -90,7 +90,7 @@ The installed app works offline. (Note: the home-screen icon can lag behind an u
 The farmer-facing screens (dashboard, My Farm) support **English, Luganda, Runyankole/Rukiga and Kiswahili**. The language is set automatically from the survey's Preferred language answer, and can be changed anytime in **Account → App language**. Staff screens stay in English.
 
 ### 3.3 Field agents: shared access code (no account needed)
-Field agents don't need accounts. On the sign-in screen, tap **"Are you a field agent?"** (bottom link) to reveal the code field: enter the shared code (given by the administrator) and continue as a field agent. Wrong codes are limited to 5 attempts per 10 minutes per device. The code is remembered on that device. Administrators can change it anytime in Settings → Field-agent access code (the old code stops working immediately).
+Field agents don't need accounts. On the sign-in screen, tap **"Are you a field agent?"** (bottom link) to reveal the code field: enter the shared code (given by the administrator) and continue as a field agent. Wrong codes are limited to 5 attempts per 10 minutes per device. The code is stored hashed in the cloud, so when the admin changes it in Settings it works on every device immediately.
 
 ### 3.3 Signing in
 1. Open the app. If the platform is in **production mode** you'll land on the sign-in screen.
@@ -444,5 +444,12 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 | 2.2 | 2026-08-03 | Upload↔account linking model: rows match farmer records by ID → phone → email (email added as a matching key + column); signup CLAIMS an existing farmer record by email instead of duplicating (migration_v6.sql); simulation file gained an Email column to demo both scenarios; new manual section 5.7b explains it all. |
 | 2.3 | 2026-08-03 | Onboarding is mandatory: new farmer accounts are held at the survey until it's completed (no skip); survey completion reliably links and updates the account's own record. Phone-based claiming: entering a phone during the survey that matches an existing record (e.g. from an uploaded list) offers to link the login to that record. Survey mobile polish: full-width inputs on the crop/production rows, more spacing. |
 | 2.4 | 2026-08-03 | Fixed the "Setting up your farmer profile" stuck screen (the gate no longer blocks the survey page itself). Added an optional **More about your farm** step to the survey (farm name, preferred language, smartphone access, market distance, other income). Cleaned up the farmer dashboard profile card (no overlapping button). Added **full factory reset** SQL (wipes accounts too). |
+| 2.5 | 2026-08-03 | Stale-session fix: the app now validates your login against the server on every boot. Deleted accounts are signed out automatically; production never seeds demo data; storage cache bumped. |
+| 2.6 | 2026-08-03 | Real-world upload resilience: First Name + Last Name merge, multi-phone cells keep the first valid number with warnings, phones with spaces normalize, COMPANY NAME headers never become a farmer name, recommended-format guide, no silent data loss. |
+| 2.7 | 2026-08-03 | Planting history capture: PLANTING DATE, SOURCE OF SEED, STATUS and GPS columns captured and shown on the farmer profile; STATUS resolves to planting status. 88 checks. |
+| 2.8 | 2026-08-03 | Dedup & merge tool (admin), Sentry client monitoring + /api/health uptime endpoint, multi-language (en/lg/rn/sw) for farmer screens with Account switcher, SMS/USSD plans removed. 92 checks. |
+| 2.9 | 2026-08-04 | Launch polish: onboarding flicker fixed, resilient session validation (no surprise sign-outs), survey UX polish (step scroll-to-top, labelled inputs, simplified consent), per-farmer Survey PDF download, docs reorganized. |
+| 2.10 | 2026-08-04 | Agent access code is a subtle link on sign-in; security hardening: rate-limited agent code, strict survey field validation, concurrency-safe IDs. 98 checks. |
+| 2.11 | 2026-08-04 | Agent access code stored hashed in the cloud and shared across ALL devices (change once in Settings, works everywhere); requires migration_v7.sql. |
 
 *Every future release appends a row here.*

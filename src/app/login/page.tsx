@@ -48,14 +48,15 @@ export default function LoginPage() {
 
   const agentLimiter = new AttemptLimiter("agent-code", 5, 10 * 60 * 1000);
 
-  function onAgentCode(e: FormEvent) {
+  async function onAgentCode(e: FormEvent) {
     e.preventDefault();
     // brute-force protection: max 5 tries per 10 minutes per device
     if (agentLimiter.remaining() <= 0) {
       setError("Too many attempts. Please try again in 10 minutes.");
       return;
     }
-    if (matchesAgentCode(agentCode)) {
+    const ok = await matchesAgentCode(agentCode);
+    if (ok) {
       agentLimiter.reset();
       try {
         localStorage.setItem("roki-agent-session", "1");

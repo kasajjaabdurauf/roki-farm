@@ -110,10 +110,16 @@ export default function SettingsPage() {
                 size="sm"
                 className="h-11"
                 disabled={agentCode.trim().length < 6}
-                onClick={() => {
-                  setAgentCode(agentCode.trim());
+                onClick={async () => {
+                  const code = agentCode.trim();
                   setAgentCodeInput("");
-                  setAgentMsg(`Access code updated. Agents must use "${agentCode.trim()}".`);
+                  setAgentMsg("Updating…");
+                  try {
+                    await setAgentCode(code);
+                    setAgentMsg(`Access code updated. Agents must use "${code}". It works on every device immediately.`);
+                  } catch {
+                    setAgentMsg("Access code updated on this device. It will sync to other devices when online.");
+                  }
                 }}
               >
                 <KeyRound className="h-4 w-4" /> Update code

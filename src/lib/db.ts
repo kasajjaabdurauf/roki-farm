@@ -645,17 +645,48 @@ export function setRole(role: Role): void {
   });
 }
 
-export function setAgentCode(code: string): void {
-  mutate((db) => {
-    db.meta.agentCodeHash = hashCode(code);
-  });
+/** Cloud-resolved agent code hash (cached after first fetch). */
+let cloudAgentHash: string | null | undefined;
+
+export async function loadCloudAgentHash(): Promise<string | null> {
+  if (cloudAgentHash !== undefined) return cloudAgentHash;
+  try {
+    const { fetchAgentCodeHash } = await import("./remote");
+    cloudAgentHash = await fetchAgentCodeHash();
+  } catch {
+    cloudAgentHash = null;
+  }
+  return cloudAgentHash;
 }
 
-/** Whether the given code matches the configured agent code. */
-export function matchesAgentCode(code: string): boolean {
+/** Set the agent code: writes to the cloud (hashed) AND the local device. */
+export async function setAgentCode(code: string): Promise<void> {
+  const hash = hashCode(code.trim());
+  cloudAgentHash = hash;
+  mutate((db) => {
+    db.meta.agentCodeHash = hash;
+  });
+  try {
+    const { updateAgentCodeHash } = await import("./remote");
+    await updateAgentCodeHash(hash);
+  } catch {
+    /* offline: local hash stands in until the next sync */
+  }
+}
+
+/**
+ * Whether the given code matches the configured agent code.
+ * Cloud hash wins (shared across devices); falls back to the local
+ * hash when offline or the cloud has none set.
+ */
+export async function matchesAgentCode(code: string): Promise<boolean> {
+  const trimmed = code.trim();
+  if (!trimmed) return false;
+  const cloud = await loadCloudAgentHash();
+  if (cloud) return hashCode(trimmed) === cloud;
   const db = loadDb();
   const expected = db.meta.agentCodeHash ?? agentCodeHash();
-  return hashCode(code.trim()) === expected;
+  return hashCode(trimmed) === expected;
 }
 
 /** True when the current session came from the agent access code (not an account). */

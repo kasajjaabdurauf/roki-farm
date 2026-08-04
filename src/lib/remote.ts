@@ -361,3 +361,26 @@ export async function updateProfileRole(
   const { error } = await c.from("profiles").update(patch).eq("id", uid);
   if (error) throw new Error(error.message);
 }
+
+// ------------------------------------------------------------------
+// Agent access code — stored HASHED in the cloud settings row (id=1)
+// so every device sees the same code. Admin-only update (RLS).
+// ------------------------------------------------------------------
+export async function fetchAgentCodeHash(): Promise<string | null> {
+  const c = sb();
+  const session = await getSession();
+  if (!c || !session) return null;
+  const { data, error } = await c.from("settings").select("agent_code_hash").eq("id", 1).maybeSingle();
+  if (error || !data) return null;
+  return (data.agent_code_hash as string) ?? null;
+}
+
+export async function updateAgentCodeHash(hash: string): Promise<void> {
+  const c = sb();
+  if (!c) return;
+  const { error } = await c
+    .from("settings")
+    .update({ agent_code_hash: hash, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) throw new Error(error.message);
+}
