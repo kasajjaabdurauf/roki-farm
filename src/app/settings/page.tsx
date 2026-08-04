@@ -116,9 +116,9 @@ export default function SettingsPage() {
                   setAgentMsg("Updating…");
                   try {
                     await setAgentCode(code);
-                    setAgentMsg(`Access code updated. Agents must use "${code}". It works on every device immediately.`);
+                    setAgentMsg(`Access code updated and saved to the cloud. Agents must use "${code}". It works on every device immediately.`);
                   } catch {
-                    setAgentMsg("Access code updated on this device. It will sync to other devices when online.");
+                    setAgentMsg("Could not save to the cloud (check connection or permissions). The code is set on this device only for now.");
                   }
                 }}
               >
@@ -127,7 +127,8 @@ export default function SettingsPage() {
             </div>
             {agentMsg && <p className="mt-2 text-[12.5px] font-semibold text-success-dark">{agentMsg}</p>}
             <p className="mt-2 text-[12px] text-stone-400">
-              The current code is stored hashed (never in plaintext). Share it with field agents privately.
+              The current code is stored hashed (never in plaintext) and synced to the cloud, so it works on every
+              device. Share it with field agents privately.
             </p>
           </Card>
         )}

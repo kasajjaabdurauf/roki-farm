@@ -2,6 +2,7 @@
 import { normalizeUgPhone } from "../src/lib/phone";
 import { nextFarmerId } from "../src/lib/db";
 import { validEmailish, validNumber, validText } from "../src/lib/security";
+import { hashCode } from "../src/lib/types";
 import { computeScaleTier, evaluateLog, computeFarmerFlags, anomalyCheck, duplicateCheck, fmtKg } from "../src/lib/rules";
 import { buildSeed } from "../src/lib/seed";
 import { buildStaging, autoDetect } from "../src/lib/sheet";
@@ -270,6 +271,13 @@ console.log("\n8e) Security: validation + concurrency + rate limit");
   check("4,000 kg over 2 ac vs median 2,400/ac → LOW", low.yieldScore === "LOW", low);
   check("9,000 kg over 2 ac → BUMPER (also exceeds ceiling → NEEDS_AUDIT)", high.yieldScore === "BUMPER" && high.status === "NEEDS_AUDIT", high);
   check("median-level → EXPECTED", mid.yieldScore === "EXPECTED", mid);
+}
+
+console.log("\n8f) Agent code hash");
+{
+  check("hash is deterministic", hashCode("roki-agent-2026") === hashCode("roki-agent-2026"));
+  check("hash differs per code", hashCode("roki-agent-2026") !== hashCode("roki-agent-2027"));
+  check("hash is hex 8 chars", /^[0-9a-f]{8}$/.test(hashCode("abc123")));
 }
 
 console.log(`\n===== ${pass} passed, ${fail} failed =====`);

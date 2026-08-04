@@ -371,16 +371,24 @@ export async function fetchAgentCodeHash(): Promise<string | null> {
   const session = await getSession();
   if (!c || !session) return null;
   const { data, error } = await c.from("settings").select("agent_code_hash").eq("id", 1).maybeSingle();
-  if (error || !data) return null;
+  if (error) {
+    // column missing (migration not run) or RLS: degrade gracefully
+    console.warn("[Roki] could not read agent code hash from settings:", error.message);
+    return null;
+  }
+  if (!data) return null;
   return (data.agent_code_hash as string) ?? null;
 }
 
 export async function updateAgentCodeHash(hash: string): Promise<void> {
   const c = sb();
   if (!c) return;
-  const { error } = await c
-    .from("settings")
-    .update({ agent_code_hash: hash, updated_at: new Date().toISOString() })
-    .eq("id", 1);
+  // UPSERT: if the settings row (id=1) doesn't exist yet, create it —
+  // a plain update on a missing row affects 0 rows with no error, which
+  // silently "succeeded" before and never actually saved the code.
+  const { error } = await c.from("settings").upsert(
+    { id: 1, agent_code_hash: hash, updated_at: new Date().toISOString() },
+    { onConflict: "id" }
+  );
   if (error) throw new Error(error.message);
 }

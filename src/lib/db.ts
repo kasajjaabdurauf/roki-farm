@@ -645,11 +645,11 @@ export function setRole(role: Role): void {
   });
 }
 
-/** Cloud-resolved agent code hash (cached after first fetch). */
 let cloudAgentHash: string | null | undefined;
 
-export async function loadCloudAgentHash(): Promise<string | null> {
-  if (cloudAgentHash !== undefined) return cloudAgentHash;
+/** Always fetch the cloud hash fresh (never trust a stale module cache). */
+export async function loadCloudAgentHash(force = false): Promise<string | null> {
+  if (!force && cloudAgentHash !== undefined) return cloudAgentHash;
   try {
     const { fetchAgentCodeHash } = await import("./remote");
     cloudAgentHash = await fetchAgentCodeHash();
@@ -669,20 +669,21 @@ export async function setAgentCode(code: string): Promise<void> {
   try {
     const { updateAgentCodeHash } = await import("./remote");
     await updateAgentCodeHash(hash);
-  } catch {
-    /* offline: local hash stands in until the next sync */
+  } catch (err) {
+    // let the caller know the cloud write failed (offline / RLS / row missing)
+    throw err;
   }
 }
 
 /**
  * Whether the given code matches the configured agent code.
- * Cloud hash wins (shared across devices); falls back to the local
- * hash when offline or the cloud has none set.
+ * ALWAYS checks the cloud fresh (the admin may have changed it on
+ * another device); falls back to the local hash only when offline.
  */
 export async function matchesAgentCode(code: string): Promise<boolean> {
   const trimmed = code.trim();
   if (!trimmed) return false;
-  const cloud = await loadCloudAgentHash();
+  const cloud = await loadCloudAgentHash(true);
   if (cloud) return hashCode(trimmed) === cloud;
   const db = loadDb();
   const expected = db.meta.agentCodeHash ?? agentCodeHash();

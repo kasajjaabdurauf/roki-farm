@@ -55,7 +55,12 @@ export default function LoginPage() {
       setError("Too many attempts. Please try again in 10 minutes.");
       return;
     }
-    const ok = await matchesAgentCode(agentCode);
+    let ok = false;
+    try {
+      ok = await matchesAgentCode(agentCode);
+    } catch {
+      ok = false;
+    }
     if (ok) {
       agentLimiter.reset();
       try {

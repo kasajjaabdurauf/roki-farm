@@ -244,6 +244,10 @@ drop policy if exists "settings update" on public.settings;
 create policy "settings update" on public.settings
   for update using (public.get_user_role() = 'ADMIN');
 
+drop policy if exists "settings insert as admin" on public.settings;
+create policy "settings insert as admin" on public.settings
+  for insert with check (public.get_user_role() = 'ADMIN');
+
 -- =====================================================================
 -- SEED SETTINGS (run once)
 -- =====================================================================
