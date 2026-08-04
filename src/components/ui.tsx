@@ -376,3 +376,22 @@ export function XScroll({ children, className }: { children: ReactNode; classNam
     </div>
   );
 }
+
+// ------------------------------------------------------------------
+// Tooltip — a small "?" badge that explains a thing on hover (desktop)
+// or tap/long-press (mobile). Keep the text short.
+// ------------------------------------------------------------------
+export function Tooltip({ text, className }: { text: string; className?: string }) {
+  return (
+    <span
+      className={cx(
+        "inline-grid h-4 w-4 shrink-0 cursor-help place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-600 select-none",
+        className
+      )}
+      title={text}
+      aria-label={text}
+    >
+      ?
+    </span>
+  );
+}

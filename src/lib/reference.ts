@@ -120,32 +120,36 @@ export const CROP_HARVEST_WINDOW: Record<string, [number, number]> = {
 
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// ---------------------------------------------------------------------
+// ALL 135 districts of Uganda + the capital city (Kampala), per the
+// official administrative list (2020, incl. districts created 2015-2020).
+// Sorted alphabetically for easy selection.
+// ---------------------------------------------------------------------
 export const DISTRICTS = [
-  "Kampala",
-  "Wakiso",
-  "Mukono",
-  "Masaka",
-  "Mbarara",
-  "Kabale",
-  "Mbale",
-  "Jinja",
-  "Arua",
-  "Gulu",
-  "Lira",
-  "Soroti",
-  "Kabarole (Fort Portal)",
-  "Hoima",
-  "Bushenyi",
-  "Ntungamo",
-  "Mubende",
-  "Luwero",
-  "Iganga",
-  "Tororo",
-  "Rukungiri",
-  "Kasese",
-  "Rakai",
-  "Kayunga",
-];
+  // Central (25)
+  "Buikwe", "Bukomansimbi", "Butambala", "Buvuma", "Gomba", "Kalangala", "Kalungu",
+  "Kampala", "Kasanda", "Kayunga", "Kiboga", "Kyankwanzi", "Kyotera", "Luweero",
+  "Lwengo", "Lyantonde", "Masaka", "Mityana", "Mpigi", "Mubende", "Mukono",
+  "Nakaseke", "Nakasongola", "Rakai", "Sembabule", "Wakiso",
+  // Eastern (36)
+  "Amuria", "Budaka", "Bududa", "Bugiri", "Bugweri", "Bukedea", "Bukwo", "Bulambuli",
+  "Busia", "Butaleja", "Butebo", "Buyende", "Iganga", "Jinja", "Kaberamaido", "Kalaki",
+  "Kaliro", "Kamuli", "Kapchorwa", "Kapelebyong", "Katakwi", "Kibuku", "Kumi", "Kween",
+  "Luuka", "Mayuge", "Mbale", "Namayingo", "Namisindwa", "Namutumba", "Ngora", "Pallisa",
+  "Serere", "Sironko", "Soroti", "Tororo",
+  // Northern (38)
+  "Abim", "Adjumani", "Agago", "Alebtong", "Amolatar", "Amudat", "Amuru", "Apac", "Arua",
+  "Dokolo", "Gulu", "Kaabong", "Karenga", "Kitgum", "Koboko", "Kole", "Kotido", "Kwania",
+  "Lamwo", "Lira", "Madi-Okollo", "Maracha", "Moroto", "Moyo", "Nabilatuk",
+  "Nakapiripirit", "Napak", "Nebbi", "Nwoya", "Obongi", "Omoro", "Otuke", "Oyam", "Pader",
+  "Pakwach", "Terego", "Yumbe", "Zombo",
+  // Western (35)
+  "Buhweju", "Buliisa", "Bundibugyo", "Bunyangabu", "Bushenyi", "Hoima", "Ibanda",
+  "Isingiro", "Kabale", "Kabarole (Fort Portal)", "Kagadi", "Kakumiro", "Kamwenge",
+  "Kanungu", "Kasese", "Kazo", "Kibaale", "Kikuube", "Kiruhura", "Kiryandongo", "Kisoro",
+  "Kitagwenda", "Kyegegwa", "Kyenjojo", "Masindi", "Mbarara", "Mitooma", "Ntoroko",
+  "Ntungamo", "Rubanda", "Rubirizi", "Rukiga", "Rukungiri", "Rwampara", "Sheema",
+].sort((a, b) => a.localeCompare(b));
 
 /** Representative sub-counties per district (used by the form + seeds). */
 export const SUB_COUNTIES: Record<string, string[]> = {

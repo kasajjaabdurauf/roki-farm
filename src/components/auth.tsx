@@ -44,6 +44,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
       .then((s) => {
         if (cancelled) return;
         if (s) {
+          // Always reconcile role + farmer link on every boot (not just
+          // sign-in) so a stale local role/demoFarmerId can never show
+          // the wrong dashboard.
           void bootstrapRemote().catch(() => {});
         } else if (pathname !== "/login") {
           // no valid session (or the account was deleted): back to sign-in

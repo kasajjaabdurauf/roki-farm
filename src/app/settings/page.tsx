@@ -395,6 +395,12 @@ function TeamRolesCard() {
         Add and manage administrators, field agents and farmers without touching the database. New sign-ups
         automatically join as Field Agents; the very first account on a fresh database becomes the Admin.
       </p>
+      <div className="mb-4 rounded-xl bg-forest-50 px-4 py-3 text-[12.5px] leading-relaxed text-forest-800">
+        <b>How admin access works:</b> there is no limit on admins, no secret slots. Anyone can create an
+        account; to make them an admin, just change their role here (Admins only). They'll see the admin
+        workspace on their next sign-in. You can have 5, 10 or 20 admins — the whole team can manage the
+        platform together.
+      </div>
 
       {error && <p className="mb-3 rounded-xl bg-danger-bg px-3.5 py-2.5 text-[13px] font-semibold text-danger-dark">{error}</p>}
       {notice && <p className="mb-3 rounded-xl bg-success-bg px-3.5 py-2.5 text-[13px] font-semibold text-success-dark">{notice}</p>}

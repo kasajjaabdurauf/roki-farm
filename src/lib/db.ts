@@ -230,7 +230,10 @@ export async function syncNow(): Promise<void> {
         const msg = err instanceof Error ? err.message : String(err);
         console.warn("[Roki] sync failed for op", op.kind, ":", msg);
         try {
-          localStorage.setItem("roki-last-sync-error", `${op.kind}: ${msg}`);
+          localStorage.setItem(
+            "roki-last-sync-error",
+            JSON.stringify({ at: Date.now(), text: `${op.kind}: ${msg}` })
+          );
         } catch { /* ignore */ }
         remaining.push(op);
       }
@@ -309,7 +312,13 @@ export async function bootstrapRemote(): Promise<void> {
   if (profile) {
     mutate((db) => {
       db.meta.role = (profile.role as Role) ?? "FIELD_AGENT";
-      if (profile.farmer_id) db.meta.demoFarmerId = profile.farmer_id;
+      // IMPORTANT: always reconcile the farmer link. A stale demoFarmerId
+      // from a previous session must NEVER leak into another role's view.
+      if (profile.farmer_id) {
+        db.meta.demoFarmerId = profile.farmer_id;
+      } else {
+        db.meta.demoFarmerId = "";
+      }
     });
   }
   await refreshFromRemote();
@@ -756,7 +765,12 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
       let farmer: Farmer | undefined = db.farmers.find((f) => f.id === row.farmerId);
       if (!farmer && row.parsed.phone) {
         const ph = normalizeUgPhone(String(row.parsed.phone));
-        if (ph.ok) farmer = db.farmers.find((f) => f.phone === ph.normalized);
+        if (ph.ok) {
+          const byPhone = db.farmers.find((f) => f.phone === ph.normalized);
+          // never merge into an account-owned record unless the row carries
+          // the same email explicitly (prevents account collapse into lists)
+          if (byPhone && (!byPhone.email || row.parsed.email)) farmer = byPhone;
+        }
       }
       if (!farmer && row.parsed.email) {
         const em = String(row.parsed.email).trim().toLowerCase();

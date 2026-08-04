@@ -17,7 +17,7 @@ import { importStaging, useDb, type ImportSummary } from "@/lib/db";
 import { buildStaging, parseFile, reStage, reStageRow, stageFieldLabel, STAGE_FIELDS, type ParsedFile } from "@/lib/sheet";
 import type { StagingState, StageField } from "@/lib/types";
 import { downloadCSV, downloadText, stamp } from "@/lib/export";
-import { Button, Card, EmptyState, Modal, Select, XScroll } from "@/components/ui";
+import { Button, Card, EmptyState, Modal, Select, Tooltip, XScroll } from "@/components/ui";
 import { cx } from "@/lib/format";
 import { fmtKg } from "@/lib/rules";
 
@@ -357,11 +357,14 @@ export default function UploadPage() {
   );
 }
 
-function SummaryTile({ label, value, tone }: { label: string; value: number; tone: string }) {
+function SummaryTile({ label, value, tone, hint }: { label: string; value: number; tone: string; hint?: string }) {
   return (
     <div className={cx("rounded-2xl px-4 py-3.5", tone.split(" ")[1])}>
       <p className={cx("font-display text-2xl font-bold tabular", tone.split(" ")[0])}>{value.toLocaleString()}</p>
-      <p className={cx("text-[12px] font-semibold", tone.split(" ")[0])}>{label}</p>
+      <p className={cx("flex items-center gap-1 text-[12px] font-semibold", tone.split(" ")[0])}>
+        {label}
+        {hint && <Tooltip text={hint} className={cx("bg-white/50", tone.split(" ")[0])} />}
+      </p>
     </div>
   );
 }

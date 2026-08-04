@@ -367,14 +367,18 @@ function validateRow(
   if (!resolvedFarmer && parsed.phone) {
     const ph = normalizeUgPhone(String(parsed.phone));
     if (ph.ok) {
-      resolvedFarmer = db.farmers.find((f) => f.phone === ph.normalized);
-      if (resolvedFarmer) {
-        out.farmerId = resolvedFarmer.id;
-        out.farmerName = resolvedFarmer.fullName;
-        if (parsed.fullName && norm(String(parsed.fullName)) !== norm(resolvedFarmer.fullName)) {
-          warnings.push(`Phone matches existing farmer ${resolvedFarmer.fullName}, row will link to them`);
+      const byPhone = db.farmers.find((f) => f.phone === ph.normalized);
+      if (byPhone) {
+        // CONSERVATIVE: never merge into an account-owned record unless the
+        // row explicitly carries the same email. This stops uploads from
+        // collapsing manually-created accounts into uploaded lists.
+        if (byPhone.email && !parsed.email) {
+          warnings.push(`Phone matches ${byPhone.id} which belongs to an account, a separate record will be created (no linking)`);
         } else {
-          out.resolveNote = `Linked to existing profile ${resolvedFarmer.id}`;
+          resolvedFarmer = byPhone;
+          out.farmerId = resolvedFarmer.id;
+          out.farmerName = resolvedFarmer.fullName;
+          out.resolveNote = `Linked to existing profile ${resolvedFarmer.id} (phone match)`;
         }
       }
     }

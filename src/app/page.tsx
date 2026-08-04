@@ -307,12 +307,12 @@ function StaffDashboard() {
         {agentSession && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ochre-200 bg-ochre-50/70 px-4 py-3">
             <p className="text-[13px] font-semibold text-ochre-800">
-              Agent view — you can see everything and register farmers. Settings and access-code changes are
+              Agent view — you can see who's registered and add new farmers. Settings and access-code changes are
               admin-only.
             </p>
             <Link href="/farmers/new">
               <Button variant="accent" size="sm">
-                <Users className="h-4 w-4" /> Register a farmer
+                <Users className="h-4 w-4" /> Add a farmer
               </Button>
             </Link>
           </div>

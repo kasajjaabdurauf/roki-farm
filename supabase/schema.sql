@@ -186,6 +186,12 @@ drop policy if exists "farmers insert" on public.farmers;
 create policy "farmers insert" on public.farmers
   for insert with check (public.get_user_role() in ('ADMIN', 'FIELD_AGENT'));
 
+-- insert: anonymous (access-code agents) may register farmers in the field;
+-- the farmer claims the record later via phone/email at signup
+drop policy if exists "farmers insert anon" on public.farmers;
+create policy "farmers insert anon" on public.farmers
+  for insert with check (auth.role() = 'anon');
+
 -- update: admins only (data integrity); agents use insert + support ticket
 drop policy if exists "farmers update" on public.farmers;
 create policy "farmers update" on public.farmers

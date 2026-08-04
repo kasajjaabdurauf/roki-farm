@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { PhoneCall, Search, UserPlus, Users } from "lucide-react";
+import { Download, PhoneCall, Search, UserPlus, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { refreshNow, useDb } from "@/lib/db";
+import { downloadCSV, stamp, type ExportColumn } from "@/lib/export";
 import { fmtNumber } from "@/lib/rules";
 import { REFUGEE_LABEL, type RokiTier, type ScaleTier } from "@/lib/types";
 import { Badge, Button, Card, EmptyState, Input, Select } from "@/components/ui";
@@ -13,6 +14,8 @@ export default function FarmersPage() {
   const db = useDb();
   const [q, setQ] = useState("");
   const [tier, setTier] = useState<"ALL" | RokiTier>("ALL");
+  const [crop, setCrop] = useState("ALL");
+  const [district, setDistrict] = useState("ALL");
   const [attention, setAttention] = useState(false);
 
   // keep the list live so new registrations appear without a reload
@@ -29,12 +32,55 @@ export default function FarmersPage() {
       .filter((f) => {
         if (tier !== "ALL" && f.rokiTier !== tier) return false;
         if (attention && f.flags.length === 0) return false;
+        // crop filter: profile crop OR a harvest log with that crop
+        if (crop !== "ALL") {
+          const grows = f.primaryCrops.includes(crop) ||
+            db.logs.some((l) => l.farmerId === f.id && l.cropType === crop);
+          if (!grows) return false;
+        }
+        // place filter: district / sub-county / village
+        if (district !== "ALL") {
+          if (f.district !== district && f.subCounty !== district && f.village !== district) return false;
+        }
         if (!query) return true;
         const hay = `${f.id} ${f.fullName} ${f.email ?? ""} ${f.phone} ${f.district} ${f.subCounty} ${f.village ?? ""} ${REFUGEE_LABEL[f.refugeeStatus]}`.toLowerCase();
         return hay.includes(query);
       })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // newest first
-  }, [db.farmers, q, tier, attention]);
+  }, [db.farmers, db.logs, q, tier, crop, district, attention]);
+
+  function downloadFiltered() {
+    const cols: ExportColumn[] = [
+      { key: "id", label: "Farmer ID" },
+      { key: "fullName", label: "Full Name" },
+      { key: "email", label: "Email" },
+      { key: "phone", label: "Phone (+256)" },
+      { key: "district", label: "District" },
+      { key: "subCounty", label: "Sub-County" },
+      { key: "village", label: "Village" },
+      { key: "primaryCrops", label: "Crops", value: (r) => r.primaryCrops.join("; ") },
+      { key: "rokiTier", label: "Roki Tier", value: (r) => `Tier ${r.rokiTier}` },
+      { key: "acreage", label: "Acreage (acres)" },
+      { key: "refugeeStatus", label: "Community", value: (r) => (r.refugeeStatus === "REFUGEE" ? "Refugee" : r.refugeeStatus === "HOST" ? "Host community" : "") },
+      { key: "createdAt", label: "Registered", value: (r) => r.createdAt?.slice(0, 10) },
+    ];
+    const cropTag = crop === "ALL" ? "all-crops" : crop.toLowerCase().replace(/\s+/g, "-");
+    const placeTag = district === "ALL" ? "all-places" : district.toLowerCase().replace(/\s+/g, "-");
+    downloadCSV(filtered, cols, `roki-farmers-${cropTag}-${placeTag}-${stamp("list")}.csv`);
+  }
+
+  // distinct crops (from profiles + logs) and districts for the filters
+  const cropOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of db.farmers) for (const c of f.primaryCrops) set.add(c);
+    for (const l of db.logs) set.add(l.cropType);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [db.farmers, db.logs]);
+  const districtOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of db.farmers) if (f.district) set.add(f.district);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [db.farmers]);
 
   const logCount = useMemo(() => {
     const map = new Map<string, number>();
@@ -51,14 +97,19 @@ export default function FarmersPage() {
             {db.farmers.length.toLocaleString()} registered · full survey records · instant search
           </p>
         </div>
-        <Link href="/farmers/new">
-          <Button size="lg">
-            <UserPlus className="h-4 w-4" /> New Survey
+        <div className="flex gap-2">
+          <Button variant="outline" size="lg" onClick={downloadFiltered} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4" /> Download list ({filtered.length})
           </Button>
-        </Link>
+          <Link href="/farmers/new">
+            <Button size="lg">
+              <UserPlus className="h-4 w-4" /> New Survey
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_200px_200px_auto]">
+      <div className="grid gap-3 sm:grid-cols-[1fr_180px_180px_150px_auto]">
         <div className="relative">
           <Search className="absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-stone-400" />
           <Input
@@ -68,6 +119,18 @@ export default function FarmersPage() {
             className="pl-10"
           />
         </div>
+        <Select value={crop} onChange={(e) => setCrop(e.target.value)}>
+          <option value="ALL">All crops</option>
+          {cropOptions.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </Select>
+        <Select value={district} onChange={(e) => setDistrict(e.target.value)}>
+          <option value="ALL">All places</option>
+          {districtOptions.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </Select>
         <Select value={String(tier)} onChange={(e) => setTier(e.target.value === "ALL" ? "ALL" : (Number(e.target.value) as RokiTier))}>
           <option value="ALL">All Roki tiers</option>
           <option value="1">Tier 1 · Export-ready</option>

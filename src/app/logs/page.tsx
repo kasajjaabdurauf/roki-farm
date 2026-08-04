@@ -126,12 +126,20 @@ function LogsPageInner() {
       source: isFarmerRole ? "FARMER" : "FIELD_AGENT",
     });
     setLastSaved(log.id);
-    // surface a sync problem only if it appears AFTER this save
-    // (a stale error from before must not keep showing once fixed)
+    // surface a sync problem ONLY if a NEW error appears after this save
+    // (a stale error from before must never keep showing once fixed)
+    const savedAt = Date.now();
     try {
-      localStorage.removeItem("roki-sync-check");
-      const err = localStorage.getItem("roki-last-sync-error");
-      if (err) setFormError(`Saved on this device, but syncing is blocked: ${err}`);
+      setTimeout(() => {
+        const raw = localStorage.getItem("roki-last-sync-error");
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw) as { at: number; text: string };
+          if (parsed.at > savedAt) setFormError(`Saved on this device, but syncing is blocked: ${parsed.text}`);
+        } catch {
+          // legacy plain-text error: still stale, ignore it
+        }
+      }, 1200);
     } catch { /* ignore */ }
     setQty("");
     setBatchId("");

@@ -27,6 +27,20 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setNotice("");
+    // clear validation: check before calling Supabase so the user never
+    // sees a confusing server error about password length
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (mode === "signup" && password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (mode === "signin" && !password) {
+      setError("Please enter your password.");
+      return;
+    }
     setBusy(true);
     try {
       if (mode === "signup") {
@@ -165,7 +179,7 @@ export default function LoginPage() {
       <Card className="p-6">
         <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1">
           <button
-            onClick={() => { setMode("signin"); setError(""); setNotice(""); }}
+            onClick={() => { setMode("signin"); setError(""); setNotice(""); setPassword(""); }}
             className={
               "flex h-11 items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-colors " +
               (mode === "signin" ? "bg-white text-forest-900 shadow-sm" : "text-stone-500")
@@ -174,7 +188,7 @@ export default function LoginPage() {
             <LogIn className="h-4 w-4" /> Sign in
           </button>
           <button
-            onClick={() => { setMode("signup"); setError(""); setNotice(""); }}
+            onClick={() => { setMode("signup"); setError(""); setNotice(""); setPassword(""); }}
             className={
               "flex h-11 items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-colors " +
               (mode === "signup" ? "bg-white text-forest-900 shadow-sm" : "text-stone-500")
@@ -236,13 +250,19 @@ export default function LoginPage() {
             </div>
           )}
           {mode === "signup" && (
-            <Field label="Password" required hint="min 6 characters · account is a farmer account">
+            <Field
+              label="Password"
+              required
+              hint={password.length > 0 && password.length < 6 ? `${password.length}/6 — keep typing` : "at least 6 characters"}
+              error={password.length > 0 && password.length < 6 ? "Password must be at least 6 characters." : undefined}
+            >
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Choose a password"
                 autoComplete="new-password"
+                invalid={password.length > 0 && password.length < 6}
               />
             </Field>
           )}
@@ -276,6 +296,11 @@ export default function LoginPage() {
         <MiniCard icon={<Sparkles className="h-4 w-4" />} title="Works offline" text="Field agents keep working without network; sync happens automatically." />
         <MiniCard icon={<KeyRound className="h-4 w-4" />} title="Magic link" text="No password needed, sign in straight from your email." />
       </div>
+
+      <p className="text-center text-[12.5px] text-stone-400">
+        Need admin access? Create an account first, then an existing administrator grants it from
+        Settings → Team &amp; roles. Multiple admins are supported.
+      </p>
 
       {!remoteConfigured() && (
         <Card className="p-4 text-center">
