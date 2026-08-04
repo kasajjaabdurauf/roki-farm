@@ -94,7 +94,9 @@ function SyncChip({ compact }: { compact?: boolean }) {
     if (online && pending > 0) flushOutbox();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online, pending]);
-  const syncing = pending > 0 && !isRemote;
+
+  // Farmers never see sync internals (it's automatic and invisible).
+  if (db.meta.role === "FARMER") return null;
 
   const textClass = compact ? "hidden min-[400px]:inline" : "";
 
@@ -109,20 +111,25 @@ function SyncChip({ compact }: { compact?: boolean }) {
       </span>
     );
   }
+  // Only show a pill when something actually needs attention: offline,
+  // or a genuinely stuck sync. Routine pending items are silent.
   if (pending > 0) {
     let lastErr = "";
     try {
       lastErr = localStorage.getItem("roki-last-sync-error") ?? "";
     } catch { /* ignore */ }
+    if (!lastErr) {
+      // routine pending — invisible; it will flush automatically
+      return null;
+    }
     return (
       <button
         onClick={() => flushOutbox()}
-        className="inline-flex items-center gap-1.5 rounded-full bg-warning-bg px-2.5 py-1.5 text-[12px] font-semibold text-warning-dark ring-1 ring-inset ring-warning/30 hover:bg-warning/20"
-        title={lastErr ? `Sync blocked: ${lastErr}. Tap to retry.` : "Tap to flush the sync queue"}
+        className="inline-flex items-center gap-1.5 rounded-full bg-danger-bg px-2.5 py-1.5 text-[12px] font-semibold text-danger-dark ring-1 ring-inset ring-danger/30 hover:bg-danger/20"
+        title={`Sync blocked: ${lastErr}. Tap to retry.`}
       >
         <CloudUpload className="h-4 w-4" />
-        <span className={textClass}>{pending} pending sync</span>
-        {lastErr && <span className="hidden text-[10px] font-bold text-danger-dark sm:inline">!</span>}
+        <span className={textClass}>Sync blocked</span>
       </button>
     );
   }
