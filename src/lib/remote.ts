@@ -318,7 +318,18 @@ export async function pushOp(op: OutboxOp): Promise<void> {
     case "UPDATE_LOG": {
       const row = logToRow(op.log);
       const { error } = await c.from("produce_logs").upsert(row, { onConflict: "id" });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Surface the real reason: 401 = bad/missing anon key or session,
+        // 403 = RLS denial, other = server issue.
+        const status = (error as { status?: number }).status;
+        const hint =
+          status === 401
+            ? "AUTH/KEY ERROR (check NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel)"
+            : status === 403
+              ? "RLS DENIED (check policies)"
+              : "SERVER ERROR";
+        throw new Error(`[${hint}] ${error.message}`);
+      }
       break;
     }
     case "DELETE_LOGS": {
