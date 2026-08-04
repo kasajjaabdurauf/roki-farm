@@ -1,6 +1,6 @@
 # Roki Fruit & Vegetables — Platform Audit & Launch Roadmap
 
-**Version:** 1.0 · **Date:** 2026-08-03 · **Status:** Moving from demo → production (targeting 1,000+ users)
+**Version:** 2.15.1 · **Date:** 2026-08-04 · **Status:** Field-demo ready — fresh-start one-shot SQL, multi-admin, safe linking, crop/place search+export. Moving toward public launch.
 
 This document is the single source of truth for everything left before the platform is 100% launch-ready.
 Every item has a priority (P0 = before launch, P1 = first month, P2 = backlog) and an acceptance check.
@@ -49,16 +49,52 @@ Tick items off as they are completed.
 - [x] v2.8: dedup & merge tool (/duplicates), Sentry client monitoring + /api/health uptime endpoint, multi-language (en/lg/rn/sw) for farmer screens with Account switcher, SMS/USSD removed from all claims, 92 checks
 - [x] v2.9: onboarding flicker fixed (splash while profile loads), resilient session validation (no surprise sign-outs), survey UX polish (step scroll-to-top, labelled row inputs, simplified consent), per-farmer Survey PDF download, docs reorganized (changelog + developer guide)
 - [x] v2.10: agent link restored on sign-in, brute-force protection on access code, strict survey field validation, concurrency-safe IDs, 98 checks
+- [x] v2.11: agent access code lives in the cloud (hashed in settings; shared across devices; migration_v7.sql) + v7b/c (settings row + anon read) + v8/v9/v10 (RLS write fixes for agents + farmers)
+- [x] v2.12: agent & exec workspace — anon read for farmers/logs (v7d), agent banner, add-a-farmer straight to form (no account wall), anon farmer insert (v11)
+- [x] v2.13: RLS insert unblock (emergency), stale sync-error cleanup, no more pending-sync pill for farmers
+- [x] v2.14: signup password validation, admin role never leaks farmer view (bootstrap reconciles role + clears stale farmer link), agent straight-to-form
+- [x] v2.15: ALL 135 districts + Kampala, safe upload linking (never merge into account-owned records), crop+place search with downloadable CSV list, upload tooltips, multi-admin clarity
+- [x] v2.15.1: one-shot idempotent fresh_start.sql (wipe + schema + migrations v2→v11 + logs RLS-off), 101 checks
+
+
+
+---
+
+## 🔐 ROLES & ADMIN — how it works now (v2.15)
+
+### The three roles
+| Role | What they see/do |
+|---|---|
+| **Admin** | Everything: dashboard, all farmers/logs, settings, Team & roles, duplicates, master backup, PDF reports, crop/place search+download |
+| **Field Agent** | Sees everything (read), registers farmers straight from the form, logs harvests. No settings, no code change, no delete. Two ways in: **access code** (no account) or an **account** with role FIELD_AGENT |
+| **Farmer** | Only their own farm, harvests, tier, tips. Completes the survey at onboarding; logs their own harvests |
+
+### How admin access works (multi-admin, no secret slots)
+- **There is no limit** on admins — 1, 5, 10, 20, whatever the team needs.
+- **Becoming an admin:** create an account (anyone can), then an existing admin changes the role to ADMIN in **Settings → Team & roles**. That's it. The role is applied to that person's account; they see the admin workspace on their next sign-in.
+- **The first account** on a fresh database automatically becomes Admin (so setup never dead-ends).
+- **No self-serve admin:** a regular signup can never make itself admin; only an existing admin can grant it (RLS enforces this server-side).
+- **Protection:** Settings, Team & roles, Duplicates, access-code change, and delete actions are admin-only. RLS backs all of it.
+
+### Field agents — the access code
+- One shared code (admin-managed, stored **hashed** in the cloud so it works on every device).
+- Rate-limited: 5 wrong attempts / 10 min per device.
+- Agents enter it on the login screen ("Are you a field agent?" link), get the agent view + **Add a farmer** (straight to the survey form, no account linking), and can log harvests.
+- Farmers they register get their own record; the farmer claims it later at signup via phone/email.
+
+### Safe linking (the "35 became 30" fix)
+- Uploads **never** merge into an account-owned farmer record (one with an email) unless the row explicitly carries that email.
+- Match order: Farmer ID → phone (non-account records only) → email. Warnings explain every decision.
 
 ---
 
 ## 🚨 2. P0 — REQUIRED BEFORE LAUNCH
 
 ### 2.1 Backend provisioning (manual, ~1 hour, done once)
-- [ ] Create dedicated client Gmail (`rokifarmlogs@gmail.com` or similar) — never use personal accounts
-- [ ] Create GitHub repo `roki-farm-platform` under that account
-- [ ] Create Supabase project under the client account (region `eu-central-1` or nearest to East Africa)
-- [ ] Apply `supabase/schema.sql` in the Supabase SQL Editor
+- [x] Create dedicated client Gmail — done (the account that owns GitHub/Supabase/Resend)
+- [x] Create GitHub repo `roki-farm-platform` — done
+- [x] Create Supabase project under the client account — done (note: keep the URL + anon key matching Vercel env)
+- [x] Apply the schema — **use `supabase/fresh_start.sql`** (wipe + schema + migrations v2→v11 + logs RLS-off) in ONE paste. This is the current recommended path.
 - [ ] Sign up at Resend.com (free tier), verify sender domain or use `onboarding@resend.dev`
 - [ ] Deploy to Vercel from the client GitHub repo (or drag & drop)
 - [ ] Set env vars: Vercel → `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -66,20 +102,21 @@ Tick items off as they are completed.
 - [ ] Confirm keep-alive workflow runs (Actions tab → run manually once)
 - [ ] Confirm nightly backup workflow runs and email arrives (run manually once)
 
-### 2.2 Accounts & roles
-- [x] In-app role management: Settings → Team & roles (Admin) — no SQL for new admins; first account on a fresh DB auto-becomes Admin (migration_v2.sql)
-- [ ] Create field agent accounts and assign `FIELD_AGENT`
-- [ ] Create farmer accounts (optional per farmer) and assign `FARMER` + `farmer_id` link
-- [ ] Password reset flow tested (Supabase built-in email)
+### 2.2 Accounts & roles (multi-admin, no secret slots)
+- [x] In-app role management: Settings → Team & roles — no SQL. Admins can be 1, 5, 10, 20 — no limit. First account on a fresh DB auto-becomes Admin.
+- [x] Admin cannot be self-served: only an existing admin grants ADMIN (RLS enforces).
+- [x] Field agents: shared access code (hashed in cloud) OR account with FIELD_AGENT role
+- [x] Farmers: signup is farmer-only; every account gets its own farmer record (accounts ARE farmers)
+- [x] Password reset flow (forgot-password link + reset page)
+- [ ] (Optional) Create extra admin accounts from Settings → Team & roles to match the team size
 
-### 2.3 Security verification (bank-grade, per addendum)
-- [ ] Confirm RLS is ON for all tables (`select relrowsecurity from pg_class …`)
-- [ ] Verify an anonymous (logged-out) request gets 401/empty on `/rest/v1/farmers`
-- [ ] Verify a FARMER account can only read/insert their own `farmer_id` logs
-- [ ] Verify FIELD_AGENT can register farmers + insert logs but cannot delete farmers
-- [ ] Verify ADMIN has full CRUD on all tables
-- [ ] Confirm service_role key exists ONLY in GitHub secrets (never in the browser bundle)
-- [ ] Confirm `NEXT_PUBLIC_` keys are only anon keys
+### 2.3 Security verification
+- [x] RLS enabled on all tables (schema.sql) — **except `produce_logs` which is intentionally disabled for the field demo** (so agents/farmers can log harvests reliably). Re-enable with a tested policy set before public launch (see P1).
+- [x] Anonymous (access-code agents) can READ farmers/logs + INSERT farmers/logs (v7d, v8, v11); cannot update/delete
+- [x] ADMIN has full CRUD; FIELD_AGENT can register + log but not delete farmers
+- [x] service_role key exists ONLY in GitHub secrets (never in browser bundle); NEXT_PUBLIC_ are anon keys only
+- [ ] (Before public launch) Re-enable RLS on produce_logs with the tested policy set and re-verify the above
+
 
 ### 2.4 Data migration (real farmers in)
 - [ ] Prepare the current farmer list as Excel/CSV (columns: Farmer Name, Phone, District, Sub-County, …)
@@ -107,8 +144,9 @@ Tick items off as they are completed.
 ## 🔒 3. P1 — FIRST MONTH AFTER LAUNCH
 
 ### 3.1 Data quality
-- [ ] Deduplication review: phone-number matching report for possible duplicate farmers
-- [ ] GPS capture: add "use my location" button to the survey (Section 1.6) for auto-filling coordinates
+- [x] Dedup & merge tool built (/duplicates) — run it monthly or after every big upload
+- [x] GPS capture from uploads (GPS-LATITUDE/LONGITUDE columns → survey record)
+- [ ] GPS "use my location" button in the survey (Section 1.6) for auto-filling coordinates (nice-to-have)
 - [ ] Backfill `age_group` / `gender` for any imported rows missing them
 - [ ] Set up naming convention guidance for enumerators (avoid typos: e.g. "Nakivale" vs "Nakivalli")
 
@@ -156,7 +194,7 @@ Tick items off as they are completed.
 | Upload | CSV with headers (Name/Phone/Qty), XLSX with units (tonnes, ha), malformed rows | Auto-mapping right; errors highlighted; import summary correct |
 | Rule engine | Yield ceiling breach, duplicate within 24h, incomplete profile, tier boundaries (1.5/2/10/3 acres) | Flags/statuses/tiers exactly as rules specify |
 | Exports | CSV (Excel-open, BOM, +256 phones), XLSX (2 sheets), master backup | Opens clean; columns correct; numbers match DB |
-| Auth | Sign up, sign in, magic link, sign out, role restrictions | RLS blocks unauthorized; role gates nav |
+| Auth | Sign up, sign in, magic link, sign out, role restrictions, multi-admin | Role gates nav; admin-only sections hidden; RLS (with produce_logs relaxed for the field demo) |
 | Data safety | Delete farmer → logs cascade; edit log → tier recalculates | No orphans; scores update |
 | Performance | Dashboard + grid load on mid-range Android | First load < 5 s on 3G; grid renders 1,000 rows without jank |
 

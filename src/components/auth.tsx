@@ -47,7 +47,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
           // Always reconcile role + farmer link on every boot (not just
           // sign-in) so a stale local role/demoFarmerId can never show
           // the wrong dashboard.
-          void bootstrapRemote().catch(() => {});
+          void bootstrapRemote()
+            .catch(() => {})
+            .finally(() => setBootstrapDone(true));
         } else if (pathname !== "/login") {
           // no valid session (or the account was deleted): back to sign-in
           router.replace("/login");
@@ -109,7 +111,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
     !!ownFarmer && !!ownFarmer.survey?.consentDate && ownFarmer.plannedProductions.length > 0;
   // While the farmer record is still loading (just after sign-in) show a
   // splash instead of flashing the home page then bouncing to /survey.
-  const profilePending = ready && remoteConfigured() && db.meta.role === "FARMER" && !ownFarmer;
+  // It resolves once bootstrap finishes; if it never resolves (stale
+  // session after a wipe), we time out and go to sign-in instead of
+  // hanging forever on "Loading your profile…".
+  const [bootstrapDone, setBootstrapDone] = useState(false);
+  const [staleTimeout, setStaleTimeout] = useState(false);
+  useEffect(() => {
+    if (!remoteConfigured()) { setBootstrapDone(true); return; }
+    const t = setTimeout(() => setStaleTimeout(true), 8000);
+    return () => clearTimeout(t);
+  }, []);
+  const profilePending =
+    ready && !bootstrapDone && remoteConfigured() && db.meta.role === "FARMER" && !ownFarmer && !staleTimeout;
   const needsSurvey =
     ready && remoteConfigured() && db.meta.role === "FARMER" && !!ownFarmer && !surveyDone;
 
@@ -119,6 +132,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
       router.replace("/survey");
     }
   }, [needsSurvey, pathname, router]);
+
+  // If the session is stale after a wipe (timeout fired), go to sign-in.
+  useEffect(() => {
+    if (staleTimeout && remoteConfigured() && pathname !== "/login") {
+      router.replace("/login");
+    }
+  }, [staleTimeout, remoteConfigured, pathname, router]);
 
   // Profile still loading after sign-in: hold the splash (prevents the
   // "home flashes, then back to onboarding" flicker).
