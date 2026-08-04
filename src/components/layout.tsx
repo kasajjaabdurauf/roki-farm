@@ -110,14 +110,19 @@ function SyncChip({ compact }: { compact?: boolean }) {
     );
   }
   if (pending > 0) {
+    let lastErr = "";
+    try {
+      lastErr = localStorage.getItem("roki-last-sync-error") ?? "";
+    } catch { /* ignore */ }
     return (
       <button
         onClick={() => flushOutbox()}
         className="inline-flex items-center gap-1.5 rounded-full bg-warning-bg px-2.5 py-1.5 text-[12px] font-semibold text-warning-dark ring-1 ring-inset ring-warning/30 hover:bg-warning/20"
-        title="Click to flush the sync queue"
+        title={lastErr ? `Sync blocked: ${lastErr}. Tap to retry.` : "Tap to flush the sync queue"}
       >
         <CloudUpload className="h-4 w-4" />
         <span className={textClass}>{pending} pending sync</span>
+        {lastErr && <span className="hidden text-[10px] font-bold text-danger-dark sm:inline">!</span>}
       </button>
     );
   }

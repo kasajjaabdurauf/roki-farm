@@ -232,6 +232,11 @@ create policy "logs insert" on public.produce_logs
     or farmer_id = (select farmer_id from public.profiles where id = auth.uid())
   );
 
+-- insert: anonymous (access-code agents) may log harvests — core field work
+drop policy if exists "logs insert anon" on public.produce_logs;
+create policy "logs insert anon" on public.produce_logs
+  for insert with check (auth.role() = 'anon');
+
 -- update: admins + agents (fixing typos), farmers own logs
 drop policy if exists "logs update" on public.produce_logs;
 create policy "logs update" on public.produce_logs

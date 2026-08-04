@@ -224,8 +224,15 @@ export async function syncNow(): Promise<void> {
     for (const op of db.meta.outbox) {
       try {
         await pushOp(op);
-      } catch {
-        remaining.push(op); // keep failed ops for the next retry
+      } catch (err) {
+        // NEVER silently stuck: log the failure so it can be diagnosed,
+        // and keep the op queued for retry.
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("[Roki] sync failed for op", op.kind, ":", msg);
+        try {
+          localStorage.setItem("roki-last-sync-error", `${op.kind}: ${msg}`);
+        } catch { /* ignore */ }
+        remaining.push(op);
       }
     }
     if (remaining.length !== db.meta.outbox.length) {
