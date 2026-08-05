@@ -1,10 +1,6 @@
--- =====================================================================
--- ROKI — FULL FRESH START (ONE SHOT) — v3.0 TWO-GROUP MODEL
--- Wipes everything → re-creates schema → applies migrations v2→v12
--- (Admin + Agent, ROKIEXPORTS agent code) → allows harvest-log inserts.
--- =====================================================================
+-- ROKI FULL FRESH START (v3, includes v2→v13)
 
--- ══════════ 1 · WIPE ══════════
+-- 1 WIPE
 -- missing, so it works even on a partially-initialized project)
 --
 -- Deletes EVERYTHING that exists: farmers, logs, settings, ALL user
@@ -47,7 +43,7 @@ end $$;
 -- AFTER THIS: re-apply schema.sql + migration_v2..v7d so the tables and
 -- policies exist again, then sign up fresh (first account = Admin).
 
--- ══════════ 2 · SCHEMA ══════════
+-- 2 SCHEMA
 -- Tables, row-level security and role plumbing.
 -- Run once. After applying, create the admin account and assign roles.
 create extension if not exists pgcrypto;
@@ -143,6 +139,7 @@ create table if not exists public.farmers (
   survey               jsonb,                      -- full 15-section questionnaire
   flags                jsonb not null default '[]',
   email                text,                       -- account email (accounts ARE farmers)
+  logged_by            text,                       -- agent who registered this farmer (performance pay)
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
@@ -294,12 +291,9 @@ on conflict (id) do nothing;
 --   update public.profiles set role = 'FARMER', farmer_id = 'RFV-UG-00001'
 --     where id = '<farmer auth uid>';
 
--- ══════════ 3 · MIGRATIONS v2→v12 ══════════
--- =====================================================================
--- Roki — COMBINED MIGRATION (v2 → v12) — run ONCE after schema.sql
--- Idempotent: every policy is dropped before being recreated.
--- Includes the TWO-GROUP MODEL (v12: Admin + Agent).
--- =====================================================================
+-- 3 MIGRATIONS v2→v13
+-- COMBINED MIGRATION (v2 → v13) — run ONCE after schema.sql
+-- Idempotent; includes two-group model + logged_by column.
 
 -- Adds: profiles.email, first-user-becomes-admin, admin role management
 -- (no more hand-editing SQL to add admins — do it from Settings → Team).
@@ -344,9 +338,7 @@ create policy "profiles insert as admin" on public.profiles
 --    update public.profiles set role = 'ADMIN'
 --    where id = (select id from public.profiles order by created_at limit 1);
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 --
 -- New signup flow: people choose "Field agent" or "Farmer" at signup,
@@ -378,9 +370,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Every self-signup is a FARMER (field agents use the access code).
 -- Applies to new signups AND retro-fixes existing accounts that were
@@ -416,9 +406,7 @@ where role = 'FIELD_AGENT'
     'no-agents@example.com'
   );
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 --
 -- Previously a signup created an account and someone had to "link" it
@@ -511,9 +499,7 @@ create policy "farmers insert own" on public.farmers
 --   sign up → own RFV-UG id + farmer record appear immediately
 --   complete survey → fills in THEIR record (no linking anywhere)
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 --
 -- Scenario 1 (they already have an account): document rows link to the
@@ -574,9 +560,7 @@ create trigger on_auth_user_created
 -- Uploaded list with NO email → the person's signup creates a new
 -- record; an admin can still merge later by updating farmers.email.
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Adds agent_code_hash to settings so the shared field-agent code is
 -- the same on EVERY device (admin changes it once in Settings).
@@ -587,9 +571,7 @@ alter table public.settings
 -- but ensure the column is readable by authenticated users (covered by
 -- "settings select"). Nothing else needed.
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Fixes the agent access-code cloud write:
 --   1) allows ADMINS to insert into settings (needed for the upsert
@@ -609,9 +591,7 @@ values (
 )
 on conflict (id) do nothing;
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Allows ANONYMOUS (not-yet-signed-in) users to read ONLY the agent
 -- code hash so the field-agent login works before authentication.
@@ -622,9 +602,7 @@ drop policy if exists "settings select anon" on public.settings;
 create policy "settings select anon" on public.settings
   for select using (auth.role() = 'anon' and id = 1);
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Lets access-code field agents (who have NO login) READ the farmer
 -- database, so they can see who is registered and help onboard.
@@ -638,9 +616,7 @@ drop policy if exists "logs select anon" on public.produce_logs;
 create policy "logs select anon" on public.produce_logs
   for select using (auth.role() = 'anon');
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Lets access-code field agents (anonymous, no login) INSERT harvest
 -- logs. Read was already allowed; writes now match the product vision
@@ -651,9 +627,7 @@ drop policy if exists "logs insert anon" on public.produce_logs;
 create policy "logs insert anon" on public.produce_logs
   for insert with check (auth.role() = 'anon');
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Makes a signed-in farmer's own harvest-log insert robust:
 --   allowed if the row's farmer_id matches
@@ -672,9 +646,7 @@ create policy "logs insert" on public.produce_logs
     )
   );
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- FINAL fix for farmer "pending sync" / RLS-denied inserts.
 --
@@ -693,9 +665,7 @@ create policy "logs insert" on public.produce_logs
 -- keep the anon policy for access-code agents (they have no login)
 -- (logs insert anon remains as-is)
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Lets access-code field agents (anonymous) INSERT farmer records when
 -- they register a farmer in the field. The farmer later claims the
@@ -704,9 +674,7 @@ drop policy if exists "farmers insert anon" on public.farmers;
 create policy "farmers insert anon" on public.farmers
   for insert with check (auth.role() = 'anon');
 
--- ---------------------------------------------------------------------
--- Migration v2
--- ---------------------------------------------------------------------
+-- v2
 
 -- Farmers don't use the app (agents onboard them). So:
 --  1) New signups default to FIELD_AGENT (not FARMER).
@@ -753,7 +721,16 @@ set role = 'FIELD_AGENT'
 where role = 'FARMER';
 -- DONE. The app now has two groups: Admin and Agent.
 
--- ══════════ 4 · FIELD-DEMO: allow harvest-log inserts ══════════
-alter table public.produce_logs disable row level security;
+-- v2
 
--- ══════════ DONE — first signup = Admin · agent code = ROKIEXPORTS ══════════
+-- Adds the logged_by column to farmers (the agent who registered the
+-- farmer, for performance-based pay). The app sends it; without this
+-- column the insert was rejected ("column does not exist") and nothing
+-- synced.
+alter table public.farmers
+  add column if not exists logged_by text;
+
+-- 4 logs RLS off
+ alter table public.produce_logs disable row level security;
+
+-- DONE — first signup = Admin · agent code = ROKIEXPORTS

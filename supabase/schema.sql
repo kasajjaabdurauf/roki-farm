@@ -107,6 +107,7 @@ create table if not exists public.farmers (
   survey               jsonb,                      -- full 15-section questionnaire
   flags                jsonb not null default '[]',
   email                text,                       -- account email (accounts ARE farmers)
+  logged_by            text,                       -- agent who registered this farmer (performance pay)
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );

@@ -108,6 +108,9 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
                 <MapPin className="h-4 w-4 text-ochre-500" />
                 {farmer.village ? `${farmer.village}, ` : ""}{farmer.subCounty}, {farmer.district}
               </p>
+              {farmer.loggedBy && (
+                <p className="mt-0.5 text-[12px] font-semibold text-ochre-600">Registered by {farmer.loggedBy}</p>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
