@@ -130,6 +130,9 @@ function SyncChip({ compact }: { compact?: boolean }) {
       >
         <CloudUpload className="h-4 w-4" />
         <span className={textClass}>Sync blocked</span>
+        <span className="hidden max-w-[180px] truncate text-[10px] font-normal text-danger-dark/70 md:inline">
+          {lastErr}
+        </span>
       </button>
     );
   }
