@@ -1,10 +1,11 @@
 # =====================================================================
 # Keep Supabase Awake — Workaround A ($0 hosting reliability)
-# Supabase pauses free-tier projects after ~7 days with no API calls
-# (e.g. off-harvest season). This workflow pings the REST API every
-# 3 days so the database never pauses.
+# Supabase pauses free-tier projects after ~7 days with no API calls.
+# This workflow pings the REST API every 3 days so the database never
+# pauses.
 #
-# Required repository secrets:
+# Required repository secrets (Settings → Secrets and variables →
+# Actions):
 #   SUPABASE_URL       e.g. https://xxxx.supabase.co
 #   SUPABASE_ANON_KEY  the anon (publishable) key
 # =====================================================================
@@ -19,16 +20,41 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
+      - name: Check secrets are configured
+        run: |
+          missing=0
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "::error::Missing repository secret: SUPABASE_URL"
+            missing=1
+          fi
+          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "::error::Missing repository secret: SUPABASE_ANON_KEY"
+            missing=1
+          fi
+          if [ "$missing" = "1" ]; then
+            echo "Add the missing secrets in Settings → Secrets and variables → Actions, then re-run."
+            exit 1
+          fi
+          echo "Secrets OK"
+
       - name: Ping Supabase REST API (farmers)
+        # continue-on-error: a 5xx during wake-up is fine — the point is
+        # to touch the DB, not to report failure on transient responses.
+        continue-on-error: true
         run: |
           curl -sS -o /dev/null -w "farmers ping -> HTTP %{http_code}\n" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/farmers?select=count"
+            "${{ secrets.SUPABASE_URL }}/rest/v1/farmers?select=count" || echo "farmers ping failed (will retry next run)"
 
       - name: Ping Supabase REST API (produce_logs)
+        continue-on-error: true
         run: |
           curl -sS -o /dev/null -w "logs ping -> HTTP %{http_code}\n" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/produce_logs?select=count"
+            "${{ secrets.SUPABASE_URL }}/rest/v1/produce_logs?select=count" || echo "logs ping failed (will retry next run)"
+
+      - name: Confirm ping touched the DB
+        run: |
+          echo "✅ Keep-alive completed. Next run: the scheduled cron (every 3 days)."

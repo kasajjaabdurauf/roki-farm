@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -21,7 +21,7 @@ import { deleteFarmers, useDb } from "@/lib/db";
 import { downloadFarmerSurveyPdf } from "@/lib/report";
 import { fmtDate, fmtDateTime, relTime } from "@/lib/format";
 import { fmtKg, fmtNumber, rokiTierCriteria } from "@/lib/rules";
-import { IRRIGATION_OPTIONS, LAND_OWNERSHIP_LABEL, REFUGEE_LABEL, ROKI_TIER_LABEL, GENDER_LABEL } from "@/lib/types";
+import { IRRIGATION_OPTIONS, LAND_OWNERSHIP_LABEL, REFUGEE_LABEL, ROKI_TIER_LABEL, GENDER_LABEL, type Farmer } from "@/lib/types";
 import { MONTHS } from "@/lib/reference";
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Modal, Stat } from "@/components/ui";
 import { GradeBadge, RokiTierBadge, StatusBadge, TierBadge, YieldBadge } from "@/components/badges";
@@ -34,7 +34,18 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const farmer = db.farmers.find((f) => f.id === id);
+  const [stashed, setStashed] = useState<Farmer | null>(null);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("roki-just-created");
+      if (raw) {
+        const f = JSON.parse(raw) as Farmer;
+        if (f.id === id) setStashed(f);
+        sessionStorage.removeItem("roki-just-created");
+      }
+    } catch { /* ignore */ }
+  }, [id]);
+  const farmer = db.farmers.find((f) => f.id === id) ?? stashed;
   const logs = useMemo(
     () =>
       db.logs

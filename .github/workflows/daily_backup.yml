@@ -5,7 +5,8 @@
 # workbook and emails it to the admin via Resend (free tier: 100
 # emails/day).
 #
-# Required repository secrets:
+# Required repository secrets (Settings → Secrets and variables →
+# Actions):
 #   SUPABASE_URL                  https://xxxx.supabase.co
 #   SUPABASE_SERVICE_ROLE_KEY     the service_role key (bypasses RLS for
 #                                 full backup read — keep it secret)
@@ -24,6 +25,24 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
+      - name: Check secrets are configured
+        run: |
+          missing=0
+          for s in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY RESEND_API_KEY BACKUP_EMAIL_TO; do
+            if [ -z "${{ secrets[s] }}" ]; then
+              echo "::error::Missing repository secret: $s"
+              missing=1
+            fi
+          done
+          if [ -z "${{ secrets.BACKUP_EMAIL_FROM }}" ]; then
+            echo "::warning::BACKUP_EMAIL_FROM not set — will default to onboarding@resend.dev"
+          fi
+          if [ "$missing" = "1" ]; then
+            echo "Add the missing secrets in Settings → Secrets and variables → Actions, then re-run."
+            exit 1
+          fi
+          echo "Secrets OK"
+
       - name: Checkout
         uses: actions/checkout@v5
 

@@ -18,6 +18,7 @@ import {
   Sprout,
   Truck,
   UploadCloud,
+  UserPlus,
   UserRound,
   Users,
   Wheat,
@@ -331,14 +332,16 @@ function StaffDashboard() {
       {/* header */}
       <div className="space-y-3">
         {agentSession && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ochre-200 bg-ochre-50/70 px-4 py-3">
-            <p className="text-[13px] font-semibold text-ochre-800">
-              Agent view — you can see who's registered and add new farmers. Settings and access-code changes are
-              admin-only.
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-forest-800 px-5 py-4 text-white">
+            <div className="min-w-0">
+              <p className="font-display text-lg font-semibold">Agent workspace</p>
+              <p className="mt-0.5 text-[12.5px] leading-snug text-white/70">
+                Your job: register farmers. See who's here, add new ones, log harvests.
+              </p>
+            </div>
             <Link href="/farmers/new">
-              <Button variant="accent" size="sm">
-                <Users className="h-4 w-4" /> Add a farmer
+              <Button variant="accent" size="lg" className="h-12 shrink-0">
+                <UserPlus className="h-5 w-5" /> Add a farmer
               </Button>
             </Link>
           </div>

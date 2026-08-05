@@ -486,6 +486,9 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
         }
         router.push("/farm");
       } else {
+        try {
+          sessionStorage.setItem("roki-just-created", JSON.stringify(created));
+        } catch { /* ignore */ }
         router.push(`/farmers/${created.id}`);
       }
     }
