@@ -25,11 +25,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   // ALL hooks above any conditional return (React rules of hooks).
   const db = useDb();
-  const ownFarmer = db.farmers.find((f) => f.id === db.meta.demoFarmerId);
-  const surveyDone =
-    !!ownFarmer && !!ownFarmer.survey?.consentDate && ownFarmer.plannedProductions.length > 0;
-  const needsSurvey =
-    ready && remoteConfigured() && db.meta.role === "FARMER" && !!ownFarmer && !surveyDone;
+  // (Farmer onboarding gate removed — two-group model: agents onboard farmers.)
 
   useEffect(() => {
     if (!remoteConfigured()) {
@@ -110,15 +106,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-
-  // Survey gate: farmer without a completed survey → /survey (never a loop,
-  // the survey page itself always renders).
-  useEffect(() => {
-    if (!needsSurvey) return;
-    if (pathname !== "/survey" && pathname !== "/login" && pathname !== "/reset-password") {
-      router.replace("/survey");
-    }
-  }, [needsSurvey, pathname, router]);
 
   // Splash only while the very first session check is in flight (fast).
   if (!ready) {

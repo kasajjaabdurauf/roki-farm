@@ -41,7 +41,7 @@ import { fetchAll, fetchMyProfile, pushOp, remoteConfigured, sb, signOut as sign
 const KEY = "roki-db-v3";
 
 /** Default shared field-agent access code (admin can change it). */
-export const DEFAULT_AGENT_CODE = "roki-agent-2026";
+export const DEFAULT_AGENT_CODE = "ROKIEXPORTS";
 export function agentCodeHash(): string {
   return hashCode(DEFAULT_AGENT_CODE);
 }
@@ -265,6 +265,18 @@ export function flushOutbox(): void {
 // local store and adopt the account role. Also used by "Sync now".
 // ------------------------------------------------------------------
 export async function refreshFromRemote(): Promise<void> {
+  // SAFETY: never let a cloud pull discard unsynced local changes.
+  // If there are pending outbox ops (e.g. a farmer created by an agent
+  // that hasn't synced yet), push first — and if anything is STILL
+  // pending, skip the pull so the local record is never wiped out.
+  const before = loadDb();
+  if (before.meta.outbox.length > 0) {
+    await syncNow();
+    if (loadDb().meta.outbox.length > 0) {
+      console.warn("[Roki] refresh skipped — pending local changes not yet synced");
+      return;
+    }
+  }
   const data = await fetchAll();
   if (!data) return;
 
@@ -318,6 +330,9 @@ export async function bootstrapRemote(): Promise<void> {
     return;
   }
   if (profile) {
+    try {
+      localStorage.setItem("roki-role-synced", "1");
+    } catch { /* ignore */ }
     mutate((db) => {
       db.meta.role = (profile.role as Role) ?? "FIELD_AGENT";
       // IMPORTANT: always reconcile the farmer link. A stale demoFarmerId
@@ -354,6 +369,7 @@ export interface FarmerInput {
   householdSize?: number;
   plannedProductions: PlannedProduction[];
   survey: FarmerSurvey;
+  loggedBy?: string;
 }
 
 /** Derive the flat mirror fields from a completed survey. */
@@ -770,20 +786,9 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
       }
 
       // --- resolve or create farmer -------------------------------
+      // NO AUTO-MERGE: only an explicit Farmer ID links to an existing
+      // record; phone/email matches create NEW records (file = all people).
       let farmer: Farmer | undefined = db.farmers.find((f) => f.id === row.farmerId);
-      if (!farmer && row.parsed.phone) {
-        const ph = normalizeUgPhone(String(row.parsed.phone));
-        if (ph.ok) {
-          const byPhone = db.farmers.find((f) => f.phone === ph.normalized);
-          // never merge into an account-owned record unless the row carries
-          // the same email explicitly (prevents account collapse into lists)
-          if (byPhone && (!byPhone.email || row.parsed.email)) farmer = byPhone;
-        }
-      }
-      if (!farmer && row.parsed.email) {
-        const em = String(row.parsed.email).trim().toLowerCase();
-        farmer = db.farmers.find((f) => (f.email ?? "").toLowerCase() === em);
-      }
 
       if (!farmer) {
         const name = String(row.parsed.fullName ?? "").trim() || (row.parsed.email ? String(row.parsed.email) : "");

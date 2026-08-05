@@ -139,13 +139,13 @@ export async function signInWithMagicLink(email: string) {
 export async function signUp(email: string, password: string) {
   const c = sb();
   if (!c) throw new Error("Backend not configured, run in demo mode or set Supabase keys.");
-  // Every self-signup is a FARMER. Field agents use the shared access
-  // code instead of accounts, and ADMIN can never be self-selected
+  // Two-group model: every self-signup is a FIELD AGENT (agents onboard
+  // farmers; farmers don't use the app). ADMIN can never be self-selected
   // (the first account on a fresh database becomes Admin automatically).
   return c.auth.signUp({
     email,
     password,
-    options: { data: { role: "FARMER" } },
+    options: { data: { role: "FIELD_AGENT" } },
   });
 }
 
@@ -209,6 +209,7 @@ function rowToFarmer(r: any): Farmer {
     householdSize: r.household_size ?? undefined,
     plannedProductions: (r.planned_productions ?? []) as PlannedProduction[],
     survey: (r.survey ?? undefined) as FarmerSurvey | undefined,
+    loggedBy: r.logged_by ?? undefined,
     flags: r.flags ?? [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -237,6 +238,7 @@ function farmerToRow(f: Farmer) {
     household_size: f.householdSize ?? null,
     planned_productions: f.plannedProductions,
     survey: f.survey ?? null,
+    logged_by: f.loggedBy ?? null,
     flags: f.flags,
     created_at: f.createdAt,
     updated_at: f.updatedAt,

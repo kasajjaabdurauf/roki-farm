@@ -139,23 +139,25 @@ console.log("\n8) Staging validation + import");
   const st = buildStaging(file, seed);
   check("5 data rows staged", st.rows.length === 5, st.rows.length);
   const r0 = st.rows[0];
-  check("row 1: linked by phone to existing farmer", r0.farmerId === existing.id && r0.errors.length === 0, r0);
+  // NO-MERGE policy: a phone match to an existing record warns but the
+  // row still creates a NEW record (a file always yields ALL its people).
+  check("row 1: phone match warns (no merge)", r0.farmerId === undefined && r0.errors.length === 0 && r0.warnings.some((w) => w.includes("Phone matches")), r0);
   check("row 2: new farmer (valid)", st.rows[1].farmerId === undefined && st.rows[1].errors.length === 0, st.rows[1].errors);
   check("row 3: bad phone error", st.rows[2].errors.some((e) => e.includes("not a valid Ugandan mobile")), st.rows[2].errors);
   check("row 4: negative quantity error", st.rows[3].errors.some((e) => e.includes("greater than 0")), st.rows[3].errors);
   check("row 5: produce row without farmer → error", st.rows[4].errors.length > 0, st.rows[4].errors);
   check("rows 1-2 detected as log rows", r0.isLogRow && st.rows[1].isLogRow);
 
-  // run import on a db seeded copy — verify counts
+  // run import on a db seeded copy — verify counts (no merge: every row creates)
   const db = { ...EMPTY_DB, farmers: [...seed.farmers], logs: [...seed.logs], meta: { ...seed.meta }, settings: { ...seed.settings } };
   const savedFarmers = db.farmers.length;
   const summary = importStaging(st, db);
-  check("import created 1 new farmer", summary.createdFarmers === 1, summary);
-  check("import linked 1 existing", summary.linkedExisting === 1, summary);
+  check("import created 2 new farmers (no merge)", summary.createdFarmers === 2, summary);
+  check("import linked 0 existing", summary.linkedExisting === 0, summary);
   check("import created 2 logs", summary.createdLogs === 2, summary);
   check("3 rows skipped for errors", summary.skippedWithErrors === 3, summary);
-  check("new farmer registered in db", db.farmers.length === savedFarmers + 1);
-  check("linked log attached to existing farmer", db.logs.filter((l) => l.farmerId === existing.id).length === seed.logs.filter((l) => l.farmerId === existing.id).length + 1);
+  check("new farmers registered in db", db.farmers.length === savedFarmers + 2);
+  check("no log attached to the pre-existing farmer by phone", db.logs.filter((l) => l.farmerId === existing.id).length === seed.logs.filter((l) => l.farmerId === existing.id).length);
 }
 
 console.log("\n8b) Real-world upload parsing (Roki Farmers List 2024 style)");

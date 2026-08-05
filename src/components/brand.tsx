@@ -15,7 +15,7 @@ export function LogoMark({ className }: { className?: string }) {
       width={132}
       height={120}
       draggable={false}
-      className={cx("h-9 w-auto shrink-0 object-contain sm:h-10", className)}
+      className={cx("h-11 w-auto shrink-0 object-contain sm:h-12", className)}
     />
   );
 }

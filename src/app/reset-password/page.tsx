@@ -41,7 +41,17 @@ export default function ResetPasswordPage() {
     setBusy(true);
     try {
       const { error } = await updatePassword(password);
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Common: the recovery link was opened without a valid session
+        // (expired, or opened on another device). Give clear guidance.
+        if (/session|recovery|expired|invalid|token/i.test(error.message)) {
+          setError("This password-reset link has expired or was used on another device. Request a fresh reset link from the sign-in screen, then open it on THIS device.");
+        } else {
+          throw new Error(error.message);
+        }
+        setBusy(false);
+        return;
+      }
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update password.");

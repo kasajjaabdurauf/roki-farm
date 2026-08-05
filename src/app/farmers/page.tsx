@@ -172,6 +172,7 @@ export default function FarmersPage() {
                     <p className="truncate text-[12px] font-medium text-stone-400 tabular">
                       {f.id}{f.email && f.email !== f.fullName ? ` · ${f.email}` : ""}
                     </p>
+                    {f.loggedBy && <p className="text-[11px] text-stone-400">registered by {f.loggedBy}</p>}
                   </div>
                 </div>
                 <RokiTierBadge tier={f.rokiTier} />
@@ -210,6 +211,7 @@ export default function FarmersPage() {
                 <span className="text-[12px] text-stone-400">
                   {logCount.get(f.id) ?? 0} harvest log{(logCount.get(f.id) ?? 0) === 1 ? "" : "s"} · {f.plannedProductions.length} plan{f.plannedProductions.length === 1 ? "" : "s"}
                 </span>
+                {isNew(f) && <Badge tone="success" dot>New</Badge>}
                 {f.flags.length > 0 && !f.fullName && (
                   <Badge tone="warning" dot>Pending survey</Badge>
                 )}
@@ -223,4 +225,12 @@ export default function FarmersPage() {
       )}
     </div>
   );
+}
+
+function isNew(f: { createdAt: string }): boolean {
+  try {
+    return Date.now() - new Date(f.createdAt).getTime() < 7 * 24 * 3600 * 1000;
+  } catch {
+    return false;
+  }
 }

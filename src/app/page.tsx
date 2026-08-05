@@ -26,6 +26,7 @@ import { useDb } from "@/lib/db";
 import { cx, fmtDate, fmtDateTime, isoDaysAgo, relTime } from "@/lib/format";
 import { fmtKg, fmtNumber } from "@/lib/rules";
 import { downloadSummaryPdf } from "@/lib/report";
+import { LogoMark } from "@/components/brand";
 import { getSession } from "@/lib/remote";
 import { t, type Lang } from "@/lib/i18n";
 import { GENDER_LABEL, REFUGEE_LABEL, type LogStatus } from "@/lib/types";
@@ -34,9 +35,34 @@ import { GradeBadge, RokiTierBadge, SourceChip, StatusBadge, TierBadge } from "@
 
 export default function DashboardPage() {
   const db = useDb();
-  // Each role gets its own calibrated dashboard: farmers see only their
-  // own world; staff (admin/field agent) see the operations overview.
-  return db.meta.role === "FARMER" ? <FarmerHome /> : <StaffDashboard />;
+  const [roleConfirmed, setRoleConfirmed] = useState(false);
+
+  useEffect(() => {
+    // Wait for bootstrap to set the server role (avoids flashing the
+    // wrong dashboard right after sign-in). Fallback after 4s so we
+    // never hang.
+    const t = setTimeout(() => setRoleConfirmed(true), 4000);
+    try {
+      if (localStorage.getItem("roki-role-synced") === "1") setRoleConfirmed(true);
+    } catch { /* ignore */ }
+    return () => clearTimeout(t);
+  }, []);
+
+  // Role still syncing: neutral splash, never the wrong view.
+  if (!roleConfirmed) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center">
+        <div className="flex flex-col items-center gap-3">
+          <LogoMark className="h-12 w-auto animate-pulse" />
+          <p className="text-sm font-semibold text-stone-400">Loading your workspace…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Two-group model: everyone sees the operations dashboard.
+  // (Farmer role no longer exists; farmers are onboarded by agents.)
+  return <StaffDashboard />;
 }
 
 // =====================================================================

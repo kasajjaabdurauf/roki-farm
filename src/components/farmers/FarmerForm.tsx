@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Info, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Info, MapPin, Plus, Trash2 } from "lucide-react";
 import { addFarmer, setDemoFarmer, setLanguage, updateFarmer, useDb } from "@/lib/db";
 import { langFromPreference } from "@/lib/i18n";
 import { validNumber, validText } from "@/lib/security";
@@ -248,7 +248,11 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
   const [step, setStep] = useState(0);
   const [tried, setTried] = useState(false);
   const [claimedId, setClaimedId] = useState<string | undefined>(undefined);
+  const [gpsErr, setGpsErr] = useState("");
   const [d, setD] = useState<SurveyDraft>(() => draftFromFarmer(existing));
+  const [agentName, setAgentName] = useState(() => {
+    try { return localStorage.getItem("roki-agent-name") ?? ""; } catch { return ""; }
+  });
 
   const set = <K extends keyof SurveyDraft>(k: K, v: SurveyDraft[K]) => setD((prev) => ({ ...prev, [k]: v }));
 
@@ -293,6 +297,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
   function stepErrors(i: number): string[] {
     const errs: string[] = [];
     if (i === 0) {
+      if (!selfRegistration && !validText(agentName, 150)) errs.push("Your name (agent) is required so we can credit you");
       if (!validText(d.fullName, 150)) errs.push("Full name is required (1.2) — text only");
       if (!d.phone.trim()) errs.push("Primary phone number is required (1.5)");
       else if (!phoneResult.ok) errs.push(phoneResult.reason ?? "Invalid phone number");
@@ -451,6 +456,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
       householdSize: (d.householdAdults ?? 0) + (d.householdChildren ?? 0) || undefined,
       plannedProductions: d.productions,
       survey,
+      loggedBy: selfRegistration ? undefined : (agentName.trim() || undefined),
     };
 
     const target = existing ?? (claimedId ? db.farmers.find((f) => f.id === claimedId) : undefined);
@@ -554,7 +560,17 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
           </SectionNote>
           {!selfRegistration && (
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Enumerator name" hint="1.1">
+              <Field label="Your name (agent)" required hint="recorded on this farmer">
+                <Input
+                  value={agentName}
+                  onChange={(e) => {
+                    setAgentName(e.target.value);
+                    try { localStorage.setItem("roki-agent-name", e.target.value); } catch { /* ignore */ }
+                  }}
+                  placeholder="e.g. John Okello"
+                />
+              </Field>
+              <Field label="Enumerator ID" hint="1.1">
                 <Input value={d.enumeratorName} onChange={(e) => set("enumeratorName", e.target.value)} placeholder="Field officer name" />
               </Field>
               <Field label="Enumerator ID" hint="1.1">
@@ -664,14 +680,33 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
               <Input value={d.parish} onChange={(e) => set("parish", e.target.value)} placeholder="Parish name" />
             </Field>
           </div>
+          {typeof navigator !== "undefined" && "geolocation" in navigator && (
+            <button
+              type="button"
+              onClick={() => {
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => {
+                    set("gpsLat", +pos.coords.latitude.toFixed(6));
+                    set("gpsLon", +pos.coords.longitude.toFixed(6));
+                  },
+                  () => setGpsErr("Could not get your location. Enter the coordinates manually.")
+                );
+              }}
+              className="inline-flex h-12 items-center gap-2 rounded-xl border border-forest-600 bg-forest-50 px-4 text-[13px] font-bold text-forest-800"
+            >
+              <MapPin className="h-4 w-4" /> Use my current location
+            </button>
+          )}
+          {gpsErr && <p className="text-[12.5px] font-semibold text-danger-600">{gpsErr}</p>}
+
           <div className="grid gap-5 sm:grid-cols-3">
             <Field label="Village">
               <Input value={d.village} onChange={(e) => set("village", e.target.value)} placeholder="e.g. Busukuma" />
             </Field>
-            <Field label="GPS latitude" hint="1.6 · optional">
+            <Field label="GPS latitude" hint="1.6">
               <Input type="number" step="any" value={d.gpsLat ?? ""} onChange={(e) => set("gpsLat", e.target.value ? parseFloat(e.target.value) : undefined)} placeholder="e.g. -0.7194" inputMode="decimal" />
             </Field>
-            <Field label="GPS longitude" hint="1.6 · optional">
+            <Field label="GPS longitude" hint="1.6">
               <Input type="number" step="any" value={d.gpsLon ?? ""} onChange={(e) => set("gpsLon", e.target.value ? parseFloat(e.target.value) : undefined)} placeholder="e.g. 30.9053" inputMode="decimal" />
             </Field>
           </div>

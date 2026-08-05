@@ -40,7 +40,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
-  { href: "/farm", label: "My Farm", icon: <Home className="h-5 w-5" />, roles: ["FARMER"] },
+
   { href: "/forecast", label: "Forecast", icon: <CalendarRange className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT"] },
   { href: "/supply", label: "Supply", icon: <Truck className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT"] },
   { href: "/farmers", label: "Farmers", icon: <Users className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT"] },
@@ -173,7 +173,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, [role]);
 
-  const items = useMemo(() => NAV.filter((n) => n.roles.includes(role)), [role]);
+  const effectiveRole = role === "FARMER" ? "FIELD_AGENT" : role;
+  const items = useMemo(() => NAV.filter((n) => n.roles.includes(effectiveRole)), [effectiveRole]);
   const title = TITLES[pathname] ?? "Roki";
 
   // the sign-in screen is standalone: no header, no bottom nav, no brand strip

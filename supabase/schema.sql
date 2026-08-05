@@ -29,9 +29,10 @@ declare
   v_farmer_id text;
   v_name      text := coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1));
 begin
-  v_role := case when not exists (select 1 from public.profiles) then 'ADMIN' else 'FARMER' end;
+  -- TWO-GROUP MODEL: first account = ADMIN, everyone else = agent
+  v_role := case when not exists (select 1 from public.profiles) then 'ADMIN' else 'FIELD_AGENT' end;
 
-  if v_role = 'FARMER' then
+  if v_role = 'FIELD_AGENT' then
     -- CLAIM: reuse an existing farmer record with the same email
     select id into v_farmer_id
     from public.farmers

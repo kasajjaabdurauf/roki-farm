@@ -162,8 +162,8 @@ export default function UploadPage() {
               the cleanest import:
             </p>
             <div className="grid gap-2 text-[12px] sm:grid-cols-2">
-              <FormatCol title="Farmer identity" items={["Full Name (or First Name + Last Name separately)", "Phone (one per cell; 07XXXXXXXX or +256…)", "Email (if they have an account)", "NIN (optional)"]} />
-              <FormatCol title="Location & farm" items={["District · Sub-County · Parish · Village", "Acreage (acres or hectares)", "Crop · Harvest Date (YYYY-MM-DD) · Qty (Kg)", "Grade (A / B / Reject)"]} />
+              <FormatCol title="Farmer identity" items={["Full Name (or First Name + Last Name separately)", "Phone (one per cell; 07XXXXXXXX or +256…)", "Gender (Male / Female / Other)", "Email (if they have an account)", "NIN (optional)"]} />
+              <FormatCol title="Location & farm" items={["District · Sub-County · Parish · Village", "Acreage (acres or hectares)", "Crop · Harvest Date (YYYY-MM-DD) · Qty (Kg)", "Grade (A / B / Reject)", "Planting Date · Source of Seed · Status · GPS"]} />
             </div>
             <p className="mt-3 text-[11.5px] text-stone-400">
               Tip: if a cell has two phones like 0782…/0779…, the first valid one is kept and the rest are flagged in
@@ -260,7 +260,7 @@ export default function UploadPage() {
               <h3 className="font-display text-lg font-semibold text-forest-900">Staging preview</h3>
               <p className="text-[12px] text-stone-400">
                 <span className="sm:hidden">← swipe → · </span>
-                Tap any cell to fix values · red rows have errors
+                Tap any cell to fix values · red rows have errors · all {stage.rows.length} rows shown
               </p>
             </div>
             <XScroll>
@@ -277,7 +277,7 @@ export default function UploadPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {stage.rows.slice(0, 20).map((row) => {
+                  {stage.rows.map((row) => {
                     const cols = stage.columns.filter((c) => c.target !== "ignore");
                     const isOpen = expanded.has(row.key);
                     const hasErrors = row.errors.length > 0;

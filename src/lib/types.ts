@@ -145,6 +145,7 @@ export interface Farmer {
   scaleTier: ScaleTier; // farm-size tag (rule engine)
   rokiTier: RokiTier; // export-readiness score (rule engine)
   plantingHistory?: PlantingActivity[];
+  loggedBy?: string; // agent who registered this farmer (for performance pay)
   // --- survey answers (farmer registration questionnaire) ---
   gender: Gender;
   refugeeStatus: RefugeeStatus;

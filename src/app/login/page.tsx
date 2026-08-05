@@ -46,7 +46,7 @@ export default function LoginPage() {
       if (mode === "signup") {
         const { error } = await signUp(email, password);
         if (error) throw new Error(error.message);
-        setNotice("Farmer account created. Confirm your email, then sign in, and complete your farmer registration survey.");
+        setNotice("Access requested. Confirm your email, then sign in. An existing admin will assign your role (Admin or Agent) from Settings → Team & roles.");
         setMode("signin");
       } else {
         const { error } = await signInWithEmail(email, password);
@@ -134,7 +134,7 @@ export default function LoginPage() {
       <div className="flex flex-col items-center gap-3 text-center">
         <Wordmark />
         <p className="text-sm text-stone-500">
-          Farmer registration surveys, production forecasting and export supply planning.
+          Roki Fruit & Vegetables — farmer registration, production forecasting and export supply planning.
         </p>
       </div>
 
@@ -194,7 +194,7 @@ export default function LoginPage() {
               (mode === "signup" ? "bg-white text-forest-900 shadow-sm" : "text-stone-500")
             }
           >
-            <UserPlus className="h-4 w-4" /> Create account
+            <UserPlus className="h-4 w-4" /> Request access
           </button>
         </div>
 
@@ -292,7 +292,7 @@ export default function LoginPage() {
       </Card>
 
       <div className="grid gap-2.5 sm:grid-cols-3">
-        <MiniCard icon={<ShieldCheck className="h-4 w-4" />} title="Bank-grade security" text="Row-level security, you only ever see data you're allowed to see." />
+        <MiniCard icon={<ShieldCheck className="h-4 w-4" />} title="Admin & Agent" text="Two clear roles. Agents onboard farmers with the access code; admins run the platform." />
         <MiniCard icon={<Sparkles className="h-4 w-4" />} title="Works offline" text="Field agents keep working without network; sync happens automatically." />
         <MiniCard icon={<KeyRound className="h-4 w-4" />} title="Magic link" text="No password needed, sign in straight from your email." />
       </div>
