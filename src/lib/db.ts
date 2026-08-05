@@ -286,9 +286,22 @@ export async function refreshFromRemote(): Promise<void> {
   const maxLog = data.logs.reduce((m, l) => Math.max(m, seqOf(l.id)), 0);
 
   const existing = loadDb();
+  // MERGE, never replace: keep local-only records (e.g. a farmer created
+  // moments ago whose push is still in flight or was delayed) so nothing
+  // can ever vanish from the list. Remote records win on conflicts.
+  const mergedFarmers = [...data.farmers];
+  const remoteIds = new Set(data.farmers.map((f) => f.id));
+  const remoteLogIds = new Set(data.logs.map((l) => l.id));
+  for (const f of existing.farmers) {
+    if (!remoteIds.has(f.id)) mergedFarmers.push(f);
+  }
+  const mergedLogs = [...data.logs];
+  for (const l of existing.logs) {
+    if (!remoteLogIds.has(l.id)) mergedLogs.push(l);
+  }
   const next: Db = {
-    farmers: data.farmers,
-    logs: data.logs,
+    farmers: mergedFarmers,
+    logs: mergedLogs,
     settings: existing.settings,
     meta: {
       ...existing.meta,
