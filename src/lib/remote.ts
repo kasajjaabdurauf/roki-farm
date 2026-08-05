@@ -307,8 +307,10 @@ export async function fetchAll(): Promise<{ farmers: Farmer[]; logs: ProduceLog[
 // ------------------------------------------------------------------
 export async function pushOp(op: OutboxOp): Promise<void> {
   const c = sb();
-  const session = await getSession();
-  if (!c || !session) return;
+  if (!c) return;
+  // NOTE: access-code agents have NO auth session, but they still need to
+  // push (register farmers, log harvests). The RLS policies allow anon
+  // inserts, so we do NOT require a session here — the anon key suffices.
 
   switch (op.kind) {
     case "CREATE_FARMER":
