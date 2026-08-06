@@ -55,36 +55,41 @@ Tick items off as they are completed.
 - [x] v2.14: signup password validation, admin role never leaks farmer view (bootstrap reconciles role + clears stale farmer link), agent straight-to-form
 - [x] v2.15: ALL 135 districts + Kampala, safe upload linking (never merge into account-owned records), crop+place search with downloadable CSV list, upload tooltips, multi-admin clarity
 - [x] v2.15.1: one-shot idempotent fresh_start.sql (wipe + schema + migrations v2→v11 + logs RLS-off), 101 checks
+- [x] v3.0.0: two-group model — Admin + Field Agent only (migration_v12: first account=ADMIN, others=FIELD_AGENT; FARMER→FIELD_AGENT), signup→FIELD_AGENT, farmer role removed from nav/dashboards/auth-gate, "Request access" login, Farmer dashboard removed
+- [x] v3.0.7: Farmer option removed from Team & roles dropdown; leftover FARMER roles treated as FIELD_AGENT; migration_v14 converts them
+- [x] v3.1.0: **Agent performance page** (/agents): per-agent cards, farmer tables, per-agent CSV + full report download, "farmers without agent" warning; no-merge uploads (ID links only); expandable upload review; typeable sub-county; GPS button; crop+place filters + CSV download; GitHub Actions hardened (secret pre-checks)
+- [x] v3.2.0: **agent names actually recorded** — root-cause fix (createFarmer/updateFarmer dropped `loggedBy`), one-time name capture in the Agent banner ("Working as …" + change), admin "Who is using this device?" prompt, survey writes enumerator=agent, uploads credit an agent (device stamp + optional Agent Name column), CSV "Registered By (Agent)" column, farmer cards/detail/PDF show the agent, migration_v15.sql recovery script for old survey-embedded names, 114 checks
 
 
 
 ---
 
-## 🔐 ROLES & ADMIN — how it works now (v2.15)
+## 🔐 ROLES & ADMIN — how it works now (v3.2)
 
-### The three roles
+### The two roles (confirmed product direction)
 | Role | What they see/do |
 |---|---|
-| **Admin** | Everything: dashboard, all farmers/logs, settings, Team & roles, duplicates, master backup, PDF reports, crop/place search+download |
-| **Field Agent** | Sees everything (read), registers farmers straight from the form, logs harvests. No settings, no code change, no delete. Two ways in: **access code** (no account) or an **account** with role FIELD_AGENT |
-| **Farmer** | Only their own farm, harvests, tier, tips. Completes the survey at onboarding; logs their own harvests |
+| **Admin** | Everything: dashboard, all farmers/logs, settings, Team & roles, agents performance, duplicates, master backup, PDF reports, crop/place search+download |
+| **Field Agent** | Sees the operations dashboard (read), registers farmers straight from the form, logs harvests. No settings, no code change, no delete. Two ways in: **access code** (no account) or an **account** with role FIELD_AGENT |
+
+**Farmers do NOT use the app.** Farmers are onboarded by agents/admins; a farmer never signs up on their own. All farmer-role remnants were removed (migrations v12–v14 convert any leftover FARMER accounts to FIELD_AGENT; the app treats FARMER as FIELD_AGENT defensively).
 
 ### How admin access works (multi-admin, no secret slots)
 - **There is no limit** on admins — 1, 5, 10, 20, whatever the team needs.
-- **Becoming an admin:** create an account (anyone can), then an existing admin changes the role to ADMIN in **Settings → Team & roles**. That's it. The role is applied to that person's account; they see the admin workspace on their next sign-in.
+- **Becoming an admin:** request access (an account is created as FIELD_AGENT), then an existing admin changes the role to ADMIN in **Settings → Team & roles**. That's it. The role is applied to that person's account; they see the admin workspace on their next sign-in.
 - **The first account** on a fresh database automatically becomes Admin (so setup never dead-ends).
 - **No self-serve admin:** a regular signup can never make itself admin; only an existing admin can grant it (RLS enforces this server-side).
-- **Protection:** Settings, Team & roles, Duplicates, access-code change, and delete actions are admin-only. RLS backs all of it.
+- **Protection:** Settings, Team & roles, Duplicates, agents performance, access-code change, and delete actions are admin-only. RLS backs all of it.
 
 ### Field agents — the access code
 - One shared code (admin-managed, stored **hashed** in the cloud so it works on every device).
 - Rate-limited: 5 wrong attempts / 10 min per device.
 - Agents enter it on the login screen ("Are you a field agent?" link), get the agent view + **Add a farmer** (straight to the survey form, no account linking), and can log harvests.
-- Farmers they register get their own record; the farmer claims it later at signup via phone/email.
+- **Name capture (v3.2):** the green Agent workspace banner asks "What's your name?" once; the name is stamped on every farmer the agent registers (`logged_by`), shown on farmer cards/detail/PDF/CSV, and feeds the **Agent performance** page.
 
 ### Safe linking (the "35 became 30" fix)
-- Uploads **never** merge into an account-owned farmer record (one with an email) unless the row explicitly carries that email.
-- Match order: Farmer ID → phone (non-account records only) → email. Warnings explain every decision.
+- Uploads **never** merge into an existing farmer record unless the row explicitly carries that farmer's **ID**. Phone/email matches warn but still create a NEW record — a file always yields ALL its people.
+- Match order (for linking only): Farmer ID → (warning) phone/email. Warnings explain every decision.
 
 ---
 

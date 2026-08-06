@@ -108,8 +108,10 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
                 <MapPin className="h-4 w-4 text-ochre-500" />
                 {farmer.village ? `${farmer.village}, ` : ""}{farmer.subCounty}, {farmer.district}
               </p>
-              {farmer.loggedBy && (
-                <p className="mt-0.5 text-[12px] font-semibold text-ochre-600">Registered by {farmer.loggedBy}</p>
+              {(farmer.loggedBy || farmer.survey?.enumeratorName) && (
+                <p className="mt-0.5 text-[12px] font-semibold text-ochre-600">
+                  Registered by {farmer.loggedBy || farmer.survey?.enumeratorName}
+                </p>
               )}
             </div>
           </div>
@@ -181,7 +183,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
             <SurveyFact label="Household" value={farmer.householdSize ? `${farmer.householdSize} members` : "N/A"} />
             <SurveyFact label="Land ownership" value={LAND_OWNERSHIP_LABEL[farmer.landOwnership]} />
             <SurveyFact label="Irrigation" value={irrigationLabel} />
-            <SurveyFact label="Enumerator" value={farmer.survey?.enumeratorName || "N/A"} />
+            <SurveyFact label="Enumerator" value={farmer.loggedBy || farmer.survey?.enumeratorName || "N/A"} />
             <SurveyFact label="Registered" value={fmtDate(farmer.createdAt.slice(0, 10))} />
             {farmer.survey?.preferredLanguage && (
               <SurveyFact label="Language" value={farmer.survey.preferredLanguage} />

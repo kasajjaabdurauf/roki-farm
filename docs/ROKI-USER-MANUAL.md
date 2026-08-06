@@ -92,6 +92,12 @@ The farmer-facing screens (dashboard, My Farm) support **English, Luganda, Runya
 ### 3.3 Field agents: shared access code (no account needed)
 Field agents don't need accounts. On the sign-in screen, tap **"Are you a field agent?"** (bottom link) to reveal the code field: enter the shared code (given by the administrator) and continue as a field agent. Wrong codes are limited to 5 attempts per 10 minutes per device. The code is stored hashed in the cloud, so when the admin changes it in Settings it works on every device immediately.
 
+**Your name — asked once, used everywhere.** When you first land in the green **Agent workspace**, the banner asks **"What's your name?"**. Type it once and it is remembered on that device:
+- the banner then shows **"Working as \<your name\>"** (tap *change* if someone else uses the same phone),
+- every farmer you register is credited to you — **"Registered by \<your name\>"** appears on their card, their profile, the survey PDF and the exported CSV,
+- the survey's **"Your name (agent)"** field is pre-filled for you,
+- your totals appear on the admin's **Agent performance** page (`/agents`) — that's what performance pay is based on.
+
 ### 3.3 Signing in
 1. Open the app. If the platform is in **production mode** you'll land on the sign-in screen.
 2. Enter your email + password → **Sign in**.
@@ -100,11 +106,11 @@ Field agents don't need accounts. On the sign-in screen, tap **"Are you a field 
 5. **Sign out** whenever you like: **Settings → Sign out** (bottom of the Data management section).
 
 ### 3.3 Creating an account (for team members)
-1. On the sign-in screen, switch to **Create account**.
+1. On the sign-in screen, switch to **Request access** (previously "Create account").
 2. Enter the person's email + a password.
-3. **Every account is a Farmer account** — there is no role picker. Field agents don't create accounts at all; they use the shared **access code**. **Admin can never be self-selected** — only an existing administrator can grant Admin in Settings → Team & roles (the very first account on a fresh database becomes Admin automatically).
+3. **Two roles only — Admin and Field Agent.** New signups start as **Field Agents** (no role picker, no self-selected admin). **Admin can never be self-selected** — only an existing administrator can grant Admin in Settings → Team & roles (the very first account on a fresh database becomes Admin automatically). Farmers do **not** sign up — agents onboard them.
 4. They confirm their email from the inbox, then sign in.
-5. **They're guided to the survey**: right after sign-in, a farmer with no farmer record is directed to complete the **farmer registration survey**, which creates and links their farmer profile automatically. (Anyone who skips it can tap "Complete my farmer survey" from their dashboard, My Farm or Account.)
+5. The admin grants **Admin** or keeps them as **Field Agent** from Settings → Team & roles.
 
 ### 3.4 Demo mode
 If the platform is running without a backend (demonstrations), there is no sign-in: use the **role switcher** in the header to flip between Admin / Field Agent / Farmer and explore with sample data. Sample data can be reset in **Settings → Reset demo data**.
@@ -156,8 +162,9 @@ The home screen for everyone (different content per role).
 
 ### 5.2 Farmer Profiles (`/farmers`)
 - **Search box** — searches name, phone, district, village, village, and farmer ID instantly.
-- **Filters** — Roki tier (1/2/3), Needs-attention toggle.
-- Cards show: initials avatar, name, ID, tier badge, gender/community badges, farm size, crops, harvest count, plan count.
+- **Filters** — crop, place (district/sub-county/village), Roki tier (1/2/3), Needs-attention toggle.
+- Cards show: initials avatar, name, ID, tier badge, gender/community badges, farm size, crops, harvest count, plan count — and **"registered by \<agent name\>"** in orange when the agent was recorded.
+- **Download list** (top-right) — CSV of the currently filtered farmers, and it now includes a **"Registered By (Agent)"** column so you can see who onboarded each farmer.
 - **New Survey** button (top-right) starts the registration questionnaire.
 
 ### 5.3 Farmer profile detail (`/farmers/RFV-UG-XXXXX`)
@@ -166,7 +173,7 @@ The home screen for everyone (different content per role).
 - Header: name, ID, tier badges, location, actions (**Log Harvest**, **Edit** survey, **Delete**).
 - Facts: phone, acreage, irrigation, crops.
 - Stats: total harvested, harvest logs, avg per acre, top crop.
-- **Survey record** card: gender, community, age, household, land ownership, irrigation, enumerator, scoring criteria, assessment.
+- **Survey record** card: gender, community, age, household, land ownership, irrigation, enumerator (the agent's name), scoring criteria, assessment.
 - **Production plan** table: crop × acres × expected volume × harvest window.
 - Rule findings for this farmer (if any).
 - **Harvest history** — all their logs (table on desktop, cards on mobile).
@@ -196,8 +203,9 @@ Filters: search, crop, district, tier. Shows total expected tonnes for the curre
 3. **Staging grid** — every row previewed. Red rows have errors (bad phone, negative quantity, unreadable date, produce row without a farmer). **Fix them right in the grid**: tap any cell and type the correct value (dropdowns appear for grade, gender and refugee status) and the row re-validates instantly. Expand a row to see the exact errors/warnings and whether it links to an existing farmer (by ID or phone) or creates a new profile.
 
    **Handles real-world files:** *First Name* + *Last Name* columns auto-merge into the full name; cells with two phones (`0782…/0779…`) keep the first valid number and flag the rest as a warning; phones with spaces normalize; acreage like `1.5` or `0.5000` parses; a `COMPANY NAME` column is never mistaken for a farmer's name; `PLANTING DATE`, `SOURCE OF SEED`, `STATUS` and `GPS-LATITUDE`/`GPS-LONGITUDE` are captured into a **Planting history** on the farmer profile. Nothing is silently dropped — every column appears in the mapper for you to assign.
-4. **Rows that still have errors are NOT imported** — the red banner above the grid says exactly how many will be dropped, and you can press **Remove invalid rows** to discard them first. Then **Import** — a report lists every row's result (created / linked / fixed / skipped).
-5. All imported logs pass through the rule engine immediately.
+4. **Credit the right agent** — the amber **"Credit these farmers to which agent?"** box is pre-filled with your device name ("Working as …"). New farmers created by the import are stamped with it. If your file has an **Agent Name / Enumerator** column, that value wins for each row (mapped automatically — "Enumerator ID" columns are ignored, they're IDs not names).
+5. **Rows that still have errors are NOT imported** — the red banner above the grid says exactly how many will be dropped, and you can press **Remove invalid rows** to discard them first. Then **Import** — a report lists every row's result (created / linked / fixed / skipped).
+6. All imported logs pass through the rule engine immediately.
 
 ### 5.7b How uploaded data links to accounts (the two scenarios)
 
@@ -250,6 +258,14 @@ Two tabs: **Farmers** and **Produce Logs**.
 ### 5.10 Duplicate records (`/duplicates`) — admin
 Automatically lists farmers that look like the same person (same phone, email or normalized name). For each group: choose the **master** record (the one to keep) and press **Merge** — harvest logs, planting history, production plans and missing fields are combined into the master, and the others are deleted. Records linked to an account can only be the master (to protect logins). Run this monthly to keep the database clean.
 
+### 5.10b Agents performance (`/agents`) — admin
+Who registered which farmer, at a glance — the basis for crediting and performance pay.
+- **Named agents** — one card per agent (grouped by the "Registered by" name), showing how many farmers they registered, total harvest logs on those farmers, their farmer table, and a per-agent CSV download.
+- **Download agent report** — the full CSV (agent, farmers registered, harvest logs, sample farmers).
+- **Farmers without agent** — a warning card listing farmers whose agent was never recorded (mostly farmers registered before agent tracking existed, or where the name wasn't saved). Some can be recovered with the migration v15 script (see Setup walkthrough); the rest can be fixed by editing the farmer and adding the name.
+
+> **How names get there:** the agent enters their name once in the green Agent workspace banner ("Working as …"); every farmer they add — survey or upload — is stamped with it. Farmers registered before this existed have no recoverable name on record (shown in the warning card).
+
 ### 5.11 Help & Guide (`/help`)
 The in-app manual: quick-start cards, "Explore the app" tiles (tap to jump), step-by-step tasks, **FAQ filtered by audience** (Admin / Field agent / Farmer / Everyone), and a glossary. Point farmers here before calling for support.
 
@@ -264,7 +280,7 @@ Nine steps = the 15 official questionnaire sections. Every step is validated; yo
 
 | Step | Sections | What's asked |
 |---|---|---|
-| 1 | §1 Identification & bio-data | Enumerator name/ID (auto-suggested), full name, gender, age in years, NIN (optional), primary + alternative phone (MTN/Airtel validated), district, sub-county, **parish**, village, GPS coordinates (optional) |
+| 1 | §1 Identification & bio-data | **Your name (agent)** — pre-filled from the "Working as" name (agents only), full name, gender, age in years, NIN (optional), primary + alternative phone (MTN/Airtel validated), district, sub-county, **parish**, village, GPS coordinates (optional, "Use my current location" button) |
 | 2 | §2 Refugee & host community status | Refugee or host? If refugee: country of origin, year arrived, settlement, refugee household number. Adults/children. Vulnerability: female-headed, youth (18–35), disability, elderly |
 | 3 | §3 Farming experience & history | Years farming, farming types (multi), crops produced before (years + avg area), sold commercially before? Where? |
 | 4 | §4 Land & farm assets | Land access, ownership (own/family/rented/allocated/other), total acreage, land under cultivation, expansion land available |

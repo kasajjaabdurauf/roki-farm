@@ -261,6 +261,7 @@ export type StageField =
   | "plantingStatus"
   | "gpsLat"
   | "gpsLon"
+  | "agentName"
   | "ignore";
 
 export interface ColumnMapping {

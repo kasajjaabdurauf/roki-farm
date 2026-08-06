@@ -5,7 +5,31 @@
 
 ---
 
-## 2.10 — 2026-08-04 · Agent link + security hardening (current)
+## 3.2.0 — 2026-08-06 · Agent names are finally recorded (the big fix)
+
+**The bug you were seeing**
+The survey always asked "Your name (agent)", but a code bug meant that name was silently **dropped before the farmer record was saved** — so the Agent performance page showed "no agent" for every farmer, even though agents were typing their names. And the downloaded CSV had no agent column at all, so there was nowhere to see it.
+
+**Fix**
+- **Root cause:** `createFarmer` / `updateFarmer` now save the agent name (`loggedBy` / `logged_by`) on every farmer record.
+- The agent's name is also written into the survey's **Enumerator** field, so survey PDFs show it.
+- **Name captured once, up front:** the green Agent workspace banner now asks **"What's your name?"** when an agent starts, shows **"Working as \<name\>"** with a *change* link (great for shared phones), and pre-fills the survey's name field automatically.
+- Admins get the same **"Who is using this device?"** prompt, so farmers registered by admins are credited too.
+- **Uploads now credit an agent:** new "Credit these farmers to which agent?" box on the upload screen (pre-filled from the device name); a file can also carry an **Agent Name / Enumerator** column which wins per row.
+- **The downloaded CSV list now includes a "Registered By (Agent)" column** — the "I downloaded the survey but can't see the agent" fix.
+- Farmer cards, farmer detail page and the survey PDF all show the agent name.
+- **Recovery script `supabase/migration_v15.sql`** — copies names already sitting inside old survey records (enumerator field) onto the farmer records. Run in the Supabase SQL editor (4 steps — read the numbers first).
+- 114 automated checks (+13 new agent-attribution tests).
+
+## 3.0–3.1 — 2026-08-05/06 · Two-group model + Agent performance page
+
+- **Two roles only:** Admin (granted in Settings → Team & roles; the first account on a fresh DB is Admin automatically) and Field Agent (via access code `ROKIEXPORTS` or an account). Farmer role removed everywhere; leftover FARMER accounts are treated as Field Agents (migrations v12–v14).
+- "Request access" replaces "Create account" — signups are Field Agents until an admin grants a role.
+- **Agent performance page** (`/agents`): per-agent cards with farmer tables, per-agent CSV + full report download, and a "farmers without agent" warning card.
+- **No-merge upload policy:** every row imports; only an explicit Farmer ID links to an existing record (the "35 became 30" fix).
+- Expandable upload review (all rows, not 20), typeable sub-county with suggestions, GPS "Use my current location", crop + place filters with CSV download on the Farmers page.
+- GitHub Actions keep-alive + nightly backup workflows (they check for secrets first).
+
 
 **Fix**
 - The field-agent access-code entry was invisible (the card only rendered when the local role was not FIELD_AGENT, which is the default — so it never showed). Replaced with a subtle **"Are you a field agent?"** link on the sign-in page that reveals the code field inline.

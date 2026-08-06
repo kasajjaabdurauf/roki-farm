@@ -285,7 +285,7 @@ export async function downloadFarmerSurveyPdf(farmer: Farmer): Promise<void> {
     ["Market distance", sv.marketDistanceKm ? `${sv.marketDistanceKm} km` : ""],
     ["Other income", sv.otherIncome ?? ""],
     ["Consent", sv.consentDate ? `Yes (${sv.consentDate})` : "No"],
-    ["Enumerator", sv.enumeratorName ? `${sv.enumeratorName}${sv.enumeratorId ? ` (${sv.enumeratorId})` : ""}` : ""],
+    ["Enumerator", (farmer.loggedBy || sv.enumeratorName) ? `${farmer.loggedBy || sv.enumeratorName}${sv.enumeratorId ? ` (${sv.enumeratorId})` : ""}` : ""],
     ["Assessment", `${sv.landAvailability ?? ""} land · ${sv.productionPotential ?? ""} potential · ${sv.recommendedCategory ?? ""}`],
     ["Registered", farmer.createdAt.slice(0, 10)],
   ].filter(([, v]) => v) as [string, string][];

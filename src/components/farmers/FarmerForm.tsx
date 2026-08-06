@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Info, MapPin, Plus, Trash2 } from "lucide-react";
 import { addFarmer, setDemoFarmer, setLanguage, updateFarmer, useDb } from "@/lib/db";
+import { getAgentName, setAgentName as persistAgentName } from "@/lib/agent";
 import { langFromPreference } from "@/lib/i18n";
 import { validNumber, validText } from "@/lib/security";
 import { normalizeUgPhone } from "@/lib/phone";
@@ -250,9 +251,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
   const [claimedId, setClaimedId] = useState<string | undefined>(undefined);
   const [gpsErr, setGpsErr] = useState("");
   const [d, setD] = useState<SurveyDraft>(() => draftFromFarmer(existing));
-  const [agentName, setAgentName] = useState(() => {
-    try { return localStorage.getItem("roki-agent-name") ?? ""; } catch { return ""; }
-  });
+  const [agentName, setAgentName] = useState(() => getAgentName());
 
   const set = <K extends keyof SurveyDraft>(k: K, v: SurveyDraft[K]) => setD((prev) => ({ ...prev, [k]: v }));
 
@@ -367,8 +366,12 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
   }
 
   async function submit() {
+    // Staff mode: the agent's own name is the enumerator — record it in the
+    // survey too (so PDFs/backups show it), and stamp the farmer record with
+    // it for the Agent performance page. Pre-filled from the device identity.
+    const staffName = selfRegistration ? "" : agentName.trim();
     const survey: FarmerSurvey = {
-      enumeratorName: d.enumeratorName,
+      enumeratorName: staffName || d.enumeratorName,
       enumeratorId: d.enumeratorId,
       ageYears: d.ageYears,
       altPhone: d.altPhone || undefined,
@@ -456,7 +459,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
       householdSize: (d.householdAdults ?? 0) + (d.householdChildren ?? 0) || undefined,
       plannedProductions: d.productions,
       survey,
-      loggedBy: selfRegistration ? undefined : (agentName.trim() || undefined),
+      loggedBy: selfRegistration ? undefined : (staffName || undefined),
     };
 
     const target = existing ?? (claimedId ? db.farmers.find((f) => f.id === claimedId) : undefined);
@@ -568,7 +571,7 @@ export function FarmerForm({ existing, onDone, selfRegistration }: { existing?: 
                   value={agentName}
                   onChange={(e) => {
                     setAgentName(e.target.value);
-                    try { localStorage.setItem("roki-agent-name", e.target.value); } catch { /* ignore */ }
+                    persistAgentName(e.target.value);
                   }}
                   placeholder="e.g. John Okello"
                 />

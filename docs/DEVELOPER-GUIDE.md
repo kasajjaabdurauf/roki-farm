@@ -102,13 +102,14 @@ The language is stored in `DbMeta.language`, set from the survey's preferred lan
 2. **Never call Supabase from a page/component.** Use `db.ts`; add new store functions there.
 3. **Never silently drop user data** in the upload engine. Unknown columns stay visible in the mapper; weird
    values become warnings, not deletions.
-4. **Migrations are numbered** (`supabase/schema.sql` is the fresh-install baseline; `migration_v2..v6.sql`
-   apply on top, in order; `wipe_everything.sql` is the factory reset). Every schema change ships a numbered
-   migration AND is mirrored into `schema.sql`.
+4. **Migrations are numbered** (`supabase/schema.sql` is the fresh-install baseline; `migration_v2..v15.sql`
+   apply on top, in order; `wipe_everything.sql` is the factory reset; `fresh_start.sql` + `migration_combined.sql`
+   bundle the set and are idempotent). Every schema change ships a numbered migration AND is mirrored into
+   `schema.sql` AND (if applicable) appended to `fresh_start.sql`/`migration_combined.sql`.
 5. **Docs move with code.** Any user-facing change updates `docs/ROKI-USER-MANUAL.md` (manual) and
    `docs/CHANGELOG.md` (history). The walkthrough + audit get refreshed too. This is a requirement, not a
    nicety.
-6. **Tests must pass before release:** `node scripts/verify.ts` (92 checks) and `npm run build`.
+6. **Tests must pass before release:** `npx tsx scripts/verify.ts` (114 checks) and `npm run build`.
 7. **Secrets:** `service_role`, `RESEND_API_KEY`, DB password → GitHub secrets/password manager only.
    `NEXT_PUBLIC_*` are public by design.
 8. **Version stamp:** bump `APP_VERSION` in `src/lib/format.ts` + SW cache in `public/sw.js` on every release
@@ -117,7 +118,7 @@ The language is stored in `DbMeta.language`, set from the survey's preferred lan
 ## 10 · Release checklist (every release)
 
 - [ ] `npm ci && npm run build` green
-- [ ] `node scripts/verify.ts` green (92 checks)
+- [ ] `npx tsx scripts/verify.ts` green (114 checks)
 - [ ] Bump `APP_VERSION` + SW cache (`roki-cache-vN`)
 - [ ] Add entry to `docs/CHANGELOG.md`
 - [ ] Update `docs/ROKI-USER-MANUAL.md` (features, troubleshooting, version log)
@@ -135,7 +136,14 @@ The language is stored in `DbMeta.language`, set from the survey's preferred lan
 - **Duplicates from uploads + signups** → admin `/duplicates` merge tool.
 - **Supabase free-tier pause** → the keep-alive workflow pings every 3 days; run it manually from Actions if
   the DB paused anyway, then unpause from the dashboard.
-- **Migrations must run in order** v2→v3→v4→v5→v6 (each is idempotent-ish; v5/v6 replace the trigger).
+- **Migrations must run in order** v2→v3→v4→v5→v6→…→v15 (each is idempotent-ish; v5/v6 replace the trigger).
+- **Agent names / `logged_by`:** the one source of the "who is on this device" identity is `src/lib/agent.ts`
+  (`getAgentName`/`setAgentName`, key `roki-agent-name`). It is written from the dashboard banner (v3.2), read
+  to pre-fill the survey's "Your name (agent)", and passed into `importStaging(st, agentStamp, dbOverride?)`.
+  The upload sheet parser maps an **Agent Name / Enumerator** column to the new `agentName` stage field
+  (`"Enumerator ID"` headers are deliberately ignored). `createFarmer`/`updateFarmer` MUST copy `loggedBy`
+  (that was the v3.2 root-cause bug). Remote mapping lives in `remote.ts` (`logged_by` ↔ `loggedBy`); the
+  Agents page (`/agents`) groups by `f.loggedBy ?? f.survey?.enumeratorName`.
 
 ## 12 · Where things live (map)
 

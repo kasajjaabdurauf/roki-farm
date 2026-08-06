@@ -1,5 +1,5 @@
--- COMBINED MIGRATION (v2 → v13) — run ONCE after schema.sql
--- Idempotent; includes two-group model + logged_by column.
+-- COMBINED MIGRATION (v2 → v15) — run ONCE after schema.sql
+-- Idempotent; includes two-group model + logged_by column + agent-name recovery.
 
 -- Adds: profiles.email, first-user-becomes-admin, admin role management
 -- (no more hand-editing SQL to add admins — do it from Settings → Team).
@@ -435,3 +435,26 @@ where role = 'FARMER';
 -- synced.
 alter table public.farmers
   add column if not exists logged_by text;
+-- v15
+
+-- Agent-name recovery: copies names that were captured inside the survey
+-- JSON (enumeratorName and variants) onto the farmer's logged_by column,
+-- so the Agent performance page can credit the right person. Only fills
+-- rows where logged_by is empty. Idempotent — safe to run repeatedly.
+update public.farmers f
+set logged_by = trim(coalesce(
+    nullif(f.survey->>'enumeratorName', ''),
+    nullif(f.survey->>'agentName', ''),
+    nullif(f.survey->>'enumerator', ''),
+    nullif(f.survey->>'agent_name', ''),
+    ''
+  ))
+where (f.logged_by is null or trim(f.logged_by) = '')
+  and f.survey is not null
+  and trim(coalesce(
+        nullif(f.survey->>'enumeratorName', ''),
+        nullif(f.survey->>'agentName', ''),
+        nullif(f.survey->>'enumerator', ''),
+        nullif(f.survey->>'agent_name', ''),
+        ''
+      )) <> '';

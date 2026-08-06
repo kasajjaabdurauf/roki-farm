@@ -17,7 +17,8 @@ import { importStaging, useDb, type ImportSummary } from "@/lib/db";
 import { buildStaging, parseFile, reStage, reStageRow, stageFieldLabel, STAGE_FIELDS, type ParsedFile } from "@/lib/sheet";
 import type { StagingState, StageField } from "@/lib/types";
 import { downloadCSV, downloadText, stamp } from "@/lib/export";
-import { Button, Card, EmptyState, Modal, Select, Tooltip, XScroll } from "@/components/ui";
+import { getAgentName, setAgentName as persistAgentName } from "@/lib/agent";
+import { Button, Card, EmptyState, Input, Modal, Select, Tooltip, XScroll } from "@/components/ui";
 import { cx } from "@/lib/format";
 import { fmtKg } from "@/lib/rules";
 
@@ -28,6 +29,9 @@ export default function UploadPage() {
   const [parseError, setParseError] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [summary, setSummary] = useState<ImportSummary | null>(null);
+  // Agent stamp: every NEW farmer created by this import is credited to
+  // this name (an "Agent Name" column in the file overrides it per row).
+  const [agentStamp, setAgentStamp] = useState<string>(() => getAgentName());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const nameOf = useMemo(() => {
@@ -162,7 +166,7 @@ export default function UploadPage() {
               the cleanest import:
             </p>
             <div className="grid gap-2 text-[12px] sm:grid-cols-2">
-              <FormatCol title="Farmer identity" items={["Full Name (or First Name + Last Name separately)", "Phone (one per cell; 07XXXXXXXX or +256…)", "Gender (Male / Female / Other)", "Email (if they have an account)", "NIN (optional)"]} />
+              <FormatCol title="Farmer identity" items={["Full Name (or First Name + Last Name separately)", "Phone (one per cell; 07XXXXXXXX or +256…)", "Gender (Male / Female / Other)", "Email (if they have an account)", "NIN (optional)", "Agent Name (who registered them — optional)"]} />
               <FormatCol title="Location & farm" items={["District · Sub-County · Parish · Village", "Acreage (acres or hectares)", "Crop · Harvest Date (YYYY-MM-DD) · Qty (Kg)", "Grade (A / B / Reject)", "Planting Date · Source of Seed · Status · GPS"]} />
             </div>
             <p className="mt-3 text-[11.5px] text-stone-400">
@@ -193,11 +197,46 @@ export default function UploadPage() {
                 variant="accent"
                 size="lg"
                 disabled={validCount === 0}
-                onClick={() => setSummary(importStaging(stage))}
+                onClick={() => {
+                  persistAgentName(agentStamp); // remember for future imports
+                  setSummary(importStaging(stage, agentStamp));
+                }}
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Import {validCount} valid row{validCount === 1 ? "" : "s"}
               </Button>
+            </div>
+          </Card>
+
+          {/* agent stamp */}
+          <Card className="border-ochre-200 bg-ochre-50/40 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold text-ochre-900">
+                  Credit these farmers to which agent?
+                </p>
+                <p className="mt-0.5 text-[12px] leading-snug text-stone-500">
+                  New farmers created by this import are stamped with this name (an{" "}
+                  <span className="font-semibold">Agent Name</span> column in your file overrides it per row).
+                </p>
+              </div>
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <Input
+                  value={agentStamp}
+                  onChange={(e) => setAgentStamp(e.target.value)}
+                  placeholder="e.g. John Okello"
+                  className="h-10 sm:w-56"
+                />
+                {agentStamp && (
+                  <button
+                    type="button"
+                    onClick={() => setAgentStamp("")}
+                    className="h-10 shrink-0 px-2 text-[12px] font-semibold text-stone-400 underline hover:text-stone-600"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
           </Card>
 

@@ -27,11 +27,12 @@ import { useDb } from "@/lib/db";
 import { cx, fmtDate, fmtDateTime, isoDaysAgo, relTime } from "@/lib/format";
 import { fmtKg, fmtNumber } from "@/lib/rules";
 import { downloadSummaryPdf } from "@/lib/report";
+import { getAgentName, setAgentName as persistAgentName } from "@/lib/agent";
 import { LogoMark } from "@/components/brand";
 import { getSession } from "@/lib/remote";
 import { t, type Lang } from "@/lib/i18n";
 import { GENDER_LABEL, REFUGEE_LABEL, type LogStatus } from "@/lib/types";
-import { Button, Card, EmptyState, Stat } from "@/components/ui";
+import { Button, Card, EmptyState, Input, Stat } from "@/components/ui";
 import { GradeBadge, RokiTierBadge, SourceChip, StatusBadge, TierBadge } from "@/components/badges";
 
 export default function DashboardPage() {
@@ -260,6 +261,30 @@ function StaffDashboard() {
     }
   }, []);
 
+  // --- agent identity: "who is using this device" -------------------
+  // Every farmer registered here is stamped with this name (loggedBy),
+  // so the Agent performance page can credit the right person.
+  const [agentName, setAgentNameState] = useState<string>(() => getAgentName());
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameEdit, setNameEdit] = useState(false);
+  const [nameSkipped, setNameSkipped] = useState(() => {
+    try { return sessionStorage.getItem("roki-name-skipped") === "1"; } catch { return false; }
+  });
+  const staffMode = agentSession || isAgent;
+
+  function saveName() {
+    const n = nameDraft.trim();
+    if (!n) return;
+    persistAgentName(n);
+    setAgentNameState(n);
+    setNameEdit(false);
+    try { sessionStorage.removeItem("roki-name-skipped"); } catch { /* ignore */ }
+  }
+  function skipName() {
+    setNameSkipped(true);
+    try { sessionStorage.setItem("roki-name-skipped", "1"); } catch { /* ignore */ }
+  }
+
   function doRefresh() {
     setRefreshing(true);
     import("@/lib/db")
@@ -331,13 +356,65 @@ function StaffDashboard() {
     <div className="space-y-4">
       {/* header */}
       <div className="space-y-3">
-        {agentSession && (
+        {staffMode && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-forest-800 px-5 py-4 text-white">
             <div className="min-w-0">
               <p className="font-display text-lg font-semibold">Agent workspace</p>
-              <p className="mt-0.5 text-[12.5px] leading-snug text-white/70">
-                Your job: register farmers. See who's here, add new ones, log harvests.
-              </p>
+              {nameEdit ? (
+                <div className="mt-2 flex max-w-sm items-center gap-2">
+                  <Input
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    placeholder="e.g. John Okello"
+                    className="h-10 border-white/30 bg-white/10 text-white placeholder:text-white/50"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={saveName}
+                    disabled={!nameDraft.trim()}
+                    className="h-10 shrink-0 rounded-xl bg-ochre-500 px-4 text-[13px] font-bold text-white disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : agentName ? (
+                <p className="mt-0.5 text-[12.5px] leading-snug text-white/70">
+                  Working as <span className="font-bold text-white">{agentName}</span> — every farmer you add is
+                  credited to you.{" "}
+                  <button
+                    type="button"
+                    onClick={() => { setNameDraft(agentName); setNameEdit(true); }}
+                    className="font-semibold text-ochre-300 underline hover:text-ochre-200"
+                  >
+                    change
+                  </button>
+                </p>
+              ) : (
+                <div className="mt-2 max-w-sm">
+                  <p className="text-[12.5px] leading-snug text-white/80">
+                    What&apos;s your name? Every farmer you register will show you as their agent on the{" "}
+                    <span className="font-semibold text-white">Agent performance</span> page.
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Input
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      placeholder="Enter your name"
+                      className="h-10 border-white/30 bg-white/10 text-white placeholder:text-white/50"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={saveName}
+                      disabled={!nameDraft.trim()}
+                      className="h-10 shrink-0 rounded-xl bg-ochre-500 px-4 text-[13px] font-bold text-white disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <Link href="/farmers/new">
               <Button variant="accent" size="lg" className="h-12 shrink-0">
@@ -345,6 +422,39 @@ function StaffDashboard() {
               </Button>
             </Link>
           </div>
+        )}
+
+        {!staffMode && !agentName && !nameSkipped && (
+          <Card className="border-ochre-200 bg-ochre-50/60 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-bold text-ochre-900">Who is using this device?</p>
+                <p className="mt-0.5 text-[12.5px] leading-snug text-stone-600">
+                  Enter your name and it will be stamped on every farmer you register — so records show who did the
+                  onboarding.
+                </p>
+                <div className="mt-2 flex max-w-sm items-center gap-2">
+                  <Input
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    placeholder="e.g. John Okello"
+                    className="h-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveName}
+                    disabled={!nameDraft.trim()}
+                    className="h-10 shrink-0 rounded-xl bg-forest-800 px-4 text-[13px] font-bold text-white disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                  <button type="button" onClick={skipName} className="h-10 px-2 text-[12.5px] font-semibold text-stone-500 underline">
+                    Not now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Card>
         )}
         <div>
           <h2 className="font-display text-2xl font-semibold text-forest-900">Roki Farmer Dashboard</h2>

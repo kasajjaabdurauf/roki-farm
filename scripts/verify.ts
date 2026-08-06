@@ -6,7 +6,8 @@ import { hashCode } from "../src/lib/types";
 import { computeScaleTier, evaluateLog, computeFarmerFlags, anomalyCheck, duplicateCheck, fmtKg } from "../src/lib/rules";
 import { buildSeed } from "../src/lib/seed";
 import { buildStaging, autoDetect } from "../src/lib/sheet";
-import { importStaging, mergeFarmers, EMPTY_DB } from "../src/lib/db";
+import { importStaging, mergeFarmers, EMPTY_DB, createFarmer, addFarmer, updateFarmer, loadDb, wipeAllData } from "../src/lib/db";
+import { DEFAULT_SURVEY, type PlannedProduction } from "../src/lib/types";
 import { findDuplicateGroups } from "../src/lib/dedup";
 import { toCSVString } from "../src/lib/export";
 import { CROP_DEFAULTS, DEFAULT_SETTINGS_RULES } from "../src/lib/reference";
@@ -151,7 +152,7 @@ console.log("\n8) Staging validation + import");
   // run import on a db seeded copy — verify counts (no merge: every row creates)
   const db = { ...EMPTY_DB, farmers: [...seed.farmers], logs: [...seed.logs], meta: { ...seed.meta }, settings: { ...seed.settings } };
   const savedFarmers = db.farmers.length;
-  const summary = importStaging(st, db);
+  const summary = importStaging(st, undefined, db);
   check("import created 2 new farmers (no merge)", summary.createdFarmers === 2, summary);
   check("import linked 0 existing", summary.linkedExisting === 0, summary);
   check("import created 2 logs", summary.createdLogs === 2, summary);
@@ -193,7 +194,7 @@ console.log("\n8c) Planting history + GPS from upload");
   check("GPS lat parsed", st.rows[0].parsed.gpsLat === 0.619933, st.rows[0].parsed.gpsLat);
   check("GPS lon parsed", st.rows[0].parsed.gpsLon === 31.274045, st.rows[0].parsed.gpsLon);
   const db = { ...EMPTY_DB, farmers: [...seed.farmers], logs: [...seed.logs], meta: { ...seed.meta }, settings: { ...seed.settings } };
-  importStaging(st, db);
+  importStaging(st, undefined, db);
   const created = db.farmers.find((f) => f.phone === "+256782408545");
   check("import created farmer with phone", !!created, created?.id);
   check("planting history attached", created?.plantingHistory?.length === 1, created?.plantingHistory);
@@ -280,6 +281,74 @@ console.log("\n8f) Agent code hash");
   check("hash is deterministic", hashCode("roki-agent-2026") === hashCode("roki-agent-2026"));
   check("hash differs per code", hashCode("roki-agent-2026") !== hashCode("roki-agent-2027"));
   check("hash is hex 8 chars", /^[0-9a-f]{8}$/.test(hashCode("abc123")));
+}
+
+console.log("\n8g) Agent attribution (logged_by) — the fix for \"no agents shown\"");
+{
+  // 1) the survey/sheet name must land on the farmer record at creation
+  const base = { plannedProductions: [] as PlannedProduction[], survey: { ...DEFAULT_SURVEY } };
+  const created = createFarmer({
+    ...base,
+    fullName: "Aisha Namukwaya",
+    phone: "0772000111",
+    district: "Kampala",
+    subCounty: "Rubaga",
+    gender: "F",
+    refugeeStatus: "HOST",
+    acreage: 1.5,
+    primaryCrops: ["Maize"],
+    irrigationType: "NONE",
+    ageGroup: "36-45",
+    landOwnership: "OWN",
+    loggedBy: "John Okello",
+  });
+  check("createFarmer keeps loggedBy", created.loggedBy === "John Okello", created.loggedBy);
+  check("createFarmer trims blank loggedBy", createFarmer({ ...base, fullName: "B", phone: "0772000222", district: "K", subCounty: "R", gender: "M", refugeeStatus: "HOST", acreage: 1, primaryCrops: ["Maize"], irrigationType: "NONE", ageGroup: "36-45", landOwnership: "OWN", loggedBy: "   " }).loggedBy === undefined);
+
+  // 2) updateFarmer path (local store round-trip)
+  wipeAllData();
+  const added = addFarmer({
+    ...base,
+    fullName: "Grace Achieng",
+    phone: "0755000111",
+    district: "Lira",
+    subCounty: "Erute",
+    gender: "F",
+    refugeeStatus: "HOST",
+    acreage: 2,
+    primaryCrops: ["Millet"],
+    irrigationType: "NONE",
+    ageGroup: "26-35",
+    landOwnership: "OWN",
+  });
+  updateFarmer(added.id, { loggedBy: "Grace Achieng" });
+  const after = loadDb().farmers.find((f) => f.id === added.id);
+  check("updateFarmer sets loggedBy", after?.loggedBy === "Grace Achieng", after?.loggedBy);
+
+  // 3) uploads: agent stamp parameter lands on every created farmer
+  const seed = buildSeed();
+  const db = { ...EMPTY_DB, farmers: [...seed.farmers], logs: [...seed.logs], meta: { ...seed.meta }, settings: { ...seed.settings } };
+  const raw = [
+    ["Farmer Name", "Phone", "District", "Agent Name"],
+    ["Okello Peter", "0701 111 222", "Gulu", ""],
+    ["Nabirye Sarah", "0701 333 444", "Jinja", "Grace Achieng"],
+  ];
+  const st = buildStaging({ fileName: "agents.csv", sheetName: "Sheet1", raw }, seed);
+  const s = importStaging(st, "John Okello", db);
+  check("2 farmers created", s.createdFarmers === 2, s.createdFarmers);
+  const peter = db.farmers.find((f) => f.fullName === "Okello Peter");
+  const sarah = db.farmers.find((f) => f.fullName === "Nabirye Sarah");
+  check("row without agent column value → device stamp", peter?.loggedBy === "John Okello", peter?.loggedBy);
+  check("row with Agent Name value → column wins", sarah?.loggedBy === "Grace Achieng", sarah?.loggedBy);
+  check("survey enumeratorName mirrors the stamp", sarah?.survey?.enumeratorName === "Grace Achieng", sarah?.survey?.enumeratorName);
+
+  // 4) column auto-detection
+  check("autoDetect 'Agent Name' → agentName", autoDetect("Agent Name").target === "agentName");
+  check("autoDetect 'Enumerator' → agentName", autoDetect("Enumerator").target === "agentName");
+  check("autoDetect 'Registered By' → agentName", autoDetect("Registered By").target === "agentName");
+  check("autoDetect 'Enumerator ID' → ignore (it's an ID, not a name)", autoDetect("Enumerator ID").target === "ignore");
+  check("autoDetect 'Agent ID' → ignore", autoDetect("Agent ID").target === "ignore");
+  check("autoDetect 'Farmer Name' stays fullName", autoDetect("Farmer Name").target === "fullName");
 }
 
 console.log(`\n===== ${pass} passed, ${fail} failed =====`);

@@ -63,6 +63,7 @@ export default function FarmersPage() {
       { key: "acreage", label: "Acreage (acres)" },
       { key: "refugeeStatus", label: "Community", value: (r) => (r.refugeeStatus === "REFUGEE" ? "Refugee" : r.refugeeStatus === "HOST" ? "Host community" : "") },
       { key: "createdAt", label: "Registered", value: (r) => r.createdAt?.slice(0, 10) },
+      { key: "loggedBy", label: "Registered By (Agent)", value: (r) => r.loggedBy ?? r.survey?.enumeratorName ?? "" },
     ];
     const cropTag = crop === "ALL" ? "all-crops" : crop.toLowerCase().replace(/\s+/g, "-");
     const placeTag = district === "ALL" ? "all-places" : district.toLowerCase().replace(/\s+/g, "-");
@@ -172,7 +173,11 @@ export default function FarmersPage() {
                     <p className="truncate text-[12px] font-medium text-stone-400 tabular">
                       {f.id}{f.email && f.email !== f.fullName ? ` · ${f.email}` : ""}
                     </p>
-                    {f.loggedBy && <p className="text-[11px] text-stone-400">registered by {f.loggedBy}</p>}
+                    {(f.loggedBy || f.survey?.enumeratorName) && (
+                      <p className="text-[11px] font-semibold text-ochre-600">
+                        registered by {f.loggedBy || f.survey?.enumeratorName}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <RokiTierBadge tier={f.rokiTier} />

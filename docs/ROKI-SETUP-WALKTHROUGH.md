@@ -10,20 +10,38 @@
 
 ## FRESH START — ONE-SHOT RESET (use this for a clean slate)
 
-Instead of the multi-step wipe + schema + 13 migrations, use the single file
+Instead of the multi-step wipe + schema + migrations, use the single file
 **`supabase/fresh_start.sql`** in the SQL Editor. It does everything in order:
 
 1. Wipes all farmers, logs, user accounts, settings (safe, order-independent)
 2. Re-creates the schema (tables, RLS, triggers, sequence)
-3. Applies migrations v2 → v11 (the fixed setval, claim-by-email, agent-code
-   cloud hash, anon reads/writes for agents, etc.)
+3. Applies migrations v2 → v15 (two-group model Admin+Agent, logged_by column,
+   agent-name recovery, anon reads/writes for agents, etc.)
 4. Disables RLS on `produce_logs` for the field demo (harvest logging works)
 
 **Run it once.** After it finishes: sign up — the **first account becomes Admin**.
 
-> The old multi-file path (wipe_everything.sql → schema.sql → migration_v2..v11)
+> The old multi-file path (wipe_everything.sql → schema.sql → migration files)
 > still works; `fresh_start.sql` is just the same thing in one paste.
 > Individual migration files remain in `supabase/` for reference.
+
+---
+
+## UPGRADING AN EXISTING DATABASE (not a fresh start — e.g. the live one)
+
+Do **not** run `fresh_start.sql` on a live database — it wipes everything.
+Instead run only the migrations you're missing, in order, each in the SQL Editor:
+
+- [ ] **U1** `supabase/migration_v12.sql` — two-group model (first account = Admin, others = Field Agent; existing FARMER roles → FIELD_AGENT)
+- [ ] **U2** `supabase/migration_v13.sql` — adds the `logged_by` column (agent attribution)
+- [ ] **U3** `supabase/migration_v14.sql` — safety re-run: any leftover FARMER accounts → FIELD_AGENT
+- [ ] **U4** `supabase/migration_v15.sql` — **agent-name recovery.** Paste the whole file and run its 4 steps in order:
+      1. **Look** — read the numbers (how many farmers have no agent, how many are recoverable)
+      2. **Run** — the UPDATE copies names from inside old survey records onto the farmer records
+      3. **Check** — the recovered-agents table shows who is now credited
+      4. **Review** — the still-blank list (these genuinely have no name on record; edit them manually if you know who registered them)
+
+> The live project is currently on v2–v14 — the only step you need there is **U4 (migration_v15.sql)**.
 
 ---
 

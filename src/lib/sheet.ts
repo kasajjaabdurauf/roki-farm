@@ -70,6 +70,7 @@ const SYNONYMS: Record<Exclude<StageField, "ignore">, string[]> = {
   plantingStatus: ["status", "plantingstatus", "currentstatus", "farmstatus", "farmerstatus"],
   gpsLat: ["gpslatitude", "latitude", "lat", "gps-latitude"],
   gpsLon: ["gpslongitude", "longitude", "lon", "long", "gps-longitude"],
+  agentName: ["agentname", "agent", "agents", "enumerator", "enumeratorname", "enumerator s name", "registeredby", "registered by", "loggedby", "logged by", "fieldagent", "field agent", "collectedby", "recordedby", "interviewer", "officername", "staffname"],
 };
 
 const NORM_CACHE: Record<string, string> = {};
@@ -106,12 +107,14 @@ const FIELD_LABELS: Record<Exclude<StageField, "ignore">, string> = {
   plantingStatus: "Status",
   gpsLat: "GPS latitude",
   gpsLon: "GPS longitude",
+  agentName: "Agent name (who registered)",
 };
 
 export const STAGE_FIELDS: StageField[] = [
   "fullName", "firstName", "lastName", "phone", "nin", "farmerId", "district", "subCounty", "village",
   "acreage", "crops", "cropType", "harvestDate", "quantityKg", "qualityGrade", "batchId", "storageLocation",
-  "gender", "refugeeStatus", "email", "plantingDate", "sourceOfSeed", "plantingStatus", "gpsLat", "gpsLon", "ignore",
+  "gender", "refugeeStatus", "email", "plantingDate", "sourceOfSeed", "plantingStatus", "gpsLat", "gpsLon",
+  "agentName", "ignore",
 ];
 
 export function stageFieldLabel(f: StageField): string {
@@ -129,6 +132,10 @@ export function autoDetect(header: string): { target: StageField; unit?: "KG" | 
   let bestScore = 0;
   // "company name" / "organisation" headers must never become a farmer's name
   if (/company|organisation|organization|org/.test(n)) {
+    return { target: "ignore" };
+  }
+  // "Enumerator ID" / "Agent ID" hold an ID, not the agent's NAME
+  if ((n.includes("enumerator") || n.includes("agent")) && n.endsWith("id")) {
     return { target: "ignore" };
   }
   for (const [field, syns] of Object.entries(SYNONYMS) as [Exclude<StageField, "ignore">, string[]][]) {
@@ -327,6 +334,9 @@ export function stageRow(
         break;
       case "gpsLon":
         parsed.gpsLon = parseNum(raw);
+        break;
+      case "agentName":
+        parsed.agentName = raw.trim().replace(/\s+/g, " ");
         break;
     }
   }

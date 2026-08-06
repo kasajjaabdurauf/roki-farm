@@ -20,7 +20,9 @@ export default function AgentsPage() {
     const map = new Map<string, { farmers: typeof db.farmers; logs: number }>();
     const unnamed: typeof db.farmers = [];
     for (const f of db.farmers) {
-      const agent = (f.loggedBy ?? "").trim();
+      // loggedBy is the primary attribution; older records may only have
+      // the name inside the survey (enumeratorName) — use it as fallback.
+      const agent = (f.loggedBy ?? f.survey?.enumeratorName ?? "").trim();
       if (!agent) { unnamed.push(f); continue; }
       const key = agent.toLowerCase();
       const entry = map.get(key) ?? { farmers: [], logs: 0 };
@@ -30,7 +32,7 @@ export default function AgentsPage() {
     }
     const out = [...map.entries()]
       .map(([key, e]) => ({
-        name: e.farmers[0].loggedBy!,
+        name: e.farmers[0].loggedBy || e.farmers[0].survey?.enumeratorName || key,
         key,
         count: e.farmers.length,
         logs: e.logs,
@@ -180,8 +182,9 @@ export default function AgentsPage() {
             {rows.unnamed.length} farmer{rows.unnamed.length === 1 ? "" : "s"} without an agent recorded
           </p>
           <p className="mt-1 text-[13px] text-stone-600">
-            These were registered before agent tracking existed (or the name wasn't saved). They can't be recovered
-            automatically, but if you know who registered them you can edit the farmer and add the name.
+            Some may be recoverable: names captured inside the old survey (enumerator field) can be copied back with
+            the recovery script (migration v15 in Supabase). Anything still blank can be fixed by opening the farmer
+            and adding the agent's name — or simply left if the farmer was registered before agent tracking started.
           </p>
         </Card>
       )}

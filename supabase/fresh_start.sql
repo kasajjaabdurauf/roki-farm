@@ -1,4 +1,4 @@
--- ROKI FULL FRESH START (v3, includes v2→v13)
+-- ROKI FULL FRESH START (v3, includes v2→v15)
 
 -- 1 WIPE
 -- missing, so it works even on a partially-initialized project)
@@ -734,3 +734,23 @@ alter table public.farmers
  alter table public.produce_logs disable row level security;
 
 -- DONE — first signup = Admin · agent code = ROKIEXPORTS
+
+-- v15 — agent-name recovery (fills empty logged_by from the survey JSON).
+-- Idempotent; on a fresh/empty table there is nothing to fill, which is fine.
+update public.farmers f
+set logged_by = trim(coalesce(
+    nullif(f.survey->>'enumeratorName', ''),
+    nullif(f.survey->>'agentName', ''),
+    nullif(f.survey->>'enumerator', ''),
+    nullif(f.survey->>'agent_name', ''),
+    ''
+  ))
+where (f.logged_by is null or trim(f.logged_by) = '')
+  and f.survey is not null
+  and trim(coalesce(
+        nullif(f.survey->>'enumeratorName', ''),
+        nullif(f.survey->>'agentName', ''),
+        nullif(f.survey->>'enumerator', ''),
+        nullif(f.survey->>'agent_name', ''),
+        ''
+      )) <> '';

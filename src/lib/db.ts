@@ -433,6 +433,7 @@ export function createFarmer(input: FarmerInput): Farmer {
     householdSize: input.householdSize,
     plannedProductions: input.plannedProductions ?? [],
     survey,
+    loggedBy: input.loggedBy?.trim() || undefined, // agent who registered this farmer
     flags: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -470,6 +471,7 @@ export function updateFarmer(id: string, patch: Partial<FarmerInput>): void {
     if (patch.ageGroup !== undefined) f.ageGroup = patch.ageGroup;
     if (patch.landOwnership !== undefined) f.landOwnership = patch.landOwnership;
     if (patch.householdSize !== undefined) f.householdSize = patch.householdSize;
+    if (patch.loggedBy !== undefined) f.loggedBy = patch.loggedBy.trim() || undefined;
     if (patch.plannedProductions !== undefined) f.plannedProductions = patch.plannedProductions;
     if (patch.survey !== undefined) {
       f.survey = { ...DEFAULT_SURVEY, ...patch.survey };
@@ -781,7 +783,7 @@ export interface ImportSummary {
   results: { row: number; message: string; ok: boolean }[];
 }
 
-export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary {
+export function importStaging(st: StagingState, agentStamp?: string, dbOverride?: Db): ImportSummary {
   const summary: ImportSummary = {
     createdFarmers: 0,
     createdLogs: 0,
@@ -799,6 +801,13 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
         summary.results.push({ row: row.rowIndex, message: row.errors[0], ok: false });
         continue;
       }
+
+      // Agent attribution: an "Agent Name" / "Enumerator" column in the
+      // file wins; otherwise stamp with the device's current agent name
+      // (the "Working as" identity chosen in the app).
+      const agentName =
+        (row.parsed.agentName ? String(row.parsed.agentName).trim() : "") ||
+        (agentStamp ?? "").trim();
 
       // --- resolve or create farmer -------------------------------
       // NO AUTO-MERGE: only an explicit Farmer ID links to an existing
@@ -847,7 +856,8 @@ export function importStaging(st: StagingState, dbOverride?: Db): ImportSummary 
           ageGroup: "36-45",
           landOwnership: "OWN",
           plannedProductions: [],
-          survey: { ...DEFAULT_SURVEY },
+          survey: { ...DEFAULT_SURVEY, enumeratorName: agentName || "" },
+          loggedBy: agentName || undefined,
           plantingHistory: buildPlantingHistory(row.parsed),
           flags: [] as FarmerFlag[],
           createdAt: new Date().toISOString(),
