@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   GitMerge,
   MoreHorizontal,
+  UserCog,
   Settings,
   UserCircle2,
   Sprout,
@@ -50,6 +51,7 @@ const NAV: NavItem[] = [
   { href: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/help", label: "Help & Guide", icon: <BookOpen className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
   { href: "/duplicates", label: "Duplicates", icon: <GitMerge className="h-5 w-5" />, roles: ["ADMIN"] },
+  { href: "/agents", label: "Agents", icon: <UserCog className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/account", label: "Account", icon: <UserCircle2 className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
 ];
 
@@ -69,6 +71,7 @@ const TITLES: Record<string, string> = {
   "/help": "Help & Guide",
   "/account": "Account",
   "/duplicates": "Duplicate records",
+  "/agents": "Agent performance",
 };
 
 function useOnline(): boolean {
