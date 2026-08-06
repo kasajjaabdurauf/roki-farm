@@ -347,7 +347,9 @@ export async function bootstrapRemote(): Promise<void> {
       localStorage.setItem("roki-role-synced", "1");
     } catch { /* ignore */ }
     mutate((db) => {
-      db.meta.role = (profile.role as Role) ?? "FIELD_AGENT";
+      const serverRole = (profile.role as Role) ?? "FIELD_AGENT";
+      // two-group model: any leftover FARMER role acts as an agent
+      db.meta.role = serverRole === "FARMER" ? "FIELD_AGENT" : serverRole;
       // IMPORTANT: always reconcile the farmer link. A stale demoFarmerId
       // from a previous session must NEVER leak into another role's view.
       if (profile.farmer_id) {

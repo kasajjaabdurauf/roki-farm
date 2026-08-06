@@ -436,7 +436,6 @@ function TeamRolesCard() {
                     >
                       <option value="ADMIN">Admin</option>
                       <option value="FIELD_AGENT">Field Agent</option>
-                      <option value="FARMER">Farmer</option>
                     </Select>
                   </td>
                   <td className="py-2.5 text-[12px] text-stone-400">{m.created_at?.slice(0, 10)}</td>
