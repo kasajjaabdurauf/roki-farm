@@ -5,6 +5,20 @@
 
 ---
 
+## 3.3.0 — 2026-08-07 · Agent name: unmissable & mandatory (solves it once and for all)
+
+Day-two feedback: agents were still skipping the name (or the device didn't remember it), leaving farmers without credit. Fix — you can no longer miss it:
+
+- **Removed** the "Who is using this device?" card on the dashboard (it looked like an error and was skippable).
+- **The survey now hard-requires the agent's name.** Step 1 opens with a big amber box — **"WHO IS REGISTERING THIS FARMER?"** — with a bold input and the rule: *cannot be skipped; if there is no specific agent, write "none"*. The form blocks completion until it's filled. The name also appears in the final review step.
+- If the agent writes **"none" / "n/a" / "-"**, it's stored as a visible **"None"** group on the Agent performance page (never a silent blank).
+- **Uploads now require credit too:** the "Credit these farmers to which agent?" box is mandatory (type a name or "none") unless the file itself has an **Agent Name** column — the Import button stays disabled with a clear message otherwise.
+- The green Agent workspace banner no longer nags; it just shows **"Working as \<name\>"** (change link) when a name is set.
+- **Nightly backup workflow fixed:** the secret-check step used `secrets[s]` inside a shell loop, which GitHub Actions evaluates as a literal key (always "missing") — rewritten with explicit checks so the workflow can actually run once secrets are set.
+- 121 automated checks (+7 new).
+
+> ⚠️ **Agents' phones must load the new build** — a phone running the old version still has the old (dropped-name) behaviour. Open Settings/Account and check the version says **3.3.0**; otherwise close the app fully and reopen (twice) to force the update.
+
 ## 3.2.0 — 2026-08-06 · Agent names are finally recorded (the big fix)
 
 **The bug you were seeing**
@@ -18,6 +32,8 @@ The survey always asked "Your name (agent)", but a code bug meant that name was 
 - **Uploads now credit an agent:** new "Credit these farmers to which agent?" box on the upload screen (pre-filled from the device name); a file can also carry an **Agent Name / Enumerator** column which wins per row.
 - **The downloaded CSV list now includes a "Registered By (Agent)" column** — the "I downloaded the survey but can't see the agent" fix.
 - Farmer cards, farmer detail page and the survey PDF all show the agent name.
+- **Farmer profiles: admins can assign the agent** — each farmer's profile now has an inline **"Registered by …" editor** (pencil → type the agent's name → save → syncs to the cloud). This is how the older farmers with no recorded agent get their credit.
+- **Edit-survey no longer wipes credit** — editing a farmer's details used to overwrite (or blank) the agent name with the current device user's name; it now preserves the existing agent.
 - **Recovery script `supabase/migration_v15.sql`** — copies names already sitting inside old survey records (enumerator field) onto the farmer records. Run in the Supabase SQL editor (4 steps — read the numbers first).
 - 114 automated checks (+13 new agent-attribution tests).
 

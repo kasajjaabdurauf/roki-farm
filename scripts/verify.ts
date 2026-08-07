@@ -9,6 +9,7 @@ import { buildStaging, autoDetect } from "../src/lib/sheet";
 import { importStaging, mergeFarmers, EMPTY_DB, createFarmer, addFarmer, updateFarmer, loadDb, wipeAllData } from "../src/lib/db";
 import { DEFAULT_SURVEY, type PlannedProduction } from "../src/lib/types";
 import { findDuplicateGroups } from "../src/lib/dedup";
+import { normalizeAgentName } from "../src/lib/agent";
 import { toCSVString } from "../src/lib/export";
 import { CROP_DEFAULTS, DEFAULT_SETTINGS_RULES } from "../src/lib/reference";
 
@@ -349,6 +350,25 @@ console.log("\n8g) Agent attribution (logged_by) — the fix for \"no agents sho
   check("autoDetect 'Enumerator ID' → ignore (it's an ID, not a name)", autoDetect("Enumerator ID").target === "ignore");
   check("autoDetect 'Agent ID' → ignore", autoDetect("Agent ID").target === "ignore");
   check("autoDetect 'Farmer Name' stays fullName", autoDetect("Farmer Name").target === "fullName");
+}
+
+console.log("\n8h) Agent name normalization (unmissable credit, v3.3)");
+{
+  check("'none' → 'None'", normalizeAgentName("none") === "None");
+  check("'N/A' → 'None'", normalizeAgentName("N/A") === "None");
+  check("' - ' → 'None'", normalizeAgentName(" - ") === "None");
+  check("'  John   Okello ' trims+collapses", normalizeAgentName("  John   Okello ") === "John Okello");
+  check("empty → empty", normalizeAgentName("   ") === "");
+
+  // import stamps "None" when the stamp says "none" (visible group, not blank)
+  const seed = buildSeed();
+  const db = { ...EMPTY_DB, farmers: [...seed.farmers], logs: [...seed.logs], meta: { ...seed.meta }, settings: { ...seed.settings } };
+  const raw = [["Farmer Name", "Phone", "District"], ["Okello Peter", "0701 111 222", "Gulu"]];
+  const st = buildStaging({ fileName: "n.csv", sheetName: "Sheet1", raw }, seed);
+  const s = importStaging(st, "none", db);
+  const created = db.farmers.find((f) => f.fullName === "Okello Peter");
+  check("stamp 'none' → loggedBy 'None'", created?.loggedBy === "None", created?.loggedBy);
+  check("import still created the farmer", s.createdFarmers === 1, s.createdFarmers);
 }
 
 console.log(`\n===== ${pass} passed, ${fail} failed =====`);

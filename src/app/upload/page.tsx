@@ -17,7 +17,7 @@ import { importStaging, useDb, type ImportSummary } from "@/lib/db";
 import { buildStaging, parseFile, reStage, reStageRow, stageFieldLabel, STAGE_FIELDS, type ParsedFile } from "@/lib/sheet";
 import type { StagingState, StageField } from "@/lib/types";
 import { downloadCSV, downloadText, stamp } from "@/lib/export";
-import { getAgentName, setAgentName as persistAgentName } from "@/lib/agent";
+import { getAgentName, normalizeAgentName, setAgentName as persistAgentName } from "@/lib/agent";
 import { Button, Card, EmptyState, Input, Modal, Select, Tooltip, XScroll } from "@/components/ui";
 import { cx } from "@/lib/format";
 import { fmtKg } from "@/lib/rules";
@@ -32,6 +32,13 @@ export default function UploadPage() {
   // Agent stamp: every NEW farmer created by this import is credited to
   // this name (an "Agent Name" column in the file overrides it per row).
   const [agentStamp, setAgentStamp] = useState<string>(() => getAgentName());
+  // True when the file itself carries an Agent Name / Enumerator column
+  // (then the per-row name wins and the stamp box is optional).
+  const hasAgentColumn = useMemo(
+    () => stage?.columns.some((c) => c.target === "agentName") ?? false,
+    [stage]
+  );
+  const agentStampMissing = !normalizeAgentName(agentStamp) && !hasAgentColumn;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const nameOf = useMemo(() => {
@@ -196,10 +203,11 @@ export default function UploadPage() {
               <Button
                 variant="accent"
                 size="lg"
-                disabled={validCount === 0}
+                disabled={validCount === 0 || agentStampMissing}
                 onClick={() => {
-                  persistAgentName(agentStamp); // remember for future imports
-                  setSummary(importStaging(stage, agentStamp));
+                  const n = normalizeAgentName(agentStamp);
+                  persistAgentName(n); // remember for future imports
+                  setSummary(importStaging(stage, n));
                 }}
               >
                 <CheckCircle2 className="h-4 w-4" />
@@ -208,24 +216,26 @@ export default function UploadPage() {
             </div>
           </Card>
 
-          {/* agent stamp */}
-          <Card className="border-ochre-200 bg-ochre-50/40 p-4">
+          {/* agent stamp — REQUIRED (or an Agent Name column in the file) */}
+          <Card className="border-2 border-ochre-400 bg-ochre-50/40 p-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-bold text-ochre-900">
-                  Credit these farmers to which agent?
+                  Credit these farmers to which agent? <span className="text-danger-600">*</span>
                 </p>
                 <p className="mt-0.5 text-[12px] leading-snug text-stone-500">
-                  New farmers created by this import are stamped with this name (an{" "}
-                  <span className="font-semibold">Agent Name</span> column in your file overrides it per row).
+                  Every farmer created by this import is stamped with this name. Cannot be skipped — if there is no
+                  specific agent, write <b>none</b>. An <span className="font-semibold">Agent Name</span> column in
+                  your file overrides it per row.
                 </p>
               </div>
               <div className="flex w-full items-center gap-2 sm:w-auto">
                 <Input
                   value={agentStamp}
                   onChange={(e) => setAgentStamp(e.target.value)}
-                  placeholder="e.g. John Okello"
+                  placeholder="e.g. John Okello (or 'none')"
                   className="h-10 sm:w-56"
+                  invalid={agentStampMissing}
                 />
                 {agentStamp && (
                   <button
@@ -238,6 +248,17 @@ export default function UploadPage() {
                 )}
               </div>
             </div>
+            {agentStampMissing && (
+              <p className="mt-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-danger-600">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                Type the agent name (or “none”) to import — every farmer needs credit.
+              </p>
+            )}
+            {hasAgentColumn && (
+              <p className="mt-2 text-[12px] font-semibold text-success-dark">
+                ✓ Your file has an Agent Name column — each row will be credited to its own agent.
+              </p>
+            )}
           </Card>
 
           {/* validation summary */}

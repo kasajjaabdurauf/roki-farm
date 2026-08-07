@@ -138,8 +138,10 @@ The language is stored in `DbMeta.language`, set from the survey's preferred lan
   the DB paused anyway, then unpause from the dashboard.
 - **Migrations must run in order** v2→v3→v4→v5→v6→…→v15 (each is idempotent-ish; v5/v6 replace the trigger).
 - **Agent names / `logged_by`:** the one source of the "who is on this device" identity is `src/lib/agent.ts`
-  (`getAgentName`/`setAgentName`, key `roki-agent-name`). It is written from the dashboard banner (v3.2), read
-  to pre-fill the survey's "Your name (agent)", and passed into `importStaging(st, agentStamp, dbOverride?)`.
+  (`getAgentName`/`setAgentName`, key `roki-agent-name`; `normalizeAgentName` maps "none"/"n/a"/"-" → "None"
+  so a skipped credit is never silent). Since v3.3 the name is **captured mandatorily inside the survey**
+  (Step 1 amber box, blocks completion) and on uploads (Import disabled without a stamp or an Agent Name
+  column); the banner only displays "Working as …". It is passed into `importStaging(st, agentStamp, dbOverride?)`.
   The upload sheet parser maps an **Agent Name / Enumerator** column to the new `agentName` stage field
   (`"Enumerator ID"` headers are deliberately ignored). `createFarmer`/`updateFarmer` MUST copy `loggedBy`
   (that was the v3.2 root-cause bug). Remote mapping lives in `remote.ts` (`logged_by` ↔ `loggedBy`); the

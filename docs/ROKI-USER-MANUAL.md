@@ -92,11 +92,11 @@ The farmer-facing screens (dashboard, My Farm) support **English, Luganda, Runya
 ### 3.3 Field agents: shared access code (no account needed)
 Field agents don't need accounts. On the sign-in screen, tap **"Are you a field agent?"** (bottom link) to reveal the code field: enter the shared code (given by the administrator) and continue as a field agent. Wrong codes are limited to 5 attempts per 10 minutes per device. The code is stored hashed in the cloud, so when the admin changes it in Settings it works on every device immediately.
 
-**Your name — asked once, used everywhere.** When you first land in the green **Agent workspace**, the banner asks **"What's your name?"**. Type it once and it is remembered on that device:
-- the banner then shows **"Working as \<your name\>"** (tap *change* if someone else uses the same phone),
+**Your name — mandatory, right inside the survey.** When you start a new farmer survey, **Step 1 opens with a big amber box: "WHO IS REGISTERING THIS FARMER?"** — you type your name there and the form will not let you finish without it (if there is no specific agent, write **none**). It's remembered on the phone, so it's pre-filled next time:
 - every farmer you register is credited to you — **"Registered by \<your name\>"** appears on their card, their profile, the survey PDF and the exported CSV,
-- the survey's **"Your name (agent)"** field is pre-filled for you,
-- your totals appear on the admin's **Agent performance** page (`/agents`) — that's what performance pay is based on.
+- your totals appear on the admin's **Agent performance** page (`/agents`) — that's what performance pay is based on,
+- the green banner on your dashboard just shows **"Working as \<your name\>"** with a *change* link if someone else uses the same phone.
+- **Bulk uploads:** the "Credit these farmers to which agent?" box on the upload screen is also required (type your name or "none") unless the file has its own Agent Name column.
 
 ### 3.3 Signing in
 1. Open the app. If the platform is in **production mode** you'll land on the sign-in screen.
@@ -171,6 +171,7 @@ The home screen for everyone (different content per role).
 
 **Survey PDF (admin):** the **Survey PDF** button downloads a branded one-page PDF of that farmer's complete questionnaire, production plan and planting history — handy for records, audits and handing to partners.
 - Header: name, ID, tier badges, location, actions (**Log Harvest**, **Edit** survey, **Delete**).
+- **Registered by (agent)** — under the location. Admin sees a small **change / add agent** link next to it: type the agent's name and save, and that farmer is credited to them everywhere (Agents page, CSV, PDF). Use this for the older farmers who were registered before agent tracking.
 - Facts: phone, acreage, irrigation, crops.
 - Stats: total harvested, harvest logs, avg per acre, top crop.
 - **Survey record** card: gender, community, age, household, land ownership, irrigation, enumerator (the agent's name), scoring criteria, assessment.
@@ -203,7 +204,7 @@ Filters: search, crop, district, tier. Shows total expected tonnes for the curre
 3. **Staging grid** — every row previewed. Red rows have errors (bad phone, negative quantity, unreadable date, produce row without a farmer). **Fix them right in the grid**: tap any cell and type the correct value (dropdowns appear for grade, gender and refugee status) and the row re-validates instantly. Expand a row to see the exact errors/warnings and whether it links to an existing farmer (by ID or phone) or creates a new profile.
 
    **Handles real-world files:** *First Name* + *Last Name* columns auto-merge into the full name; cells with two phones (`0782…/0779…`) keep the first valid number and flag the rest as a warning; phones with spaces normalize; acreage like `1.5` or `0.5000` parses; a `COMPANY NAME` column is never mistaken for a farmer's name; `PLANTING DATE`, `SOURCE OF SEED`, `STATUS` and `GPS-LATITUDE`/`GPS-LONGITUDE` are captured into a **Planting history** on the farmer profile. Nothing is silently dropped — every column appears in the mapper for you to assign.
-4. **Credit the right agent** — the amber **"Credit these farmers to which agent?"** box is pre-filled with your device name ("Working as …"). New farmers created by the import are stamped with it. If your file has an **Agent Name / Enumerator** column, that value wins for each row (mapped automatically — "Enumerator ID" columns are ignored, they're IDs not names).
+4. **Credit the right agent — required.** The amber **"Credit these farmers to which agent?"** box must be filled (your name, or "none") before the Import button unlocks — unless the file itself has an **Agent Name / Enumerator** column, which wins per row (mapped automatically — "Enumerator ID" columns are ignored, they're IDs not names).
 5. **Rows that still have errors are NOT imported** — the red banner above the grid says exactly how many will be dropped, and you can press **Remove invalid rows** to discard them first. Then **Import** — a report lists every row's result (created / linked / fixed / skipped).
 6. All imported logs pass through the rule engine immediately.
 
@@ -280,7 +281,7 @@ Nine steps = the 15 official questionnaire sections. Every step is validated; yo
 
 | Step | Sections | What's asked |
 |---|---|---|
-| 1 | §1 Identification & bio-data | **Your name (agent)** — pre-filled from the "Working as" name (agents only), full name, gender, age in years, NIN (optional), primary + alternative phone (MTN/Airtel validated), district, sub-county, **parish**, village, GPS coordinates (optional, "Use my current location" button) |
+| 1 | §1 Identification & bio-data | **① WHO IS REGISTERING THIS FARMER?** (mandatory amber box — your name, or "none"; blocks completion if empty, agents only) · full name, gender, age in years, NIN (optional), primary + alternative phone (MTN/Airtel validated), district, sub-county, **parish**, village, GPS coordinates (optional, "Use my current location" button) |
 | 2 | §2 Refugee & host community status | Refugee or host? If refugee: country of origin, year arrived, settlement, refugee household number. Adults/children. Vulnerability: female-headed, youth (18–35), disability, elderly |
 | 3 | §3 Farming experience & history | Years farming, farming types (multi), crops produced before (years + avg area), sold commercially before? Where? |
 | 4 | §4 Land & farm assets | Land access, ownership (own/family/rented/allocated/other), total acreage, land under cultivation, expansion land available |

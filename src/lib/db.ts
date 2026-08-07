@@ -35,6 +35,7 @@ import { DEFAULT_SETTINGS_RULES, CROP_DEFAULTS } from "./reference";
 import { buildSeed } from "./seed";
 import { computeRokiTier, computeScaleTier, computeFarmerFlags, evaluateLog } from "./rules";
 import { normalizeUgPhone } from "./phone";
+import { normalizeAgentName } from "./agent";
 import { todayISO } from "./format";
 import { fetchAll, fetchMyProfile, pushOp, remoteConfigured, sb, signOut as signOutRemote, validateSession } from "./remote";
 
@@ -804,10 +805,11 @@ export function importStaging(st: StagingState, agentStamp?: string, dbOverride?
 
       // Agent attribution: an "Agent Name" / "Enumerator" column in the
       // file wins; otherwise stamp with the device's current agent name
-      // (the "Working as" identity chosen in the app).
+      // (the "Working as" identity chosen in the app). Normalized so
+      // "none"/"n/a"/"-" become a visible "None" group.
       const agentName =
-        (row.parsed.agentName ? String(row.parsed.agentName).trim() : "") ||
-        (agentStamp ?? "").trim();
+        normalizeAgentName(row.parsed.agentName ? String(row.parsed.agentName) : "") ||
+        normalizeAgentName(agentStamp ?? "");
 
       // --- resolve or create farmer -------------------------------
       // NO AUTO-MERGE: only an explicit Farmer ID links to an existing

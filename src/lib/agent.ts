@@ -33,3 +33,15 @@ export function clearAgentName(): void {
     /* ignore */
   }
 }
+
+/**
+ * Normalize an agent name for storage: trim, collapse inner spaces, and
+ * treat "none" / "n/a" / "-" as the literal "None" (so the Agents page
+ * shows a visible "None" group instead of silently blank credits).
+ */
+export function normalizeAgentName(raw: string): string {
+  const t = (raw ?? "").trim().replace(/\s+/g, " ");
+  if (!t) return "";
+  if (/^(none|n\/a|na|-)$/i.test(t)) return "None";
+  return t;
+}

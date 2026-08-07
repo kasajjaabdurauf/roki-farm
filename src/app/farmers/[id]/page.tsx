@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Check,
   ClipboardPlus,
   Droplets,
   LandPlot,
@@ -16,8 +17,9 @@ import {
   Users,
   Wheat,
   FileText,
+  X,
 } from "lucide-react";
-import { deleteFarmers, useDb } from "@/lib/db";
+import { deleteFarmers, updateFarmer, useDb } from "@/lib/db";
 import { downloadFarmerSurveyPdf } from "@/lib/report";
 import { fmtDate, fmtDateTime, relTime } from "@/lib/format";
 import { fmtKg, fmtNumber, rokiTierCriteria } from "@/lib/rules";
@@ -33,6 +35,9 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // --- inline "Registered by (agent)" editor (admin only) ------------
+  const [agentEdit, setAgentEdit] = useState(false);
+  const [agentDraft, setAgentDraft] = useState("");
 
   const [stashed, setStashed] = useState<Farmer | null>(null);
   useEffect(() => {
@@ -108,11 +113,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
                 <MapPin className="h-4 w-4 text-ochre-500" />
                 {farmer.village ? `${farmer.village}, ` : ""}{farmer.subCounty}, {farmer.district}
               </p>
-              {(farmer.loggedBy || farmer.survey?.enumeratorName) && (
-                <p className="mt-0.5 text-[12px] font-semibold text-ochre-600">
-                  Registered by {farmer.loggedBy || farmer.survey?.enumeratorName}
-                </p>
-              )}
+              <RegisteredByEditor farmer={farmer} />
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -380,6 +381,80 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
           </>
         }
       />
+    </div>
+  );
+}
+
+/**
+ * "Registered by <agent>" line with an inline editor (admin only).
+ * Admins can assign/change the agent credited for this farmer here —
+ * saved straight to the cloud (UPDATE via the admin session).
+ */
+function RegisteredByEditor({ farmer }: { farmer: Farmer }) {
+  const db = useDb();
+  const isAdmin = db.meta.role === "ADMIN";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  const current = farmer.loggedBy || farmer.survey?.enumeratorName || "";
+
+  if (editing) {
+    return (
+      <div className="mt-0.5 flex items-center gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Agent name (e.g. John Okello)"
+          autoFocus
+          className="h-9 w-56 rounded-lg border border-stone-300 bg-white px-3 text-[13px] font-medium text-stone-700 outline-none focus:border-forest-500"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const n = draft.trim();
+            if (!n) return;
+            updateFarmer(farmer.id, { loggedBy: n });
+            setEditing(false);
+          }}
+          disabled={!draft.trim()}
+          aria-label="Save agent name"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-forest-800 text-white transition-colors hover:bg-forest-700 disabled:opacity-40"
+        >
+          <Check className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          aria-label="Cancel"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-stone-400 hover:bg-stone-100"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+      {current ? (
+        <p className="text-[12px] font-semibold text-ochre-600">
+          Registered by <span className="font-bold">{current}</span>
+        </p>
+      ) : (
+        <p className="text-[12px] text-stone-400">No agent recorded</p>
+      )}
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(current);
+            setEditing(true);
+          }}
+          className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-stone-400 underline underline-offset-2 hover:text-forest-700"
+        >
+          <Pencil className="h-3 w-3" /> {current ? "change" : "add agent"}
+        </button>
+      )}
     </div>
   );
 }
