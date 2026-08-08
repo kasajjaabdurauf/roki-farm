@@ -245,6 +245,9 @@ Two tabs: **Farmers** and **Produce Logs**.
 - Mobile: swipe sideways to see all columns (hint shown).
 
 ### 5.9 Settings (`/settings`) — admin only
+  - **Live data**: the app refreshes automatically every 15 seconds while online, and again the moment you
+    switch back to it — so everyone sees the same latest farmer count without pressing anything. The green
+    banner also has **Sync now** and **Data check** buttons.
   - **How updates reach your phone (automatic, nothing to clear)**: every time you open the app it checks in
     the background for a newer version. When one is released you'll see a small banner at the bottom —
     **"A new version of Roki is available — Update now"** — tap it once and the app reloads on the latest
@@ -280,7 +283,7 @@ Who registered which farmer, at a glance — the basis for crediting and perform
 
 > **How names get there:** the agent enters their name once in the green Agent workspace banner ("Working as …"); every farmer they add — survey or upload — is stamped with it. Farmers registered before this existed have no recoverable name on record (shown in the warning card).
 
-### 5.10c Data Check (`/datacheck`) — admin
+### 5.10c Data Check (`/datacheck`) — admin and field agents
 One big button (**Validate data** on the dashboard) that audits the whole database, read-only:
 - **Device vs cloud counts** — flags drift (a device holding local-only leftovers) and offers **Resync device from cloud** right there.
 - **Farmers without agent** — count + clickable list (open the farmer, add the agent).

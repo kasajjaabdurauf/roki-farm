@@ -5,6 +5,20 @@
 
 ---
 
+## 3.5.1 — 2026-08-08 · Agents get Data Check + instant refresh (same data everywhere)
+
+Field agents reported seeing different farmer counts than the admin (e.g. 117 vs 140). Causes: agents on older
+builds (pre-auto-heal) kept stale/ghost local records, and the dashboard didn't visibly refresh. Fixes:
+
+- **Data Check is now available to Field Agents too** (nav item + **Validate data** button on the dashboard —
+  previously admin-only). The page is read-only; the Resync button only touches the device's own local copy.
+- **Agent banner now has a live status strip**: "Refreshes automatically every 15 seconds" + **Data check** and
+  **Sync now** buttons right there.
+- **Refresh on return**: the app now also pulls fresh data the moment you switch back to it (tab/window focus),
+  so agents always see the latest the second they look — no waiting, no manual steps.
+- The 15-second auto-refresh + the v3.5.0 auto-heal mean every device converges to the same cloud count on its
+  own once everyone is on this build.
+
 ## 3.5.0 — 2026-08-08 · Auto-heal (no more cache/ghost problems) + one-tap update
 
 **The "why didn't the laptop update to 99?" question — answered in code.**

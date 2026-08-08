@@ -52,7 +52,7 @@ const NAV: NavItem[] = [
   { href: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/help", label: "Help & Guide", icon: <BookOpen className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
   { href: "/duplicates", label: "Duplicates", icon: <GitMerge className="h-5 w-5" />, roles: ["ADMIN"] },
-  { href: "/datacheck", label: "Data Check", icon: <BadgeCheck className="h-5 w-5" />, roles: ["ADMIN"] },
+  { href: "/datacheck", label: "Data Check", icon: <BadgeCheck className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT"] },
   { href: "/agents", label: "Agents", icon: <UserCog className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/account", label: "Account", icon: <UserCircle2 className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
 ];
@@ -169,6 +169,26 @@ export function AppShell({ children }: { children: ReactNode }) {
     }, 15000);
     return () => clearInterval(t);
   }, [isRemote, online]);
+
+  // Refresh immediately when the user returns to the app (tab switch or
+  // window focus) — field agents leave the app open and come back to it;
+  // this guarantees they always see the freshest data the moment they
+  // look, without waiting up to 15s.
+  useEffect(() => {
+    if (!isRemote) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void refreshNow();
+    };
+    const onFocus = () => {
+      if (navigator.onLine) void refreshNow();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [isRemote]);
 
   // ALL hooks must run on every render — an early return between hooks
   // causes React error #300 ("rendered more hooks than during the

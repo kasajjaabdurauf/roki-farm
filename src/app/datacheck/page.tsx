@@ -20,14 +20,16 @@ import { cx } from "@/lib/format";
 import { normalizeUgPhone } from "@/lib/phone";
 
 /**
- * Data Check (admin) — one big button that validates the whole database:
+ * Data Check (Admin + Field Agents) — one big button that validates the
+ * whole database:
  *  1. device vs cloud counts (drift from before a cloud reset)
  *  2. farmers without an agent (uncredited registrations)
  *  3. duplicate phones & duplicate names (same person twice?)
  *  4. possible agent-as-farmer records (team members registered as farmers)
  *  5. company-like names in the farmer list
- * Everything is READ-ONLY except the explicit Resync button. Nothing is
- * deleted or changed here — findings link to the tools that fix them.
+ * Everything is READ-ONLY except the explicit Resync button (which only
+ * touches THIS device's local copy — never the cloud). Nothing is deleted
+ * or changed — findings link to the tools that fix them.
  */
 export default function DataCheckPage() {
   const db = useDb();

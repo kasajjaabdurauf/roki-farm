@@ -397,19 +397,36 @@ function StaffDashboard() {
             </Link>
           </div>
         )}
+        {staffMode && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-stone-200">
+            <p className="text-[12.5px] font-semibold text-stone-600">
+              {refreshing ? "Refreshing…" : "Refreshes automatically every 15 seconds"}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/datacheck">
+                <Button variant="outline" size="sm">
+                  <ShieldCheck className="h-4 w-4" /> Data check
+                </Button>
+              </Link>
+              <button type="button" onClick={doRefresh} disabled={refreshing}>
+                <Button variant="outline" size="sm" disabled={refreshing}>
+                  <RefreshCw className={cx("h-4 w-4", refreshing && "animate-spin")} /> {refreshing ? "Syncing…" : "Sync now"}
+                </Button>
+              </button>
+            </div>
+          </div>
+        )}
         <div>
           <h2 className="font-display text-2xl font-semibold text-forest-900">Roki Farmer Dashboard</h2>
           <p className="mt-1 text-sm text-stone-500">
             Registered farmers, demographics and production outlook · {fmtDate(new Date().toISOString().slice(0, 10))}
           </p>
         </div>
-        {!isAgent && (
-          <Link href="/datacheck">
-            <Button variant="accent" size="lg" className="h-12">
-              <ShieldCheck className="h-5 w-5" /> Validate data
-            </Button>
-          </Link>
-        )}
+        <Link href="/datacheck">
+          <Button variant="accent" size="lg" className="h-12">
+            <ShieldCheck className="h-5 w-5" /> Validate data
+          </Button>
+        </Link>
         <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap">
           <Link href="/farmers/new">
             <Button variant="primary" className="w-full">
