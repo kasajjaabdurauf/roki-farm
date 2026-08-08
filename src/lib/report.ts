@@ -9,7 +9,7 @@
 import type { Db, Farmer } from "./types";
 import { LAND_OWNERSHIP_LABEL, REFUGEE_LABEL, TIER_LABEL } from "./types";
 import { MONTHS } from "./reference";
-import { isoDaysAgo } from "./format";
+import { fmtDateTime, isoDaysAgo } from "./format";
 
 const FOREST: [number, number, number] = [27, 67, 50]; // #1b4332
 const OCHRE: [number, number, number] = [217, 119, 6]; // #d97706
@@ -287,7 +287,7 @@ export async function downloadFarmerSurveyPdf(farmer: Farmer): Promise<void> {
     ["Consent", sv.consentDate ? `Yes (${sv.consentDate})` : "No"],
     ["Enumerator", (farmer.loggedBy || sv.enumeratorName) ? `${farmer.loggedBy || sv.enumeratorName}${sv.enumeratorId ? ` (${sv.enumeratorId})` : ""}` : ""],
     ["Assessment", `${sv.landAvailability ?? ""} land · ${sv.productionPotential ?? ""} potential · ${sv.recommendedCategory ?? ""}`],
-    ["Registered", farmer.createdAt.slice(0, 10)],
+    ["Registered", fmtDateTime(farmer.createdAt)],
   ].filter(([, v]) => v) as [string, string][];
 
   autoTable(doc, {

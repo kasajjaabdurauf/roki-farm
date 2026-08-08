@@ -109,7 +109,7 @@ The language is stored in `DbMeta.language`, set from the survey's preferred lan
 5. **Docs move with code.** Any user-facing change updates `docs/ROKI-USER-MANUAL.md` (manual) and
    `docs/CHANGELOG.md` (history). The walkthrough + audit get refreshed too. This is a requirement, not a
    nicety.
-6. **Tests must pass before release:** `npx tsx scripts/verify.ts` (114 checks) and `npm run build`.
+6. **Tests must pass before release:** `npx tsx scripts/verify.ts` (129 checks) and `npm run build`.
 7. **Secrets:** `service_role`, `RESEND_API_KEY`, DB password → GitHub secrets/password manager only.
    `NEXT_PUBLIC_*` are public by design.
 8. **Version stamp:** bump `APP_VERSION` in `src/lib/format.ts` + SW cache in `public/sw.js` on every release
@@ -118,7 +118,7 @@ The language is stored in `DbMeta.language`, set from the survey's preferred lan
 ## 10 · Release checklist (every release)
 
 - [ ] `npm ci && npm run build` green
-- [ ] `npx tsx scripts/verify.ts` green (114 checks)
+- [ ] `npx tsx scripts/verify.ts` green (129 checks)
 - [ ] Bump `APP_VERSION` + SW cache (`roki-cache-vN`)
 - [ ] Add entry to `docs/CHANGELOG.md`
 - [ ] Update `docs/ROKI-USER-MANUAL.md` (features, troubleshooting, version log)
@@ -137,6 +137,29 @@ The language is stored in `DbMeta.language`, set from the survey's preferred lan
 - **Supabase free-tier pause** → the keep-alive workflow pings every 3 days; run it manually from Actions if
   the DB paused anyway, then unpause from the dashboard.
 - **Migrations must run in order** v2→v3→v4→v5→v6→…→v15 (each is idempotent-ish; v5/v6 replace the trigger).
+- **Sync is adopt-the-cloud when safe (v3.5+)** (`refreshFromRemote` in `db.ts`): a pull only happens when the
+  outbox is empty (every local change pushed), and at that point the local store is replaced by the EXACT cloud
+  copy (`applyCloudPull` — pure, exported for tests). This auto-heals "ghost" records left by external cloud
+  deletions (e.g. the 6 Aug reset): they vanish on the next sync with zero user action. Offline work stays safe
+  because the pull is skipped whenever the outbox is non-empty. `resyncFromCloud()` (admin, Settings/Data Check)
+  is the manual version of the same thing, also refusing while `outbox.length > 0`. Cloud counts come from
+  `fetchCloudCounts()` (`remote.ts`, HEAD queries — no rows transferred).
+- **Update system** (`src/components/pwa.tsx` + `public/sw.js` + `src/app/api/version/route.ts`):
+  - Browsers auto-check `sw.js` on every open (`updateViaCache: "none"`), so deploying a new build updates
+    ALL clients (old or new) on their next open — the core path doesn't depend on app code.
+  - The app polls `/api/version` every 5 min + on foreground + on reconnect; on mismatch it shows the
+    "Update now" banner and triggers `reg.update()`.
+  - `sw.js` calls `skipWaiting()` + `clients.claim()` and posts `ROKI_UPDATE` to all open clients; the app
+    reloads unless `pendingSync(loadDb()) > 0` (never interrupt unsynced offline work).
+  - Bump the SW cache version (`roki-cache-vN`) and `APP_VERSION` on every release.
+- **Data Check** (`src/app/datacheck/page.tsx`, admin) runs a read-only audit: device-vs-cloud via
+  `fetchCloudCounts()` + `resyncFromCloud()`, uncredited farmers, duplicate phones/names (grouped), agent-as-farmer
+  (farmer name ∈ agent-name set), company-like names. It never mutates; findings link to `/duplicates` or the
+  farmer page.
+- **Timestamps:** every record carries a full UTC ISO `createdAt`. Display helpers in `src/lib/format.ts`:
+  `fmtDateTime` (human: "7 Aug 14:32", local) and `fmtDateTimeCSV` (sortable "YYYY-MM-DD HH:MM", local). CSVs,
+  the master backup, the survey PDF and farmer profiles all show exact local registration times; the master
+  backup and farmers CSV include "Registered By (Agent)" (`loggedBy ?? survey.enumeratorName`).
 - **Agent names / `logged_by`:** the one source of the "who is on this device" identity is `src/lib/agent.ts`
   (`getAgentName`/`setAgentName`, key `roki-agent-name`; `normalizeAgentName` maps "none"/"n/a"/"-" → "None"
   so a skipped credit is never silent). Since v3.3 the name is **captured mandatorily inside the survey**

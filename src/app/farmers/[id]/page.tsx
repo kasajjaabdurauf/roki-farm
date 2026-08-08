@@ -108,7 +108,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
                   <Badge key={fl} tone="warning" dot>{fl === "INCOMPLETE_PROFILE" ? "Incomplete profile" : fl}</Badge>
                 ))}
               </div>
-              <p className="mt-1 text-sm font-medium text-stone-400 tabular">{farmer.id} · registered {fmtDate(farmer.createdAt.slice(0, 10))}</p>
+              <p className="mt-1 text-sm font-medium text-stone-400 tabular">{farmer.id} · registered {fmtDateTime(farmer.createdAt)}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-sm text-stone-600">
                 <MapPin className="h-4 w-4 text-ochre-500" />
                 {farmer.village ? `${farmer.village}, ` : ""}{farmer.subCounty}, {farmer.district}
@@ -185,7 +185,7 @@ export default function FarmerDetailPage({ params }: { params: Promise<{ id: str
             <SurveyFact label="Land ownership" value={LAND_OWNERSHIP_LABEL[farmer.landOwnership]} />
             <SurveyFact label="Irrigation" value={irrigationLabel} />
             <SurveyFact label="Enumerator" value={farmer.loggedBy || farmer.survey?.enumeratorName || "N/A"} />
-            <SurveyFact label="Registered" value={fmtDate(farmer.createdAt.slice(0, 10))} />
+            <SurveyFact label="Registered" value={fmtDateTime(farmer.createdAt)} />
             {farmer.survey?.preferredLanguage && (
               <SurveyFact label="Language" value={farmer.survey.preferredLanguage} />
             )}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Download, UserPlus, Users, UserCog, Wheat } from "lucide-react";
 import { useDb } from "@/lib/db";
 import { downloadCSV, stamp, type ExportColumn } from "@/lib/export";
-import { fmtDate } from "@/lib/format";
+import { fmtDateTime, fmtDateTimeCSV } from "@/lib/format";
 import { Button, Card, EmptyState, Input, Stat } from "@/components/ui";
 
 /**
@@ -129,7 +129,7 @@ export default function AgentsPage() {
                         { key: "fullName", label: "Farmer Name" },
                         { key: "phone", label: "Phone" },
                         { key: "district", label: "District" },
-                        { key: "createdAt", label: "Registered", value: (r) => (r.createdAt as string)?.slice(0, 10) },
+                        { key: "createdAt", label: "Registered At (exact)", value: (r) => fmtDateTimeCSV((r as { createdAt?: string }).createdAt) },
                       ];
                       downloadCSV(a.farmers, cols, `roki-${a.name.replace(/\s+/g, "-")}-farmers.csv`);
                     }}
@@ -161,7 +161,7 @@ export default function AgentsPage() {
                         <td className="py-2 pr-3 font-mono text-[11px] text-stone-400">{f.id}</td>
                         <td className="py-2 pr-3 text-stone-600 tabular">{f.phone || "—"}</td>
                         <td className="py-2 pr-3 text-stone-600">{f.district}</td>
-                        <td className="py-2 pr-3 text-stone-400">{fmtDate(f.createdAt.slice(0, 10))}</td>
+                        <td className="py-2 pr-3 text-stone-400">{fmtDateTime(f.createdAt)}</td>
                         <td className="py-2 text-stone-500 tabular">{db.logs.filter((l) => l.farmerId === f.id).length}</td>
                       </tr>
                     ))}

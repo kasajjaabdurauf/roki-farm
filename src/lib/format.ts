@@ -34,6 +34,15 @@ export function fmtDateTime(iso: string): string {
   ).padStart(2, "0")}`;
 }
 
+/** Exact local date + time in a sortable spreadsheet form: YYYY-MM-DD HH:MM. */
+export function fmtDateTimeCSV(iso: string | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function relTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -53,4 +62,4 @@ export function clamp(n: number, min: number, max: number): number {
 }
 
 /** App version — shown in Settings/Account so stale builds are easy to spot. */
-export const APP_VERSION = "3.3.0";
+export const APP_VERSION = "3.5.0";

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BadgeCheck,
   BookOpen,
   CalendarRange,
   CloudOff,
@@ -51,6 +52,7 @@ const NAV: NavItem[] = [
   { href: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/help", label: "Help & Guide", icon: <BookOpen className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
   { href: "/duplicates", label: "Duplicates", icon: <GitMerge className="h-5 w-5" />, roles: ["ADMIN"] },
+  { href: "/datacheck", label: "Data Check", icon: <BadgeCheck className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/agents", label: "Agents", icon: <UserCog className="h-5 w-5" />, roles: ["ADMIN"] },
   { href: "/account", label: "Account", icon: <UserCircle2 className="h-5 w-5" />, roles: ["ADMIN", "FIELD_AGENT", "FARMER"] },
 ];
@@ -71,6 +73,7 @@ const TITLES: Record<string, string> = {
   "/help": "Help & Guide",
   "/account": "Account",
   "/duplicates": "Duplicate records",
+  "/datacheck": "Data Check",
   "/agents": "Agent performance",
 };
 

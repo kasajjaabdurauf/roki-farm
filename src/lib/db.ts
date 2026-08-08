@@ -281,38 +281,70 @@ export async function refreshFromRemote(): Promise<void> {
   const data = await fetchAll();
   if (!data) return;
 
-  // next sequence numbers = max numeric suffix + 1 (remote ids are RFV-UG-XXXXX)
-  const seqOf = (id: string) => parseInt(id.split("-").pop() ?? "0", 10) || 0;
-  const maxFarmer = data.farmers.reduce((m, f) => Math.max(m, seqOf(f.id)), 0);
-  const maxLog = data.logs.reduce((m, l) => Math.max(m, seqOf(l.id)), 0);
-
   const existing = loadDb();
-  // MERGE, never replace: keep local-only records (e.g. a farmer created
-  // moments ago whose push is still in flight or was delayed) so nothing
-  // can ever vanish from the list. Remote records win on conflicts.
-  const mergedFarmers = [...data.farmers];
-  const remoteIds = new Set(data.farmers.map((f) => f.id));
-  const remoteLogIds = new Set(data.logs.map((l) => l.id));
-  for (const f of existing.farmers) {
-    if (!remoteIds.has(f.id)) mergedFarmers.push(f);
-  }
-  const mergedLogs = [...data.logs];
-  for (const l of existing.logs) {
-    if (!remoteLogIds.has(l.id)) mergedLogs.push(l);
-  }
-  const next: Db = {
-    farmers: mergedFarmers,
-    logs: mergedLogs,
-    settings: existing.settings,
-    meta: {
-      ...existing.meta,
-      nextFarmerSeq: maxFarmer + 1,
-      nextLogSeq: maxLog + 1,
-    },
-  };
+  // AUTO-HEAL (v3.5): we only reach this point when the outbox is EMPTY —
+  // every local change has been pushed to the cloud. So the local store can
+  // safely adopt the EXACT cloud copy: any record that exists locally but
+  // not in the cloud was deleted externally (e.g. a database reset) and must
+  // disappear from this device too. This kills the old "ghost records" /
+  // cached-data problem AUTOMATICALLY on every device — no manual resync,
+  // no clearing site data. Unsynced offline work is still protected by the
+  // outbox guard above (if anything is pending, we never get here).
+  const next = applyCloudPull(existing, data);
   cache = next;
   persist(next);
   listeners.forEach((l) => l());
+}
+
+/**
+ * Pure helper: produce the next local store from an existing one + the
+ * cloud copy, adopting the cloud EXACTLY (farmers + logs) while keeping
+ * local settings/meta. Sequence numbers are derived from the cloud so IDs
+ * never collide. Exported for tests.
+ *
+ * Only safe to call when the outbox is EMPTY (every local change already
+ * pushed) — that guarantee is enforced by refreshFromRemote/resyncFromCloud.
+ */
+export function applyCloudPull(existing: Db, data: { farmers: Farmer[]; logs: ProduceLog[] }): Db {
+  const seqOf = (id: string) => parseInt(id.split("-").pop() ?? "0", 10) || 0;
+  const maxFarmer = data.farmers.reduce((m, f) => Math.max(m, seqOf(f.id)), 0);
+  const maxLog = data.logs.reduce((m, l) => Math.max(m, seqOf(l.id)), 0);
+  return {
+    ...existing,
+    farmers: data.farmers,
+    logs: data.logs,
+    meta: { ...existing.meta, nextFarmerSeq: maxFarmer + 1, nextLogSeq: maxLog + 1 },
+  };
+}
+
+/**
+ * HARD RESYNC (admin tool): replace this device's farmers + logs with the
+ * exact cloud copy. Use when a device shows records the cloud doesn't have
+ * (e.g. leftovers from before a cloud reset) or vice versa.
+ *
+ * SAFETY: refuses to run while unsynced local changes are queued — those
+ * would be silently discarded. The caller (Settings) shows the pending
+ * count and asks the admin to "Sync now" first (or to export the master
+ * backup if they want a record before resyncing).
+ */
+export async function resyncFromCloud(): Promise<{ ok: boolean; farmers: number; logs: number; reason?: string }> {
+  const before = loadDb();
+  if (before.meta.outbox.length > 0) {
+    return {
+      ok: false,
+      farmers: before.farmers.length,
+      logs: before.logs.length,
+      reason: `${before.meta.outbox.length} unsynced change(s) on this device — sync them first, then resync.`,
+    };
+  }
+  const data = await fetchAll();
+  if (!data) return { ok: false, farmers: before.farmers.length, logs: before.logs.length, reason: "Could not reach the cloud — check your connection." };
+
+  const next = applyCloudPull(before, data);
+  cache = next;
+  persist(next);
+  listeners.forEach((l) => l());
+  return { ok: true, farmers: data.farmers.length, logs: data.logs.length };
 }
 
 /** Pull fresh cloud data + push pending ops (used by the live-refresh loop). */

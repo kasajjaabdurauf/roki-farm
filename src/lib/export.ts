@@ -4,6 +4,7 @@
 // ------------------------------------------------------------------
 
 import * as XLSX from "xlsx";
+import { fmtDateTimeCSV } from "./format";
 
 export interface ExportColumn {
   key: string;
@@ -78,6 +79,7 @@ export function downloadMasterBackup(
   const farmerCols: ExportColumn[] = [
     { key: "id", label: "Farmer ID" },
     { key: "fullName", label: "Full Name" },
+    { key: "loggedBy", label: "Registered By (Agent)", value: (r) => r.loggedBy ?? r.survey?.enumeratorName ?? "" },
     { key: "phone", label: "Phone (+256)" },
     { key: "gender", label: "Gender", value: (r) => (r.gender === "F" ? "Female" : r.gender === "M" ? "Male" : "Other") },
     { key: "refugeeStatus", label: "Community", value: (r) => (r.refugeeStatus === "REFUGEE" ? "Refugee" : r.refugeeStatus === "HOST" ? "Host community" : "") },
@@ -91,7 +93,7 @@ export function downloadMasterBackup(
     { key: "scaleTier", label: "Farm Size Tier" },
     { key: "primaryCrops", label: "Crops", value: (r) => r.primaryCrops.join("; ") },
     { key: "plannedTotalKg", label: "Planned Volume (kg)", value: (r) => (r.plannedProductions ?? []).reduce((s: number, p: any) => s + (p.expectedVolumeKg || 0), 0) },
-    { key: "createdAt", label: "Registered", value: (r) => r.createdAt?.slice(0, 10) },
+    { key: "createdAt", label: "Registered At (exact)", value: (r) => fmtDateTimeCSV(r.createdAt) },
   ];
   const logCols: ExportColumn[] = [
     { key: "id", label: "Log ID" },
@@ -104,7 +106,7 @@ export function downloadMasterBackup(
     { key: "status", label: "Status" },
     { key: "yieldScore", label: "Yield Score" },
     { key: "source", label: "Source" },
-    { key: "createdAt", label: "Logged At", value: (r) => r.createdAt?.slice(0, 10) },
+    { key: "createdAt", label: "Logged At (exact)", value: (r) => fmtDateTimeCSV(r.createdAt) },
   ];
 
   const wb = XLSX.utils.book_new();

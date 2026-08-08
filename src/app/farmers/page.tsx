@@ -5,6 +5,7 @@ import { Download, PhoneCall, Search, UserPlus, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { refreshNow, useDb } from "@/lib/db";
 import { downloadCSV, stamp, type ExportColumn } from "@/lib/export";
+import { fmtDateTimeCSV } from "@/lib/format";
 import { fmtNumber } from "@/lib/rules";
 import { REFUGEE_LABEL, type RokiTier, type ScaleTier } from "@/lib/types";
 import { Badge, Button, Card, EmptyState, Input, Select } from "@/components/ui";
@@ -62,7 +63,7 @@ export default function FarmersPage() {
       { key: "rokiTier", label: "Roki Tier", value: (r) => `Tier ${r.rokiTier}` },
       { key: "acreage", label: "Acreage (acres)" },
       { key: "refugeeStatus", label: "Community", value: (r) => (r.refugeeStatus === "REFUGEE" ? "Refugee" : r.refugeeStatus === "HOST" ? "Host community" : "") },
-      { key: "createdAt", label: "Registered", value: (r) => r.createdAt?.slice(0, 10) },
+      { key: "createdAt", label: "Registered At (exact)", value: (r) => fmtDateTimeCSV(r.createdAt) },
       { key: "loggedBy", label: "Registered By (Agent)", value: (r) => r.loggedBy ?? r.survey?.enumeratorName ?? "" },
     ];
     const cropTag = crop === "ALL" ? "all-crops" : crop.toLowerCase().replace(/\s+/g, "-");

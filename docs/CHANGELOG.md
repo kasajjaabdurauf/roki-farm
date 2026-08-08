@@ -5,6 +5,108 @@
 
 ---
 
+## 3.5.0 — 2026-08-08 · Auto-heal (no more cache/ghost problems) + one-tap update
+
+**The "why didn't the laptop update to 99?" question — answered in code.**
+The root cause was the **merge rule**: cloud pulls *merged* instead of replacing, so records deleted
+directly in the cloud (the 6 Aug reset) were kept forever on devices that once had them. That was a
+deliberate safety net for offline work — but it had this side effect.
+
+**Fix — the app now heals itself automatically:**
+- `refreshFromRemote` now **adopts the cloud exactly whenever nothing is pending** (the outbox is empty,
+  i.e. every local change has already been pushed — which the sync already guarantees before a pull). Any
+  record on the device that isn't in the cloud was deleted externally and now disappears on the next sync —
+  **on every device, automatically, no clearing site data, no resync button, no instructions to users.**
+- Offline work is still 100% safe: anything created offline sits in the outbox until it syncs, and while
+  anything is pending the pull is skipped (the record can never be wiped).
+- The manual **Resync device from cloud** button stays as a belt-and-suspenders tool.
+
+**One-tap updates for everyone in the field — no clearing site data, ever:**
+- **How it works on EVERY version (old or new):** the update mechanism lives in the service worker, which
+  browsers check automatically every time the app is opened (`updateViaCache: "none"`). Deploy a new build →
+  the next time any user opens the app, the browser fetches the new `sw.js`, installs it, and the page reloads
+  into the new version. This does NOT depend on the app's own code, so users on old builds update too — they
+  just open the app once.
+- **New in this build (extra reliability):**
+  - New `/api/version` endpoint — the app polls it every 5 minutes, on every foreground, and on reconnect;
+    the moment the server reports a newer version, the **"Update now"** banner appears and the update
+    triggers itself.
+  - The service worker, on takeover, **actively nudges every open client** (`ROKI_UPDATE` message) to reload —
+    so even an app left open for days updates within minutes of a deploy.
+  - If nothing is unsynced the app reloads automatically; if the user is mid-offline-work, the banner waits
+    for their tap.
+- Service worker listens for `SKIP_WAITING` and cache bumped to v37.
+- **The one thing no technology can do:** update a phone that is never opened. Those users only need one
+  message — "open the app once and it updates itself" — not a clear-cache/reinstall procedure.
+
+**Decision recorded — offline mode stays (on purpose):**
+- Agents work in rural/refugee-settlement areas (Isingiro) with patchy signal; offline is what lets a
+  10-minute survey survive a dropped connection and sync later. Removing offline would risk losing
+  registrations, not fix anything: the ghost issue was caused by an external database reset + the merge
+  rule, and that is now solved automatically by the auto-heal above.
+- 129 automated checks (+6 new).
+
+## 3.4.1 — 2026-08-08 · Data Check (one big button to validate everything)
+
+After the 95-vs-116 farmer-count confusion, admins asked for one button that checks the whole database.
+**New "Data Check" page** (`/datacheck`, admin — big **Validate data** button on the dashboard + nav link):
+
+- **Device vs cloud**: shows both counts side by side and flags drift (leftover local-only records), with the
+  **Resync device from cloud** button right there (safety: blocked while unsynced changes exist; never touches
+  the cloud).
+- **Farmers without agent** — count + clickable list (each links to the farmer so you can add the agent).
+- **Duplicate phones** and **duplicate names** — groups with the affected farmers, linking to the duplicates tool.
+- **Possible agent-as-farmer records** — farmers whose name matches an agent name (team members who registered
+  themselves/each other) — surfaced, never deleted.
+- **Company-like names** in the farmer list (e.g. "AMSTUS AGRO PROCESSING & EXPORTS LTD") — flagged for review.
+- **Unsynced changes** counter; everything is read-only except the explicit resync.
+
+**Findings from the real data (Aug 8 export, 116 farmers):** 92 farmers have a named agent, 24 don't (the
+original 6 + 18 from a bulk import); 4 exact duplicate pairs (same name + phone) are safe to merge in
+`/duplicates`; 24 farmers share one phone (+256763900986 — almost certainly the agent's own number, do NOT
+auto-merge); ~8–10 farmers are actually team members (agents) registered as farmers, exactly as the admin
+suspected; 1 company record. Nothing was changed — the tool only reports.
+
+**Follow-up diagnosis (later the same day, closed with hard evidence — see Audit §Incident log):**
+the "117 vs 99" difference is NOT a sync bug. The cloud (incognito) has **99 farmers**; the laptop shows
+**117** = 99 + **18 records bulk-imported from the ROKI FARMERS LIST 2024 on 4 Aug 22:26** (single timestamp;
+all 18 names + districts match the 2024 PDF). Those 18 were wiped from the cloud by the 06 Aug reset but
+survived in the laptop's local storage (merge-on-pull keeps local records by design). Safe copy:
+`ghost-farmers-2024-list-18.csv`. **Pending admin decision:** re-import the 18 into the cloud, or keep the
+cloud at 99 and resync the laptop. Do not resync until decided.
+
+**DECIDED 8 Aug 2026:** the 18 bulk-import records are **archived, not restored** — the live team uses the 99
+farmers registered since the reset (agent-added only). Safe copy kept in
+`roki-backups/2024-bulk-import-18-farmers-ARCHIVED.csv` (+ README with provenance and restore steps). Laptop
+was resynced / site data cleared so every device now shows the live 99. **Root cause of the retention
+documented:** cloud sync merges (never replaces) — direct cloud deletions send no delete-signal to devices, so
+local-only records survive until a manual Resync (v3.4+).
+
+## 3.4.0 — 2026-08-08 · Sync health + exact registration timestamps
+
+**The 95-vs-113 mystery (why devices showed different farmer counts)**
+The app is offline-first: every device keeps its own local copy, and the cloud is the source of truth. A
+cloud **reset on 2026-08-06** wiped the cloud database (it restarted fresh — all 6 farmers were re-registered
+that day). Devices that had older data in their browser kept it, because the app **never discards local-only
+records** (by design, so unsynced work can't vanish). Result: the phone and any fresh browser showed the true
+cloud count (**95**), while the laptop still carried **18 leftover records** from before the reset (113 total).
+Nothing was lost and nothing was wrong with the data — one device simply had extra local-only copies.
+
+**Fixes**
+- **Settings → Data management → Sync health** card: shows **"On this device"** vs **"In the cloud"** counts
+  side by side, unsynced changes, and last cloud check — so drift is visible at a glance instead of mysterious.
+- **"Resync device from cloud"** button (admin): replaces the device's local list with the exact cloud copy,
+  with a typed `RESYNC` confirmation. **Safety:** it refuses to run while there are unsynced local changes
+  (sync them first), and it never touches the cloud. This is the cure for a device showing ghost records.
+- **Exact registration timestamps everywhere** (for payment verification): farmer profiles now show the full
+  date + time of registration; the Farmers CSV, per-agent CSV, master backup and survey PDF all carry an
+  **"Registered At (exact)"** column with local `YYYY-MM-DD HH:MM`; the master backup also gained a
+  **"Registered By (Agent)"** column. Each farmer's agent + exact sign-up time is now exportable in one row.
+- 123 automated checks (+2 new).
+
+> **Do this on the laptop once:** open Settings → Data management → check Sync health (you'll see 113 on device
+> vs 95 in cloud) → **Resync device from cloud** → type `RESYNC` → confirm. The laptop then matches everywhere.
+
 ## 3.3.0 — 2026-08-07 · Agent name: unmissable & mandatory (solves it once and for all)
 
 Day-two feedback: agents were still skipping the name (or the device didn't remember it), leaving farmers without credit. Fix — you can no longer miss it:

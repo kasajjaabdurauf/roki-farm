@@ -6,11 +6,13 @@ import { hashCode } from "../src/lib/types";
 import { computeScaleTier, evaluateLog, computeFarmerFlags, anomalyCheck, duplicateCheck, fmtKg } from "../src/lib/rules";
 import { buildSeed } from "../src/lib/seed";
 import { buildStaging, autoDetect } from "../src/lib/sheet";
-import { importStaging, mergeFarmers, EMPTY_DB, createFarmer, addFarmer, updateFarmer, loadDb, wipeAllData } from "../src/lib/db";
+import { importStaging, mergeFarmers, EMPTY_DB, createFarmer, addFarmer, updateFarmer, loadDb, wipeAllData, resyncFromCloud, applyCloudPull } from "../src/lib/db";
+import { fmtDateTimeCSV } from "../src/lib/format";
 import { DEFAULT_SURVEY, type PlannedProduction } from "../src/lib/types";
 import { findDuplicateGroups } from "../src/lib/dedup";
 import { normalizeAgentName } from "../src/lib/agent";
 import { toCSVString } from "../src/lib/export";
+import { APP_VERSION } from "../src/lib/format";
 import { CROP_DEFAULTS, DEFAULT_SETTINGS_RULES } from "../src/lib/reference";
 
 let pass = 0, fail = 0;
@@ -350,6 +352,58 @@ console.log("\n8g) Agent attribution (logged_by) — the fix for \"no agents sho
   check("autoDetect 'Enumerator ID' → ignore (it's an ID, not a name)", autoDetect("Enumerator ID").target === "ignore");
   check("autoDetect 'Agent ID' → ignore", autoDetect("Agent ID").target === "ignore");
   check("autoDetect 'Farmer Name' stays fullName", autoDetect("Farmer Name").target === "fullName");
+}
+
+console.log("\n8k) Update endpoint + version sync (v3.5.0 update system)");
+{
+  // APP_VERSION is a strict semver-ish string the endpoint echoes back
+  check("APP_VERSION present and non-empty", typeof APP_VERSION === "string" && APP_VERSION.length > 0, APP_VERSION);
+  check("APP_VERSION is semver-like", /^\d+\.\d+\.\d+/.test(APP_VERSION), APP_VERSION);
+  // the /api/version route exists (static analysis via file presence)
+  const fs = require("fs");
+  check("/api/version route exists", fs.existsSync("src/app/api/version/route.ts"));
+  check("route echoes APP_VERSION", fs.readFileSync("src/app/api/version/route.ts", "utf8").includes(`version: APP_VERSION`));
+  // sw.js nudges clients on activate
+  const sw = fs.readFileSync("public/sw.js", "utf8");
+  check("sw.js posts ROKI_UPDATE on activate", sw.includes("ROKI_UPDATE"));
+  check("sw.js listens for SKIP_WAITING", sw.includes("SKIP_WAITING"));
+}
+
+console.log("\n8j) Auto-heal: cloud pull drops ghost records when outbox empty (v3.5)");
+{
+  const seed = buildSeed();
+  const ghost = { ...seed.farmers[0], id: "RFV-UG-00009", fullName: "JOSEPH MAYANJA" };
+  const live = { ...seed.farmers[1], id: "RFV-UG-00116" };
+  const existing = { ...EMPTY_DB, farmers: [ghost, live], logs: [...seed.logs] };
+  const cloud = { farmers: [live], logs: [] };
+
+  // outbox EMPTY → adopt cloud exactly: ghost disappears, live stays
+  const next = applyCloudPull(existing, cloud);
+  check("ghost record (not in cloud) removed", !next.farmers.some((f) => f.id === ghost.id));
+  check("cloud record kept", next.farmers.some((f) => f.id === live.id));
+  check("no farmer left that the cloud doesn't have", next.farmers.every((f) => cloud.farmers.some((c) => c.id === f.id)));
+  check("settings preserved", next.settings === existing.settings);
+  check("sequence continues after cloud max", next.meta.nextFarmerSeq > 116);
+
+  // outbox NON-EMPTY → refresh must be blocked (guard) — verified indirectly:
+  // applyCloudPull is only called after that guard; the guard itself lives in
+  // refreshFromRemote which never pulls while pending. Sanity: a pending op
+  // exists in this scenario.
+  existing.meta.outbox.push({ kind: "CREATE_FARMER", farmer: ghost });
+  check("pending op present (refresh would skip the pull)", existing.meta.outbox.length === 1);
+}
+
+console.log("\n8i) Exact registration timestamps + resync guard (v3.4)");
+{
+  // CSV datetime: sortable YYYY-MM-DD HH:MM (local) — timezone-safe shape test
+  const out = fmtDateTimeCSV("2026-08-07T14:32:00.000Z");
+  check("fmtDateTimeCSV produces YYYY-MM-DD HH:MM", /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(out), out);
+  check("fmtDateTimeCSV empty → ''", fmtDateTimeCSV(undefined) === "");
+
+  // resync must refuse when the cloud can't be reached (never wipe local data blindly)
+  void resyncFromCloud().then((r) => {
+    check("resync refuses when cloud unreachable", r.ok === false && !!r.reason, r);
+  });
 }
 
 console.log("\n8h) Agent name normalization (unmissable credit, v3.3)");

@@ -164,13 +164,14 @@ The home screen for everyone (different content per role).
 - **Search box** — searches name, phone, district, village, village, and farmer ID instantly.
 - **Filters** — crop, place (district/sub-county/village), Roki tier (1/2/3), Needs-attention toggle.
 - Cards show: initials avatar, name, ID, tier badge, gender/community badges, farm size, crops, harvest count, plan count — and **"registered by \<agent name\>"** in orange when the agent was recorded.
-- **Download list** (top-right) — CSV of the currently filtered farmers, and it now includes a **"Registered By (Agent)"** column so you can see who onboarded each farmer.
+- **Download list** (top-right) — CSV of the currently filtered farmers, with a **"Registered By (Agent)"** column and an exact **"Registered At"** (date + time) column — one row per farmer showing who signed them and precisely when (payment verification).
 - **New Survey** button (top-right) starts the registration questionnaire.
 
 ### 5.3 Farmer profile detail (`/farmers/RFV-UG-XXXXX`)
 
 **Survey PDF (admin):** the **Survey PDF** button downloads a branded one-page PDF of that farmer's complete questionnaire, production plan and planting history — handy for records, audits and handing to partners.
 - Header: name, ID, tier badges, location, actions (**Log Harvest**, **Edit** survey, **Delete**).
+- **Registered** line shows the **exact date + time** (e.g. "7 Aug 2026, 14:32") — useful for verifying when a farmer was signed.
 - **Registered by (agent)** — under the location. Admin sees a small **change / add agent** link next to it: type the agent's name and save, and that farmer is credited to them everywhere (Agents page, CSV, PDF). Use this for the older farmers who were registered before agent tracking.
 - Facts: phone, acreage, irrigation, crops.
 - Stats: total harvested, harvest logs, avg per acre, top crop.
@@ -244,6 +245,18 @@ Two tabs: **Farmers** and **Produce Logs**.
 - Mobile: swipe sideways to see all columns (hint shown).
 
 ### 5.9 Settings (`/settings`) — admin only
+  - **How updates reach your phone (automatic, nothing to clear)**: every time you open the app it checks in
+    the background for a newer version. When one is released you'll see a small banner at the bottom —
+    **"A new version of Roki is available — Update now"** — tap it once and the app reloads on the latest
+    version. If the app is open when a new version ships, it updates itself within a few minutes. You never
+    need to clear site data, delete cache or reinstall the app. (If you're using a very old build, simply
+    open the app once and it updates itself on its own.)
+  - **Sync health (cloud vs this device)** — the first thing to check if farmer counts look different on two
+  devices. Shows **"On this device"** (local copy) vs **"In the cloud"** (the source of truth) side by side,
+  plus unsynced changes and the last cloud check. If "On this device" is bigger than "In the cloud", this
+  device holds local-only records (e.g. leftovers from before a cloud reset) — press **Resync device from
+  cloud**, type `RESYNC` to confirm, and the device matches the cloud exactly. The button is disabled while
+  there are unsynced changes (sync them first), and it never deletes anything from the cloud.
 - **Rule engine switches** — turn each rule on/off:
   - Unusual yield alert (yield > acreage × max/acre → Needs Audit)
   - Duplicate guard (same farmer+crop+date within 24 h → Flagged)
@@ -251,8 +264,8 @@ Two tabs: **Farmers** and **Produce Logs**.
   - Harvest yield scoring (Low/Expected/Bumper)
 - **Per-crop thresholds** — edit kg-per-acre **max** (anomaly ceiling) and **typical** (yield baseline) for every crop. Changes re-run the engine over existing logs instantly.
 - **Data management:**
-  - Data source card: demo vs production + **Sync now**.
-  - Farmers CSV / Excel export, **Master backup (.xlsx)** (farmers + logs in one workbook).
+  - **Sync health** card: device vs cloud counts, unsynced changes, last cloud check, **Resync device from cloud**.
+  - Farmers CSV / Excel export, **Master backup (.xlsx)** (farmers + logs in one workbook — includes the agent name and exact registration time for every farmer).
   - **Reset demo data** (demo mode only).
 - **PWA hint** — install instructions.
 
@@ -266,6 +279,17 @@ Who registered which farmer, at a glance — the basis for crediting and perform
 - **Farmers without agent** — a warning card listing farmers whose agent was never recorded (mostly farmers registered before agent tracking existed, or where the name wasn't saved). Some can be recovered with the migration v15 script (see Setup walkthrough); the rest can be fixed by editing the farmer and adding the name.
 
 > **How names get there:** the agent enters their name once in the green Agent workspace banner ("Working as …"); every farmer they add — survey or upload — is stamped with it. Farmers registered before this existed have no recoverable name on record (shown in the warning card).
+
+### 5.10c Data Check (`/datacheck`) — admin
+One big button (**Validate data** on the dashboard) that audits the whole database, read-only:
+- **Device vs cloud counts** — flags drift (a device holding local-only leftovers) and offers **Resync device from cloud** right there.
+- **Farmers without agent** — count + clickable list (open the farmer, add the agent).
+- **Duplicate phones / duplicate names** — groups with the farmers involved, linking to the duplicates tool.
+- **Possible agent-as-farmer** — farmers whose name matches an agent name (team members registered as farmers).
+- **Company-like names** in the farmer list.
+- Nothing is deleted or changed here — each finding links to the tool that fixes it.
+
+**Reading your numbers:** if "On this device" differs from "In the cloud", the cloud is the truth — resync the device. If you see duplicate names or the same phone on many farmers, check with the agent who registered them before merging — a shared phone usually means different people with one contact number (keep them), while identical name+phone pairs are usually the same person twice (merge).
 
 ### 5.11 Help & Guide (`/help`)
 The in-app manual: quick-start cards, "Explore the app" tiles (tap to jump), step-by-step tasks, **FAQ filtered by audience** (Admin / Field agent / Farmer / Everyone), and a glossary. Point farmers here before calling for support.
@@ -394,9 +418,10 @@ All exports use clean headers and +256 phone formatting; CSV files open correctl
 
 | Symptom | Fix |
 |---|---|
-| App shows an old version | Fully close the app (swipe from app switcher) and reopen; it updates automatically. Re-add the home-screen icon if it looks stale |
+| App shows an old version | No need to clear anything. From **v3.5.0** the app checks the server every few minutes and shows an **"Update now"** banner — tap it. On older builds: fully close the app (swipe from the app switcher) and reopen it once — the browser updates the app automatically on open. Never ask users to clear site data or reinstall |
 | "Application error" screen | Usually stale cached files from an older version: fully close and reopen the app (or hard-refresh the browser with Ctrl/Cmd+Shift+R). If it persists, check the browser console (right-click → Inspect → Console) and send the red error text to support; the most common cause is a Supabase URL/key with stray spaces or quotes in the Vercel environment variables |
 | "N pending sync" never clears | Check internet; tap the chip to retry; if it persists for days, tell the admin (server-side logs will show the failure) |
+| Farmer counts differ between my devices (e.g. 117 on the laptop, 99 elsewhere) | From **v3.5.0** this fixes itself: the app now adopts the cloud's exact list automatically on every sync (when nothing is unsynced), so leftover "ghost" records disappear on their own — no action needed. If you're on an older build, use Settings → Data management → **Sync health** → **Resync device from cloud** (or update the app via the banner). Never delete cloud data to "fix" a count. |
 | Home-screen icon wrong/old | iOS: delete + re-add from Safari's Share → Add to Home Screen |
 | Can't sign in | Check the confirmation email; try the magic link; ask Joan to confirm your account exists |
 | Grid looks different on phone | Swipe sideways — tables are horizontally scrollable; key info is in the first columns |

@@ -15,6 +15,7 @@ import {
   MapPin,
   PackagePlus,
   Shield,
+  ShieldCheck,
   Sprout,
   Truck,
   UploadCloud,
@@ -402,6 +403,13 @@ function StaffDashboard() {
             Registered farmers, demographics and production outlook · {fmtDate(new Date().toISOString().slice(0, 10))}
           </p>
         </div>
+        {!isAgent && (
+          <Link href="/datacheck">
+            <Button variant="accent" size="lg" className="h-12">
+              <ShieldCheck className="h-5 w-5" /> Validate data
+            </Button>
+          </Link>
+        )}
         <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap">
           <Link href="/farmers/new">
             <Button variant="primary" className="w-full">

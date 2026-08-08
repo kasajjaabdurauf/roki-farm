@@ -34,6 +34,26 @@ export default function SettingsPage() {
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [agentCode, setAgentCodeInput] = useState("");
   const [agentMsg, setAgentMsg] = useState("");
+  // --- sync health (device vs cloud) ---
+  const [cloudCounts, setCloudCounts] = useState<{ farmers: number; logs: number } | null>(null);
+  const [cloudCountsAt, setCloudCountsAt] = useState<string>("");
+  const [resyncOpen, setResyncOpen] = useState(false);
+  const [resyncConfirm, setResyncConfirm] = useState("");
+  const [resyncMsg, setResyncMsg] = useState("");
+
+  useEffect(() => {
+    if (!remoteConfigured()) return;
+    let alive = true;
+    (async () => {
+      const { fetchCloudCounts } = await import("@/lib/remote");
+      const c = await fetchCloudCounts();
+      if (alive && c) {
+        setCloudCounts(c);
+        setCloudCountsAt(new Date().toISOString());
+      }
+    })();
+    return () => { alive = false; };
+  }, [db.meta.outbox.length, db.farmers.length]);
 
   const storageSize = useMemo(() => {
     try {
@@ -239,6 +259,57 @@ export default function SettingsPage() {
               Supabase/PostgreSQL backend.
             </p>
           </div>
+          {/* sync health — device vs cloud (drift detection) */}
+          {remoteConfigured() && (
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 sm:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-semibold text-stone-700">
+                  <RefreshCw className="h-4 w-4 text-stone-400" /> Sync health
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { fetchCloudCounts } = await import("@/lib/remote");
+                    const c = await fetchCloudCounts();
+                    if (c) { setCloudCounts(c); setCloudCountsAt(new Date().toISOString()); }
+                  }}
+                  className="text-[11.5px] font-semibold text-forest-700 underline hover:text-forest-800"
+                >
+                  check again
+                </button>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <HealthTile label="On this device" value={db.farmers.length} />
+                <HealthTile
+                  label="In the cloud"
+                  value={cloudCounts?.farmers ?? null}
+                  ok={cloudCounts ? cloudCounts.farmers === db.farmers.length : undefined}
+                />
+                <HealthTile label="Unsynced changes" value={db.meta.outbox.length} ok={db.meta.outbox.length === 0} />
+                <HealthTile label="Last cloud check" value={cloudCountsAt ? new Date(cloudCountsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+              </div>
+              <p className="mt-2 text-[12px] leading-snug text-stone-500">
+                The <b>cloud is the source of truth</b>. If "On this device" is bigger than "In the cloud", this
+                device holds local-only records (e.g. leftovers from before a cloud reset) — use{" "}
+                <b>Resync device from cloud</b> below to make it match.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={db.meta.outbox.length > 0}
+                  onClick={() => { setResyncConfirm(""); setResyncMsg(""); setResyncOpen(true); }}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Resync device from cloud
+                </Button>
+                {db.meta.outbox.length > 0 && (
+                  <span className="text-[12px] font-semibold text-danger-600">
+                    {db.meta.outbox.length} unsynced change(s) — sync them first.
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
           <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4">
             <p className="text-sm font-semibold text-stone-700">Full backup export</p>
             <p className="mt-1 mb-3 text-[12.5px] text-stone-500">
@@ -285,6 +356,44 @@ export default function SettingsPage() {
       </Card>
 
       <ConfirmDialog
+        open={resyncOpen}
+        onClose={() => setResyncOpen(false)}
+        onConfirm={async () => {
+          setResyncMsg("Resyncing…");
+          const { resyncFromCloud } = await import("@/lib/db");
+          const r = await resyncFromCloud();
+          if (r.ok) {
+            setResyncMsg(`Done — this device now matches the cloud (${r.farmers} farmers, ${r.logs} logs).`);
+          } else {
+            setResyncMsg(`Not resynced: ${r.reason ?? "unknown error"}`);
+          }
+          setResyncOpen(false);
+        }}
+        title="Resync this device from the cloud?"
+        confirmLabel="Resync from cloud"
+        confirmDisabled={resyncConfirm !== "RESYNC"}
+        message={
+          <p>
+            This replaces <b>this device's</b> farmer and log list with the exact cloud copy (cloud ={" "}
+            {cloudCounts ? `${cloudCounts.farmers} farmers` : "source of truth"}). Local-only records on this
+            device (like leftovers from before a cloud reset) will be removed here. Nothing is changed in the
+            cloud. The master backup button above is a good safety net — download it first if unsure.
+          </p>
+        }
+      >
+        <p className="text-[12.5px] text-stone-500">
+          Type <b className="font-mono">RESYNC</b> to confirm.
+        </p>
+        <Input
+          value={resyncConfirm}
+          onChange={(e) => setResyncConfirm(e.target.value)}
+          placeholder="RESYNC"
+          autoComplete="off"
+        />
+        {resyncMsg && <p className="mt-2 text-[12.5px] font-semibold text-forest-800">{resyncMsg}</p>}
+      </ConfirmDialog>
+
+      <ConfirmDialog
         open={wipeOpen}
         onClose={() => setWipeOpen(false)}
         onConfirm={wipeAllData}
@@ -311,6 +420,18 @@ export default function SettingsPage() {
           className="h-11 text-center font-mono font-bold"
         />
       </ConfirmDialog>
+    </div>
+  );
+}
+
+function HealthTile({ label, value, ok }: { label: string; value: number | string | null; ok?: boolean }) {
+  const tone = ok === undefined ? "text-stone-700" : ok ? "text-success-dark" : "text-danger-600";
+  return (
+    <div className="rounded-lg bg-white px-3 py-2 shadow-sm">
+      <p className="text-[10.5px] font-bold tracking-wide text-stone-400 uppercase">{label}</p>
+      <p className={`font-display text-lg font-semibold tabular ${tone}`}>
+        {value === null ? "…" : value.toLocaleString()}
+      </p>
     </div>
   );
 }

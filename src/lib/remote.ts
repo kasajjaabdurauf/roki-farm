@@ -302,6 +302,27 @@ export async function fetchAll(): Promise<{ farmers: Farmer[]; logs: ProduceLog[
   };
 }
 
+/**
+ * Lightweight cloud counts (HEAD queries — no rows transferred). Used by
+ * Settings → Data management so admins can see "on this device" vs "in
+ * the cloud" at a glance and spot a device whose local copy has drifted
+ * (e.g. leftover records from before a cloud reset).
+ */
+export async function fetchCloudCounts(): Promise<{ farmers: number; logs: number } | null> {
+  const c = sb();
+  if (!c) return null;
+  try {
+    const [f, l] = await Promise.all([
+      c.from("farmers").select("id", { count: "exact", head: true }),
+      c.from("produce_logs").select("id", { count: "exact", head: true }),
+    ]);
+    if (f.error || l.error) throw new Error(f.error?.message ?? l.error?.message ?? "count failed");
+    return { farmers: f.count ?? 0, logs: l.count ?? 0 };
+  } catch {
+    return null; // offline / transient — caller shows "unavailable"
+  }
+}
+
 // ------------------------------------------------------------------
 // Push: apply one queued mutation to Supabase
 // ------------------------------------------------------------------

@@ -4,7 +4,7 @@
    Cache version bumped on every release so updated builds
    replace what was cached on users' phones. */
 
-const CACHE = "roki-cache-v33";
+const CACHE = "roki-cache-v37";
 const PRECACHE = ["/"];
 
 self.addEventListener("install", (event) => {
@@ -16,12 +16,27 @@ self.addEventListener("install", (event) => {
   );
 });
 
+// "Update now" from the in-app banner: activate the new service worker.
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+      // Nudge every open client to reload so a fresh deploy is live
+      // within seconds of the SW taking over — even on old app versions,
+      // where the page's own controllerchange handler also reloads.
+      .then(() =>
+        self.clients.matchAll({ type: "window" }).then((clients) => {
+          clients.forEach((c) => c.postMessage({ type: "ROKI_UPDATE" }));
+        })
+      )
   );
 });
 
