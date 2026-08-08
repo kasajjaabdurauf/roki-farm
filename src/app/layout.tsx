@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppShell } from "@/components/layout";
 import { PwaRegister } from "@/components/pwa";
 import { AuthGate } from "@/components/auth";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AppShell>{children}</AppShell>
         </AuthGate>
         <PwaRegister />
+        <Analytics />
       </body>
     </html>
   );
