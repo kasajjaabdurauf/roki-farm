@@ -28,12 +28,22 @@ jobs:
       - name: Check secrets are configured
         run: |
           missing=0
-          for s in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY RESEND_API_KEY BACKUP_EMAIL_TO; do
-            if [ -z "${{ secrets[s] }}" ]; then
-              echo "::error::Missing repository secret: $s"
-              missing=1
-            fi
-          done
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "::error::Missing repository secret: SUPABASE_URL"
+            missing=1
+          fi
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "::error::Missing repository secret: SUPABASE_SERVICE_ROLE_KEY"
+            missing=1
+          fi
+          if [ -z "${{ secrets.RESEND_API_KEY }}" ]; then
+            echo "::error::Missing repository secret: RESEND_API_KEY"
+            missing=1
+          fi
+          if [ -z "${{ secrets.BACKUP_EMAIL_TO }}" ]; then
+            echo "::error::Missing repository secret: BACKUP_EMAIL_TO"
+            missing=1
+          fi
           if [ -z "${{ secrets.BACKUP_EMAIL_FROM }}" ]; then
             echo "::warning::BACKUP_EMAIL_FROM not set — will default to onboarding@resend.dev"
           fi

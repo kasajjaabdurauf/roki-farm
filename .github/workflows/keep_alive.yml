@@ -6,8 +6,12 @@
 #
 # Required repository secrets (Settings → Secrets and variables →
 # Actions):
-#   SUPABASE_URL       e.g. https://xxxx.supabase.co
+#   SUPABASE_URL       e.g. https://xxxx.supabase.co  (NO trailing slash)
 #   SUPABASE_ANON_KEY  the anon (publishable) key
+#
+# If a run fails, read the red "::error::" lines: they tell you exactly
+# which secret is missing or malformed. Fix it and re-run manually from
+# the Actions tab (no need to wait for the schedule).
 # =====================================================================
 name: Keep Supabase Awake
 
@@ -21,39 +25,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check secrets are configured
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           missing=0
-          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+          if [ -z "$SUPABASE_URL" ]; then
             echo "::error::Missing repository secret: SUPABASE_URL"
             missing=1
+          elif ! echo "$SUPABASE_URL" | grep -qE '^https://[a-z0-9-]+\.supabase\.co/?$'; then
+            echo "::error::SUPABASE_URL is not a valid Supabase URL: '$SUPABASE_URL'"
+            echo "It must be exactly https://PROJECTREF.supabase.co — no trailing slash, no spaces."
+            missing=1
           fi
-          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
             echo "::error::Missing repository secret: SUPABASE_ANON_KEY"
             missing=1
           fi
           if [ "$missing" = "1" ]; then
-            echo "Add the missing secrets in Settings → Secrets and variables → Actions, then re-run."
+            echo "Fix the secrets in Settings → Secrets and variables → Actions, then re-run from the Actions tab."
             exit 1
           fi
           echo "Secrets OK"
 
       - name: Ping Supabase REST API (farmers)
-        # continue-on-error: a 5xx during wake-up is fine — the point is
-        # to touch the DB, not to report failure on transient responses.
         continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          curl -sS -o /dev/null -w "farmers ping -> HTTP %{http_code}\n" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/farmers?select=count" || echo "farmers ping failed (will retry next run)"
+          if code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/farmers?select=count" 2>/dev/null); then
+            echo "farmers ping -> HTTP $code"
+          else
+            echo "Warning: farmers ping could not connect — will retry on the next scheduled run."
+          fi
 
       - name: Ping Supabase REST API (produce_logs)
         continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          curl -sS -o /dev/null -w "logs ping -> HTTP %{http_code}\n" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/produce_logs?select=count" || echo "logs ping failed (will retry next run)"
+          if code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/produce_logs?select=count" 2>/dev/null); then
+            echo "logs ping -> HTTP $code"
+          else
+            echo "Warning: logs ping could not connect — will retry on the next scheduled run."
+          fi
 
       - name: Confirm ping touched the DB
         run: |

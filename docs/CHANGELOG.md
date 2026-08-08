@@ -15,6 +15,7 @@ Day-two feedback: agents were still skipping the name (or the device didn't reme
 - **Uploads now require credit too:** the "Credit these farmers to which agent?" box is mandatory (type a name or "none") unless the file itself has an **Agent Name** column — the Import button stays disabled with a clear message otherwise.
 - The green Agent workspace banner no longer nags; it just shows **"Working as \<name\>"** (change link) when a name is set.
 - **Nightly backup workflow fixed:** the secret-check step used `secrets[s]` inside a shell loop, which GitHub Actions evaluates as a literal key (always "missing") — rewritten with explicit checks so the workflow can actually run once secrets are set.
+- **Keep-alive workflow hardened again:** secrets are read via `env:` (no shell substitution traps), `SUPABASE_URL` is validated up front (typos, trailing slashes and spaces are caught with a clear `::error::` message instead of a cryptic curl failure), pings have a 30s timeout and can never fail the job — a red run now only ever means "a secret is missing", and the log says exactly which one. *(The recurring `exit code 3` failure was curl rejecting an empty/malformed `SUPABASE_URL` — i.e. the secret isn't set in the repo yet.)*
 - 121 automated checks (+7 new).
 
 > ⚠️ **Agents' phones must load the new build** — a phone running the old version still has the old (dropped-name) behaviour. Open Settings/Account and check the version says **3.3.0**; otherwise close the app fully and reopen (twice) to force the update.
